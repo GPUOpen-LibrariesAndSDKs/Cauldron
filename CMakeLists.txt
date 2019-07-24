@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.4)
-#set(CMAKE_GENERATOR_PLATFORM x64)
+
+if(MSVC)
+set(CMAKE_GENERATOR_PLATFORM x64)
+endif()
 
 project (Framework_${GFX_API})
 
