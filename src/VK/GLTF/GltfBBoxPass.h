@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,12 +18,12 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base\Device.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\ResourceViewHeaps.h"
-#include "Base\DynamicBufferRing.h"
+#include "base/Device.h"
+#include "base/StaticBufferPool.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/DynamicBufferRing.h"
 #include "GLTFTexturesAndBuffers.h"
-#include "Widgets\WireframeBox.h"
+#include "widgets/WireframeBox.h"
 
 namespace CAULDRON_VK
 {
@@ -46,5 +46,3 @@ namespace CAULDRON_VK
         WireframeBox m_wireframeBox;
     };
 }
-
-

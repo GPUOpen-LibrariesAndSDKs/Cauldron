@@ -17,9 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "ResourceViewHeaps.h"
-#include "misc\misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {

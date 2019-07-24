@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "Camera.h"
 
 Camera::Camera()
@@ -29,7 +29,7 @@ Camera::Camera()
 
 //--------------------------------------------------------------------------------------
 //
-// OnCreate 
+// OnCreate
 //
 //--------------------------------------------------------------------------------------
 void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane, float farPlane)
@@ -47,7 +47,7 @@ void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane
         0.0f, -halfHeight, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
         halfWidth, halfHeight, 0.0f, 1.0f);
-    
+
     if (fovV==0)
         m_Proj = XMMatrixOrthographicRH(height/40.0f, height/40.0f, nearPlane, farPlane);
     else
@@ -76,7 +76,7 @@ void Camera::LookAt(XMVECTOR eyePos, XMVECTOR lookAt)
 }
 
 void Camera::LookAt(float yaw, float pitch, float distance, XMVECTOR at )
-{   
+{
     LookAt(at + PolarToVector(yaw, pitch)*distance, at);
 }
 
@@ -86,21 +86,21 @@ void Camera::LookAt(float yaw, float pitch, float distance, XMVECTOR at )
 //
 //--------------------------------------------------------------------------------------
 void Camera::UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], double deltaTime)
-{   
+{
     m_eyePos += XMVector4Transform(MoveWASD(keyDown) * m_speed * (float)deltaTime, XMMatrixTranspose(m_View));
-    XMVECTOR dir = PolarToVector(yaw, pitch) * m_distance;   
+    XMVECTOR dir = PolarToVector(yaw, pitch) * m_distance;
     LookAt(m_eyePos, m_eyePos - dir);
 }
 
 void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance)
-{    
+{
     m_eyePos += GetSide() * x * distance / 10.0f;
     m_eyePos += GetUp() * y * distance / 10.0f;
 
-    XMVECTOR dir = GetDirection();    
+    XMVECTOR dir = GetDirection();
     XMVECTOR pol = PolarToVector(yaw, pitch);
 
-    XMVECTOR at = m_eyePos - dir * m_distance;   
+    XMVECTOR at = m_eyePos - dir * m_distance;
     XMVECTOR m_eyePos = at + pol * distance;
 
     LookAt(m_eyePos, at);
@@ -113,7 +113,7 @@ void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float d
 //--------------------------------------------------------------------------------------
 XMVECTOR PolarToVector(float yaw, float pitch)
 {
-    return XMVectorSet(sinf(yaw) * cosf(pitch), sinf(pitch), cosf(yaw) * cosf(pitch), 0);    
+    return XMVectorSet(sinf(yaw) * cosf(pitch), sinf(pitch), cosf(yaw) * cosf(pitch), 0);
 }
 
 XMMATRIX LookAtRH(XMVECTOR eyePos, XMVECTOR lookAt)
@@ -122,7 +122,7 @@ XMMATRIX LookAtRH(XMVECTOR eyePos, XMVECTOR lookAt)
 }
 
 XMVECTOR MoveWASD(const bool keyDown[256])
-{ 
+{
     float x = 0, y = 0, z = 0;
 
     if (keyDown['W'])
@@ -154,4 +154,3 @@ XMVECTOR MoveWASD(const bool keyDown[256])
 
     return XMVectorSet(x, y, z, 0.0f) * scale;
 }
-

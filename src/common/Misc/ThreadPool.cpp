@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,8 +18,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "stdafx.h"
-#include "ThreadPool.h"
+#include "threadpool.h"
 
 static ThreadPool t;
 
@@ -74,8 +73,8 @@ void ThreadPool::JobStealerLoop()
             t = Queue.front();
             Queue.pop_front();
         }
-        
-        t.m_job(); 
+
+        t.m_job();
 
         {
             std::unique_lock<std::mutex> lock(Queue_Mutex);
@@ -100,11 +99,9 @@ void ThreadPool::AddJob(std::function<void()> job)
 
             if (m_activeThreads<Num_Threads)
                 condition.notify_one();
-        } 
+        }
     }
 #else
     New_Job();
 #endif
 }
-
-

@@ -17,10 +17,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "Device.h"
 #include "UploadHeap.h"
-#include "misc\Misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {

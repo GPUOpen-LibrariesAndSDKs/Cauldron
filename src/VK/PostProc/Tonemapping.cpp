@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,14 +17,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "Base\DynamicBufferRing.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\DebugMarkersExt.h"
-#include "Base\UploadHeap.h"
-#include "Base\Texture.h"
-#include "Base\Helper.h"
-#include "ToneMapping.h"
+
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/DebugMarkersExt.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
+#include "base/Helper.h"
+#include "Tonemapping.h"
 
 namespace CAULDRON_VK
 {

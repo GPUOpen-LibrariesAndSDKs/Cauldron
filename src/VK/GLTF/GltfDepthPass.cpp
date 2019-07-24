@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,13 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "GltfHelpers.h"
-#include "Base\ShaderCompilerHelper.h"
-#include "Base\ResourceViewHeaps.h"
-#include "Base\DebugMarkersExt.h"
-#include "Base\Helper.h"
-#include "Misc\Cache.h"
+
+#include "glTFHelpers.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/DebugMarkersExt.h"
+#include "base/Helper.h"
+#include "Misc/Cache.h"
 
 #include "GltfDepthPass.h"
 
@@ -80,7 +80,7 @@ namespace CAULDRON_VK
         }
 
         // Create materials (in a depth pass materials are still needed to handle non opaque textures
-        //    
+        //
         if (j3.find("materials") != j3.end())
         {
             json::array_t materials = j3["materials"];
@@ -93,7 +93,7 @@ namespace CAULDRON_VK
                 DepthMaterial *tfmat = &m_materialsData[i];
 
                 // Load material constants. This is a depth pass and we are only interested in the mask texture
-                //               
+                //
                 tfmat->m_doubleSided = GetElementBoolean(material, "doubleSided", false);
                 std::string alphaMode = GetElementString(material, "alphaMode", "OPAQUE");
                 tfmat->m_defines["DEF_alphaMode_" + alphaMode] = std::to_string(1);
@@ -107,7 +107,7 @@ namespace CAULDRON_VK
                     int id = GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1);
                     if (id >= 0)
                     {
-                        // allocate descriptor table for the texture                                   
+                        // allocate descriptor table for the texture
                         tfmat->m_textureCount = 1;
                         m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, &m_sampler, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
                         VkImageView textureView = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
@@ -147,7 +147,7 @@ namespace CAULDRON_VK
 
                     bool isTransparent = pPrimitive->m_pMaterial->m_defines.find("DEF_alphaMode_OPAQUE") == pPrimitive->m_pMaterial->m_defines.end();
 
-                    // Defines for the shader compiler, they will hold the PS and VS bindings for the geometry, io and textures 
+                    // Defines for the shader compiler, they will hold the PS and VS bindings for the geometry, io and textures
                     //
                     DefineList attributeDefines;
 
@@ -317,7 +317,7 @@ namespace CAULDRON_VK
         assert(res == VK_SUCCESS);
 
     }
-        
+
     //--------------------------------------------------------------------------------------
     //
     // CreatePipeline
@@ -330,7 +330,7 @@ namespace CAULDRON_VK
 
         VkPipelineShaderStageCreateInfo vertexShader, fragmentShader = {};
         {
-            // Create #defines based on material properties and vertex attributes 
+            // Create #defines based on material properties and vertex attributes
             DefineList defines = pPrimitive->m_pMaterial->m_defines + (*pAttributeDefines);
 
             VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFDepthPass-vert.glsl", "main", &defines, &vertexShader);
@@ -339,7 +339,7 @@ namespace CAULDRON_VK
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader, fragmentShader };
 
         /////////////////////////////////////////////
-        // Create a Pipeline 
+        // Create a Pipeline
 
         // vertex input state
 
@@ -467,7 +467,7 @@ namespace CAULDRON_VK
         ms.alphaToOneEnable = VK_FALSE;
         ms.minSampleShading = 0.0;
 
-        // create pipeline 
+        // create pipeline
 
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -552,7 +552,7 @@ namespace CAULDRON_VK
                 {
                     vkCmdBindVertexBuffers(cmd_buf, i, 1, &pGeometry->m_VBV[i].buffer, &pGeometry->m_VBV[i].offset);
                 }
-                
+
                 vkCmdBindIndexBuffer(cmd_buf, pGeometry->m_IBV.buffer, pGeometry->m_IBV.offset, pGeometry->m_indexType);
 
                 // Bind Descriptor sets

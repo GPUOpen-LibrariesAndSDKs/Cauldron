@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "..\Misc\Misc.h"
+#include "../Misc/Misc.h"
 
 //
 // Hash a string of source code and recurse over its #include files
@@ -50,7 +50,7 @@ public:
                                 const DefineList & def2) // otherwise, both parameters may be const references
     {
         for (auto it = def2.begin(); it != def2.end(); it++)
-            def1[it->first] = it->second;    
-        return def1; 
+            def1[it->first] = it->second;
+        return def1;
     }
 };

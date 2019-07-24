@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,12 +17,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "GltfHelpers.h"
-#include "Base\UploadHeap.h"
+
+#include "glTFHelpers.h"
+#include "base/UploadHeap.h"
 #include "GLTFTexturesAndBuffers.h"
-#include "Misc\Misc.h"
-#include "Misc\ThreadPool.h"
+#include "Misc/Misc.h"
+#include "Misc/threadpool.h"
 
 namespace CAULDRON_VK
 {
@@ -53,7 +53,7 @@ namespace CAULDRON_VK
             {
                 // Identify what material uses this texture, this helps:
                 // 1) determine the color space if the texture and also the cut out level. Authoring software saves albedo and emissive images in SRGB mode, the rest are linear mode
-                // 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used. 
+                // 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used.
                 //
                 bool useSRGB = false;
                 float cutOff = 1.0f; // no cutoff

@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include <DXGIFormat.h>
+
 #include "ImgLoader.h"
 
 
@@ -30,10 +30,8 @@ class DDSLoader : public ImgLoader
 public:
     ~DDSLoader() {}
     bool Load(const char *pFilename, float cutOff, IMG_INFO *pInfo);
-    // after calling Load, calls to CopyPixels return each time a lower mip level 
+    // after calling Load, calls to CopyPixels return each time a lower mip level
     void CopyPixels(void *pDest, uint32_t stride, uint32_t width, uint32_t height);
 private:
     HANDLE m_handle;
 };
-
-

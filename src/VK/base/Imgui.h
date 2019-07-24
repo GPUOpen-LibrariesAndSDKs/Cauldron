@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -21,8 +21,8 @@
 #include "DynamicBufferRing.h"
 #include "CommandListRing.h"
 #include "UploadHeap.h"
-#include "..\imgui\imgui.h"
-#include "base\ImGuiHelper.h"
+#include "../imgui/imgui.h"
+#include "base/ImGuiHelper.h"
 
 namespace CAULDRON_VK
 {

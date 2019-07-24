@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,14 +17,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "Base\DynamicBufferRing.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\ResourceViewHeaps.h"
-#include "Base\ShaderCompilerHelper.h"
-#include "Base\UploadHeap.h"
-#include "Base\Texture.h"
-#include "Misc\ThreadPool.h"
+
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
+#include "Misc/threadpool.h"
 
 #include "PostProcPS.h"
 
@@ -80,7 +80,7 @@ namespace CAULDRON_VK
                 { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },
                 { 1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3 },
             };
-            
+
             // Compile shaders
             //
             DefineList attributeDefines;
@@ -121,7 +121,7 @@ namespace CAULDRON_VK
             vi.vertexBindingDescriptionCount = 1;
             vi.pVertexBindingDescriptions = &vi_binding;
             vi.vertexAttributeDescriptionCount = _countof(vi_attrs);
-            vi.pVertexAttributeDescriptions = vi_attrs;            
+            vi.pVertexAttributeDescriptions = vi_attrs;
 
             VkPipelineInputAssemblyStateCreateInfo ia;
             ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -230,7 +230,7 @@ namespace CAULDRON_VK
             ms.alphaToOneEnable = VK_FALSE;
             ms.minSampleShading = 0.0;
 
-            // create pipeline 
+            // create pipeline
 
             VkGraphicsPipelineCreateInfo pipeline = {};
             pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -270,12 +270,12 @@ namespace CAULDRON_VK
         if (m_pipeline == VK_NULL_HANDLE)
             return;
 
-        // Bind vertices 
+        // Bind vertices
         //
         vkCmdBindVertexBuffers(cmd_buf, 0, 1, &m_verticesView.buffer, &m_verticesView.offset);
 
         // Bind Descriptor sets
-        //                
+        //
         VkDescriptorSet descritorSets[1] = { descriptorSet };
         int numUniformOffsets = 1;
         if (constantBuffer.buffer == NULL)

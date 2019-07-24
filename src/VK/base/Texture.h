@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -22,8 +22,8 @@
 #include "Device.h"
 #include "UploadHeap.h"
 #include "ResourceViewHeaps.h"
-#include "..\VulkanMemoryAllocator\vk_mem_alloc.h"
-#include "misc\DDSLoader.h"
+#include "../VulkanMemoryAllocator/vk_mem_alloc.h"
+#include "Misc/DDSLoader.h"
 
 namespace CAULDRON_VK
 {

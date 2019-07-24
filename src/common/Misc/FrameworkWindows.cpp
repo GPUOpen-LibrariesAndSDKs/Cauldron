@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "FrameworkWindows.h"
 
 LRESULT CALLBACK WindowProc(HWND hWnd,
@@ -82,7 +82,7 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, uint32_t Wi
         // check to see if any messages are waiting in the queue
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&msg); // translate keystroke messages into the right format            
+            TranslateMessage(&msg); // translate keystroke messages into the right format
             DispatchMessage(&msg); // send the message to the WindowProc function
         }
         else

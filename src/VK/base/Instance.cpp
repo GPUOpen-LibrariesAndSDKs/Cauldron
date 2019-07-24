@@ -17,11 +17,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include <algorithm>
 #include "Instance.h"
 #include "InstanceProperties.h"
-#include <vulkan\vulkan_win32.h>
+#include <vulkan/vulkan_win32.h>
 
 namespace CAULDRON_VK
 {

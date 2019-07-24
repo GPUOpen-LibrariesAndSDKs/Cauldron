@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,9 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "GltfPbrMaterial.h"
-#include "gltfHelpers.h"
+#include "GltfHelpers.h"
 
 void AddTextureIfExists(const json::object_t &material, std::map<std::string, int> &textureIds, char *texturePath, char *textureName)
 {
@@ -44,7 +44,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
     tfmat->m_defines["DEF_alphaCutoff"] = std::to_string(GetElementFloat(material, "alphaCutoff", 0.5));
     tfmat->m_defines["DEF_alphaMode_" + GetElementString(material, "alphaMode", "OPAQUE")] = std::to_string(1);
 
-    // look for textures and store their IDs in a map 
+    // look for textures and store their IDs in a map
     //
     AddTextureIfExists(material, textureIds, "normalTexture/index", "normalTexture");
     AddTextureIfExists(material, textureIds, "emissiveTexture/index", "emissiveTexture");
@@ -101,4 +101,3 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
         }
     }
 }
-

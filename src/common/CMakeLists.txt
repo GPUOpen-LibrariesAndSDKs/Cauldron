@@ -1,6 +1,6 @@
 project (Framework_Common)
 
-add_compile_options(/MP)
+add_compile_options(-M)
 
 set(base_src
     "base/ImGuiHelper.cpp"
@@ -31,4 +31,3 @@ target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 source_group("base"         FILES ${base_src})
 source_group("GLTF"         FILES ${GLTF_src})
 source_group("Misc"         FILES ${Misc_src})
-

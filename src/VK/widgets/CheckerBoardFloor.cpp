@@ -17,9 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "Base\Device.h"
-#include "Base\ShaderCompilerHelper.h"
+
+#include "base/Device.h"
+#include "base/ShaderCompilerHelper.h"
 #include "CheckerboardFloor.h"
 
 namespace CAULDRON_VK

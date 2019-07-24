@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,12 +17,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include <vulkan\vulkan_win32.h>
+
+#include <vulkan/vulkan_win32.h>
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
-#include "ValidationExt.h"
+#include "validationExt.h"
 
 namespace CAULDRON_VK
 {

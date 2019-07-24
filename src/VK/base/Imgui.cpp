@@ -17,9 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "ShaderCompilerHelper.h"
-#include "Base\DebugMarkersExt.h"
+#include "base/DebugMarkersExt.h"
 #include "Imgui.h"
 
 namespace CAULDRON_VK

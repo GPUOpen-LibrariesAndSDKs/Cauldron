@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,13 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "misc\Cache.h"
-#include "GltfHelpers.h"
-#include "Base\Helper.h"
-#include "Base\ShaderCompilerHelper.h"
-#include "Base\DebugMarkersExt.h"
-#include "PostProc\Skydome.h"
+
+#include "Misc/Cache.h"
+#include "glTFHelpers.h"
+#include "base/Helper.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/DebugMarkersExt.h"
+#include "PostProc/SkyDome.h"
 
 #include "GltfPbrPass.h"
 
@@ -46,7 +46,7 @@ namespace CAULDRON_VK
         VkImageView ShadowMapView,
         VkSampleCountFlagBits sampleCount
     )
-    {        
+    {
         m_pDevice = pDevice;
         m_renderPass = renderPass;
         m_sampleCount = sampleCount;
@@ -180,7 +180,7 @@ namespace CAULDRON_VK
 
                     int32_t mode = GetElementInt(primitive, "mode", 4);
 
-                    // Defines for the shader compiler, they will hold the PS and VS bindings for the geometry, io and textures 
+                    // Defines for the shader compiler, they will hold the PS and VS bindings for the geometry, io and textures
                     //
                     DefineList attributeDefines;
 
@@ -269,10 +269,10 @@ namespace CAULDRON_VK
                 tfmat->m_textureCount += 1;
         }
 
-        // Alloc descriptor layout and init the descriptor set 
+        // Alloc descriptor layout and init the descriptor set
         if (tfmat->m_textureCount >= 0)
         {
-            // allocate descriptor table for the textures            
+            // allocate descriptor table for the textures
             m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, NULL, &tfmat->m_descriptorLayout, &tfmat->m_texturesDescriptorSet);
 
             uint32_t cnt = 0;
@@ -434,7 +434,7 @@ namespace CAULDRON_VK
 
         VkPipelineShaderStageCreateInfo vertexShader = {}, fragmentShader = {};
         {
-            // Create #defines based on material properties and vertex attributes 
+            // Create #defines based on material properties and vertex attributes
             DefineList defines = pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_defines + (*pAttributeDefines);
 
             VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFPbrPass-vert.glsl", "main", &defines, &vertexShader);
@@ -571,7 +571,7 @@ namespace CAULDRON_VK
         ms.alphaToOneEnable = VK_FALSE;
         ms.minSampleShading = 0.0;
 
-        // create pipeline 
+        // create pipeline
         //
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -657,7 +657,7 @@ namespace CAULDRON_VK
                 //
                 if (pPbrParams->m_blending == false)
                 {
-                    // If solid draw it 
+                    // If solid draw it
                     //
                     pPrimitive->DrawPrimitive(cmd_buf, m_pGLTFTexturesAndBuffers->m_perFrameConstants, perObjectDesc, pPerSkeleton);
                 }
