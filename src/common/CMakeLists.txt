@@ -1,6 +1,10 @@
 project (Framework_Common)
 
+if(MSVC)
+  add_compile_options(/MP)
+else()
 add_compile_options(-M)
+endif()
 
 set(base_src
     "base/ImGuiHelper.cpp"
