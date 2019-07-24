@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,21 +17,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 
 #include "Device.h"
-#include <vulkan\vulkan_win32.h>
+#include <vulkan/vulkan_win32.h>
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
 #include "DebugMarkersExt.h"
 #include "ExtFreeSync2.h"
 #include "ExtFp16.h"
-#include "ValidationExt.h"
+#include "validationExt.h"
 
 #ifdef USE_VMA
 #define VMA_IMPLEMENTATION
-#include "..\VulkanMemoryAllocator\vk_mem_alloc.h"
+#include "../VulkanMemoryAllocator/vk_mem_alloc.h"
 #endif
 
 namespace CAULDRON_VK
@@ -45,7 +45,7 @@ namespace CAULDRON_VK
     }
 
     void Device::OnCreate(const char *pAppName, const char *pEngineName, bool bValidationEnabled, HWND hWnd)
-    {        
+    {
         InstanceProperties ip;
         ip.Init();
 
@@ -140,7 +140,7 @@ namespace CAULDRON_VK
             }
         }
 
-        // Read device properties 
+        // Read device properties
         DeviceProperties dp;
         dp.Init(m_physicaldevice);
 
@@ -161,10 +161,10 @@ namespace CAULDRON_VK
         }
 
         // collect existing extensions
-        std::vector<const char *> extension_names;        
+        std::vector<const char *> extension_names;
         dp.GetExtensionNamesAndConfigs(&extension_names);
 
-        // Create device 
+        // Create device
         //
         float queue_priorities[1] = { 0.0 };
         VkDeviceQueueCreateInfo queue_info = {};

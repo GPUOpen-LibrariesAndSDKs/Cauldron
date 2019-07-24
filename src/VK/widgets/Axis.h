@@ -18,9 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base\ResourceViewHeaps.h"
-#include "Base\DynamicBufferRing.h"
-#include "Base\StaticBufferPool.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
 
 namespace CAULDRON_VK
 {

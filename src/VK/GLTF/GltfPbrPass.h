@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,8 +19,8 @@
 #pragma once
 
 #include "GLTFTexturesAndBuffers.h"
-#include "PostProc\SkyDome.h"
-#include "..\Common\GLTF\GltfPbrMaterial.h"
+#include "PostProc/SkyDome.h"
+#include "../common/GLTF/GltfPbrMaterial.h"
 
 namespace CAULDRON_VK
 {
@@ -109,5 +109,3 @@ namespace CAULDRON_VK
         void CreatePipeline(Device *pDevice, std::vector<VkVertexInputAttributeDescription> layout, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
     };
 }
-
-

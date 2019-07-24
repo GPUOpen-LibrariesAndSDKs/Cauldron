@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,10 +17,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "GltfCommon.h"
 #include "GltfHelpers.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 {
@@ -28,7 +28,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 
     m_path = path;
 
-    std::ifstream f(path + filename);    
+    std::ifstream f(path + filename);
     if (!f)
     {
         Trace(format("The file %s cannot be found\n", filename.c_str()));
@@ -81,7 +81,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 
             pPrimitive->m_center = (min + max)*.5;
             pPrimitive->m_radius = max - pPrimitive->m_center;
-         
+
             pPrimitive->m_center = XMVectorSetW(pPrimitive->m_center, 1.0f); //set the W to 1 since this is a position not a direction
         }
     }
@@ -105,7 +105,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                     m_lights[i].m_range = GetElementFloat(light, "range", 105);
                     m_lights[i].m_innerConeAngle = GetElementFloat(light, "spot/innerConeAngle", 0);
                     m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/m_outerConeAngle", XM_PIDIV4);
-                    
+
                     std::string name = GetElementString(light, "type", "");
                     if (name == "spot")
                         m_lights[i].m_type = tfLight::LIGHT_SPOTLIGHT;
@@ -131,7 +131,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             tfcamera->znear = GetElementFloat(camera, "perspective/znear", 0.1f);
             tfcamera->zfar = GetElementFloat(camera, "perspective/zfar", 100.0f);
             tfcamera->m_nodeIndex = -1;
-        }        
+        }
     }
 
     // Load nodes
@@ -264,7 +264,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                 GetBufferDetails(samplers[sampler]["output"], &tfsmp->m_value);
 
                 // Index appropriately
-                // 
+                //
                 if (path == "translation")
                 {
                     tfchannel->m_pTranslation = tfsmp;
@@ -325,7 +325,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
             Transform animated;
 
             float frac, *pCurr, *pNext;
-            
+
             // Animate translation
             //
             if (it->second.m_pTranslation != NULL)
@@ -422,7 +422,7 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id)
 }
 
 //
-// Transforms a node hierarchy recursively 
+// Transforms a node hierarchy recursively
 //
 void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pNodes, GLTFCommonTransformed *pTransformed)
 {
@@ -440,7 +440,7 @@ void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pN
 }
 
 //
-// Initializes the GLTFCommonTransformed structure 
+// Initializes the GLTFCommonTransformed structure
 //
 void GLTFCommon::InitTransformedData()
 {
@@ -459,16 +459,16 @@ void GLTFCommon::InitTransformedData()
     for (uint32_t i = 0; i < m_nodes.size(); i++)
     {
         m_transformedData.m_animatedMats[i] = m_nodes[i].m_tranform.GetWorldMat();
-    }  
+    }
 }
 
 //
-// Takes the animated matrices and processes the hierarchy, also computes the skinning matrix buffers. 
+// Takes the animated matrices and processes the hierarchy, also computes the skinning matrix buffers.
 //
 void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
 {
     // transform all the nodes of the scene
-    //           
+    //
     std::vector<tfNode *> sceneNodes = { m_scenes[sceneIndex].m_nodes };
     TransformNodes(m_nodes.data(), world, &sceneNodes, &m_transformedData);
 
@@ -477,15 +477,15 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
     for (uint32_t i = 0; i<m_skins.size(); i++)
     {
         tfSkins &skin = m_skins[i];
-        
-        //pick the matrices that affect the skin and multiply by the inverse of the bind         
+
+        //pick the matrices that affect the skin and multiply by the inverse of the bind
         XMMATRIX *pM = (XMMATRIX *)skin.m_InverseBindMatrices.m_data;
         std::vector<XMMATRIX> &skinningMats = m_transformedData.m_worldSpaceSkeletonMats[i];
         for (int j = 0; j < skin.m_InverseBindMatrices.m_count; j++)
-        {                
+        {
             skinningMats[j] = pM[j] * m_transformedData.m_worldSpaceMats[skin.m_jointsNodeIdx[j]];
         }
-    }    
+    }
 }
 
 //
@@ -506,7 +506,7 @@ per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx)
         m_perFrameData.mCameraViewProj = XMMatrixInverse(nullptr, cameraMat) * XMMatrixPerspectiveFovRH(m_cameras[0].yfov, 1280.0f / 720.0f, 0.1f, 100.0f);
         m_perFrameData.cameraPos = cameraMat.r[3];
     }
-    
+
     // Process lights
     m_perFrameData.lightCount = (int32_t)m_lights.size();
     for (int i = 0; i < m_lights.size(); i++)
@@ -516,7 +516,7 @@ per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx)
 
         Light *pSL = &m_perFrameData.lights[i];
         pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle, 1, .1f, 100.0f);
-            
+
         GetXYZ(pSL->direction, XMVector4Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMMatrixTranspose(lightView)));
         pSL->range = m_lights[i].m_range;
         GetXYZ(pSL->color, m_lights[i].m_color);

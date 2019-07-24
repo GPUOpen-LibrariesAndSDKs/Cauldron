@@ -1,6 +1,6 @@
 project (Framework_DX12)
 
-add_compile_options(/MP)
+add_compile_options(-M)
 
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
@@ -91,10 +91,10 @@ set(Shaders_src
 
 set(media_src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
-)    
+)
 
 function(copyCommand list dest)
-	foreach(fullFileName ${list})    
+	foreach(fullFileName ${list})
 		get_filename_component(file ${fullFileName} NAME)
 		message("Generating custom command for ${fullFileName}")
 		add_custom_command(
@@ -103,9 +103,9 @@ function(copyCommand list dest)
 			COMMAND cmake -E make_directory ${dest}
 			COMMAND cmake -E copy ${fullFileName}  ${dest}
 			MAIN_DEPENDENCY  ${fullFileName}
-			COMMENT "Updating ${file} into ${dest}" 
+			COMMENT "Updating ${file} into ${dest}"
 		)
-	endforeach()    
+	endforeach()
 endfunction()
 
 copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
@@ -125,5 +125,3 @@ source_group("media"           FILES ${media_src})
 
 set_source_files_properties(${Shaders_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
 set_source_files_properties(${media_src} PROPERTIES VS_TOOL_OVERRIDE "Media")
-
-

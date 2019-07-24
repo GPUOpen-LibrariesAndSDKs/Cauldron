@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
-set(CMAKE_GENERATOR_PLATFORM x64)
+#set(CMAKE_GENERATOR_PLATFORM x64)
 
 project (Framework_${GFX_API})
 
@@ -11,18 +11,18 @@ foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
 endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 # reference libs used by both backends
-add_subdirectory(src/Common)
+add_subdirectory(src/common)
 add_subdirectory(libs/json)
-add_subdirectory(libs/ImGUI)
+add_subdirectory(libs/imgui)
 
-if(GFX_API STREQUAL DX12)        
+if(GFX_API STREQUAL DX12)
     add_subdirectory(libs/d3d12x)
-    add_subdirectory(libs/ags)    
+    add_subdirectory(libs/ags)
     add_subdirectory(libs/dxc)
-    add_subdirectory(src/DX12)   
+    add_subdirectory(src/DX12)
 elseif(GFX_API STREQUAL VK)
     find_package(Vulkan REQUIRED)
-    add_subdirectory(libs/VulkanMemoryAllocator)    
+    add_subdirectory(libs/VulkanMemoryAllocator)
     add_subdirectory(src/VK)
 else()
     message(STATUS "----------------------------------------------------------------------------------------")
@@ -38,4 +38,3 @@ else()
     message(STATUS "----------------------------------------------------------------------------------------")
     message(FATAL_ERROR "")
 endif()
-

@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -24,7 +24,7 @@
 #define USE_VMA
 
 #ifdef USE_VMA
-#include "..\VulkanMemoryAllocator\vk_mem_alloc.h"
+#include "../VulkanMemoryAllocator/vk_mem_alloc.h"
 #endif
 
 namespace CAULDRON_VK

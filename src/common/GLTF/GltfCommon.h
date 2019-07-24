@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,8 +18,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "..\json\json.h"
-#include "..\..\common\Misc\Camera.h"
+#include "../json/json.h"
+#include "../../common/Misc/Camera.h"
 #include "GltfStructures.h"
 
 // The GlTF file is loaded in 2 steps
@@ -38,14 +38,14 @@
 using json = nlohmann::json;
 
 struct GLTFCommonTransformed
-{    
+{
     std::vector<XMMATRIX> m_animatedMats;       // objext space matrices of each node after being animated
     std::vector<XMMATRIX> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
     std::map<int, std::vector<XMMATRIX>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
 };
 
 //
-// Structures holding the per frame constant buffer data. 
+// Structures holding the per frame constant buffer data.
 //
 struct Light
 {
@@ -56,10 +56,10 @@ struct Light
 
     float         color[3];
     float         intensity;
-    
+
     float         position[3];
     float         innerConeCos;
-    
+
     float         outerConeCos;
     uint32_t      type;
     float         depthBias;
@@ -123,4 +123,3 @@ public:
     void TransformScene(int sceneIndex, XMMATRIX world);
     per_frame *SetPerFrameData(uint32_t cameraIdx);
 };
-

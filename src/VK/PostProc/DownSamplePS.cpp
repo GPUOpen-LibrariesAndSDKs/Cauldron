@@ -17,14 +17,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "Base\DynamicBufferRing.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\DebugMarkersExt.h"
-#include "Base\UploadHeap.h"
-#include "Base\Texture.h"
-#include "Base\Imgui.h"
-#include "Base\Helper.h"
+
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/DebugMarkersExt.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
+#include "base/Imgui.h"
+#include "base/Helper.h"
 
 #include "PostProcPS.h"
 #include "DownSamplePS.h"

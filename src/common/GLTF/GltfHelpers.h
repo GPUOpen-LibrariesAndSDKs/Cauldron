@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "..\json\json.h"
+#include "../json/json.h"
 
 using json = nlohmann::json;
 
@@ -34,4 +34,3 @@ int GetElementInt(const json::object_t &root, char *path, int pDefault);
 bool GetElementBoolean(const json::object_t &root, char *path, bool pDefault);
 json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::array_t pDefault);
 XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default);
-

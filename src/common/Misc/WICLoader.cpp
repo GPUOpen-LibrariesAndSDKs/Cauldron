@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,10 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "WICLoader.h"
-#include "wincodec.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 static IWICImagingFactory *m_pWICFactory = NULL;
 
@@ -79,7 +78,7 @@ bool WICLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
     uint32_t _height = height;
     uint32_t mipCount = 0;
     for(;;)
-    {        
+    {
         mipCount++;
         if (_width > 1) _width >>= 1;
         if (_height > 1) _height >>= 1;
@@ -132,7 +131,7 @@ float WICLoader::GetAlphaCoverage(uint32_t width, uint32_t height, float scale, 
     for (uint32_t y = 0; y < height; y++)
     {
         for (uint32_t x = 0; x < width; x++)
-        {            
+        {
             uint8_t *pPixel = (uint8_t *)pImg++;
 
             int alpha = (int)(scale * (float)pPixel[3]);
@@ -167,7 +166,7 @@ void WICLoader::ScaleAlpha(uint32_t width, uint32_t height, float scale)
 
 void WICLoader::MipImage(uint32_t width, uint32_t height)
 {
-    //compute mip so next call gets the lower mip    
+    //compute mip so next call gets the lower mip
     int offsetsX[] = { 0,1,0,1 };
     int offsetsY[] = { 0,0,1,1 };
 
@@ -189,17 +188,17 @@ void WICLoader::MipImage(uint32_t width, uint32_t height)
                     cc += GetByte(GetColor(pImg, x + offsetsX[i], y + offsetsY[i]), 3-c);
 
                 ccc = (ccc << 8) | (cc/4);
-            }            
+            }
             SetColor(pImg, x / 2, y / 2, ccc);
         }
-    }        
+    }
 
 
     // For cutouts we need we need to scale the alpha channel to match the coverage of the top MIP map
     // otherwise cutouts seem to get thinner when smaller mips are used
     // Credits: http://the-witness.net/news/2010/09/computing-alpha-mipmaps/
     //
-    
+
     if (m_alphaTestCoverage < 1.0)
     {
         float ini = 0;
@@ -221,7 +220,7 @@ void WICLoader::MipImage(uint32_t width, uint32_t height)
                 ini = mid;
         }
         ScaleAlpha(width / 2, height / 2, mid);
-        //Trace(format("(%4i x %4i), %f, %f, %i\n", width, height, alphaPercentage, 1.0f, 0));       
+        //Trace(format("(%4i x %4i), %f, %f, %i\n", width, height, alphaPercentage, 1.0f, 0));
     }
 
 }

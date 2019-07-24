@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,7 +19,7 @@
 
 #pragma once
 #include "GltfHelpers.h"
-#include "Base/ShaderCompiler.h"
+#include "base/ShaderCompiler.h"
 
 struct PBRMaterialParametersConstantBuffer
 {
@@ -55,4 +55,3 @@ struct PBRMaterialParameters
 // Read GLTF material and store it in our structure
 //
 void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfmat, std::map<std::string, int> &textureIds);
-

@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "DDSLoader.h"
 
 
@@ -56,7 +56,7 @@ struct DDS_HEADER
 // retrieve the GetDxGiFormat from a DDS_PIXELFORMAT
 // based on http://msdn.microsoft.com/en-us/library/windows/desktop/bb943991(v=vs.85).aspx
 //--------------------------------------------------------------------------------------
-static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt) 
+static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt)
 {
     if (pixelFmt.flags & 0x00000004)   //DDPF_FOURCC
     {
