@@ -18,9 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "vulkan/vulkan.h"
-
-
+#include <vulkan/vulkan.h>
 #define USE_VMA
 
 #ifdef USE_VMA

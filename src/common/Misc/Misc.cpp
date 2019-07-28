@@ -18,10 +18,15 @@
 // THE SOFTWARE.
 
 #include <cstdarg>
+#include <fstream>
 #include <memory>
 #include <mutex>
 
 #include "Misc.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 //
 // Get current time in milliseconds
@@ -30,7 +35,7 @@ double MillisecondsNow()
 {
     double milliseconds = 0;
 
-#ifdef __WIN32
+#ifdef _WIN32
     static LARGE_INTEGER s_frequency;
     static BOOL s_use_qpc = QueryPerformanceFrequency(&s_frequency);
 
@@ -92,7 +97,7 @@ void Trace(const std::string &str)
 {
     std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
-    #ifdef __WIN32
+    #ifdef _WIN32
     OutputDebugStringA(str.c_str());
     #else
     #warning "TODO: Implement debugging for Linux"

@@ -19,6 +19,10 @@
 
 #pragma once
 
+#ifdef _WIN32
+
+#include <Windows.h>
+
 void ShowErrorMessageBox(HRESULT hr);
 
 inline void ThrowIfFailed(HRESULT hr)
@@ -31,3 +35,7 @@ inline void ThrowIfFailed(HRESULT hr)
         throw 1;
     }
 }
+
+#else 
+#warning "TODO: implement crossplatform error window"
+#endif
