@@ -1,7 +1,5 @@
 project (Framework_DX12)
 
-add_compile_options(-M)
-
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
     GLTF/GltfBBoxPass.h
