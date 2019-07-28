@@ -129,7 +129,7 @@ copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
 
 add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src})
 
-target_link_libraries (${PROJECT_NAME} Framework_Common Vulkan::Vulkan NJSON)
+target_link_libraries (${PROJECT_NAME} Framework_Common Vulkan::Vulkan NJSON DxgiFormat)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("GLTF"            FILES ${GLTF_src})
