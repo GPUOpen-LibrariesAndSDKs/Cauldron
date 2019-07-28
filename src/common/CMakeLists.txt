@@ -14,7 +14,7 @@ set(GLTF_src
     "GLTF/GltfPbrMaterial.cpp"
     "GLTF/GltfPbrMaterial.h"
     "GLTF/glTFHelpers.cpp"
-    "GLTF/glTFHelpers.h"
+    "GLTF/GltfHelpers.h"
 )
 
 set(Misc_src

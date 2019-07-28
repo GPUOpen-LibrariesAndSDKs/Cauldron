@@ -60,7 +60,11 @@ bool ImGUI_Init(void* hwnd)
 void ImGUI_Shutdown()
 {
     ImGui::Shutdown();
+#ifdef _WIN32
     g_hWnd = (HWND)0;
+#else
+#warning "TODO: implement ImGUI_Shutdown for Linux"
+#endif
 }
 
 void ImGUI_UpdateIO()
@@ -82,13 +86,13 @@ void ImGUI_UpdateIO()
     // io.MousePos : filled by WM_MOUSEMOVE events
     // io.MouseDown : filled by WM_*BUTTON* events
     // io.MouseWheel : filled by WM_MOUSEWHEEL events
-#else
-#warning "TODO: implement ImGUI_UpdateIO for Linux"
-#endif
 
     // Hide OS mouse cursor if ImGui is drawing it
     if (io.MouseDrawCursor)
         SetCursor(NULL);    // Start the frame
+#else
+#warning "TODO: implement ImGUI_UpdateIO for Linux"
+#endif
 }
 
 static bool IsAnyMouseButtonDown()

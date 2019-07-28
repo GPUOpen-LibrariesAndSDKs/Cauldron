@@ -17,6 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cstring>
 
 #include "ShaderCompiler.h"
 #include "../Misc/Misc.h"
@@ -72,13 +73,13 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t hash)
                         pch++;
 
                     char includeName[1024];
-                    strcpy_s<1024>(includeName, pRootDir);
-                    strncat_s<1024>(includeName, pName, pch - pName);
+                    strcpy(includeName, pRootDir);
+                    strncat(includeName, pName, pch - pName);
 
                     pch++;
 
-                    char *pShaderCode = NULL;
-                    if (ReadFile(includeName, &pShaderCode, NULL, false))
+                    char *pShaderCode = nullptr;
+                    if (ReadFile(includeName, &pShaderCode, nullptr, false))
                     {
                         hash = HashShaderString(pRootDir, pShaderCode, hash);
                         free(pShaderCode);
