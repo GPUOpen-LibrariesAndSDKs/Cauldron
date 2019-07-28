@@ -17,6 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <iterator>
 
 #include "base/Device.h"
 #include "base/ShaderCompilerHelper.h"
@@ -45,7 +46,7 @@ namespace CAULDRON_VK
             {
                 0,1, 2,3, 4,5
             };
-            m_NumIndices = _countof(indices);
+            m_NumIndices = std::size(indices);
 
             m_indexType = VK_INDEX_TYPE_UINT16;
 
@@ -166,7 +167,7 @@ namespace CAULDRON_VK
         vi.flags = 0;
         vi.vertexBindingDescriptionCount = 1;
         vi.pVertexBindingDescriptions = &vi_binding;
-        vi.vertexAttributeDescriptionCount = _countof(vi_attrs);
+        vi.vertexAttributeDescriptionCount = std::size(vi_attrs);
         vi.pVertexAttributeDescriptions = vi_attrs;
 
         // input assembly state

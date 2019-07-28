@@ -17,6 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <iterator>
 
 #include "ShaderCompilerHelper.h"
 #include "base/DebugMarkersExt.h"
@@ -386,7 +387,7 @@ namespace CAULDRON_VK
         vi.flags = 0;
         vi.vertexBindingDescriptionCount = 1;
         vi.pVertexBindingDescriptions = &vi_binding;
-        vi.vertexAttributeDescriptionCount = _countof(vi_attrs);
+        vi.vertexAttributeDescriptionCount = std::size(vi_attrs);
         vi.pVertexAttributeDescriptions = vi_attrs;
 
         // input assembly state
