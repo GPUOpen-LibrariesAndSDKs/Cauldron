@@ -62,7 +62,7 @@ namespace CAULDRON_VK
     public:
         struct per_object
         {
-            DirectX::XMMATRIX mWorld;
+            XMMATRIX mWorld;
 
             PBRMaterialParametersConstantBuffer m_pbrParams;
         };

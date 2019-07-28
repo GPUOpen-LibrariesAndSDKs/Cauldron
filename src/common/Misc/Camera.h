@@ -20,25 +20,26 @@
 #pragma once
 
 #include <DirectXMath.h>
+using namespace DirectX;
 
 class Camera
 {
 public:
     Camera();
-    void LookAt(DirectX::XMVECTOR eyePos, DirectX::XMVECTOR lookAt);
-    void LookAt(float yaw, float pitch, float distance, DirectX::XMVECTOR at);
+    void LookAt(XMVECTOR eyePos, XMVECTOR lookAt);
+    void LookAt(float yaw, float pitch, float distance, XMVECTOR at);
     void SetFov(float fov, uint32_t width, uint32_t height, float nearPlane, float farPlane);
     void UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance);
     void UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], double deltaTime);    
 
-    DirectX::XMMATRIX GetView() const { return m_View; }
-    DirectX::XMMATRIX GetViewport() const { return m_Viewport; }
-    DirectX::XMVECTOR GetPosition() const { return m_eyePos;   }
+    XMMATRIX GetView() const { return m_View; }
+    XMMATRIX GetViewport() const { return m_Viewport; }
+    XMVECTOR GetPosition() const { return m_eyePos;   }
 
-    DirectX::XMVECTOR GetDirection() const { return DirectX::XMVectorSetW(DirectX::XMVector4Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), DirectX::XMMatrixTranspose(m_View)), 0); }
-    DirectX::XMVECTOR GetUp() const       { return DirectX::XMVectorSetW(DirectX::XMVector4Transform(DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), DirectX::XMMatrixTranspose(m_View)), 0); }
-    DirectX::XMVECTOR GetSide() const     { return DirectX::XMVectorSetW(DirectX::XMVector4Transform(DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), DirectX::XMMatrixTranspose(m_View)), 0); }
-    DirectX::XMMATRIX GetProjection() const { return m_Proj; }
+    XMVECTOR GetDirection() const { return XMVectorSetW(XMVector4Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMMatrixTranspose(m_View)), 0); }
+    XMVECTOR GetUp() const       { return XMVectorSetW(XMVector4Transform(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), XMMatrixTranspose(m_View)), 0); }
+    XMVECTOR GetSide() const     { return XMVectorSetW(XMVector4Transform(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), XMMatrixTranspose(m_View)), 0); }
+    XMMATRIX GetProjection() const { return m_Proj; }
 
     float GetFovH() const { return m_fovH; }
     float GetFovV() const { return m_fovV; }
@@ -49,10 +50,10 @@ public:
     void SetSpeed( float speed ) { m_speed = speed; }
 
 private:
-    DirectX::XMMATRIX            m_View;
-    DirectX::XMMATRIX            m_Proj;
-    DirectX::XMMATRIX            m_Viewport;
-    DirectX::XMVECTOR            m_eyePos;
+    XMMATRIX            m_View;
+    XMMATRIX            m_Proj;
+    XMMATRIX            m_Viewport;
+    XMVECTOR            m_eyePos;
     float               m_distance;
     float               m_fovV, m_fovH;
     float               m_aspectRatio;
@@ -62,6 +63,6 @@ private:
     float               m_pitch = 0.0f;
 };
 
-DirectX::XMVECTOR PolarToVector(float roll, float pitch);
-DirectX::XMMATRIX LookAtRH(DirectX::XMVECTOR eyePos, DirectX::XMVECTOR lookAt);
-DirectX::XMVECTOR MoveWASD(const bool keyDown[256]);
+XMVECTOR PolarToVector(float roll, float pitch);
+XMMATRIX LookAtRH(XMVECTOR eyePos, XMVECTOR lookAt);
+XMVECTOR MoveWASD(const bool keyDown[256]);

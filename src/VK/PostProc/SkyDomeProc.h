@@ -21,6 +21,7 @@
 #include "PostProcPS.h"
 
 #include <DirectXMath.h>
+using namespace DirectX;
 
 namespace CAULDRON_VK
 {
@@ -32,8 +33,8 @@ namespace CAULDRON_VK
 
         struct Constants
         {
-            DirectX::XMMATRIX invViewProj;
-            DirectX::XMVECTOR vSunDirection;
+            XMMATRIX invViewProj;
+            XMVECTOR vSunDirection;
             float rayleigh;
             float turbidity;
             float mieCoefficient;

@@ -42,9 +42,9 @@ using json = nlohmann::json;
 
 struct GLTFCommonTransformed
 {
-    std::vector<DirectX::XMMATRIX> m_animatedMats;       // objext space matrices of each node after being animated
-    std::vector<DirectX::XMMATRIX> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
-    std::map<int, std::vector<DirectX::XMMATRIX>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
+    std::vector<XMMATRIX> m_animatedMats;       // objext space matrices of each node after being animated
+    std::vector<XMMATRIX> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
+    std::map<int, std::vector<XMMATRIX>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
 };
 
 //
@@ -52,7 +52,7 @@ struct GLTFCommonTransformed
 //
 struct Light
 {
-    DirectX::XMMATRIX      mLightViewProj;
+    XMMATRIX      mLightViewProj;
 
     float         direction[3];
     float         range;
@@ -75,8 +75,8 @@ const uint32_t LightType_Spot = 2;
 
 struct per_frame
 {
-    DirectX::XMMATRIX  mCameraViewProj;
-    DirectX::XMVECTOR  cameraPos;
+    XMMATRIX  mCameraViewProj;
+    XMVECTOR  cameraPos;
     float     iblFactor;
     float     emmisiveFactor;
 
@@ -123,6 +123,6 @@ public:
     // transformation and animation functions
     void InitTransformedData();
     void SetAnimationTime(uint32_t animationIndex, float time);
-    void TransformScene(int sceneIndex, DirectX::XMMATRIX world);
+    void TransformScene(int sceneIndex, XMMATRIX world);
     per_frame *SetPerFrameData(uint32_t cameraIdx);
 };

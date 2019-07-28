@@ -19,22 +19,23 @@
 
 #pragma once
 
-#include "../json/json.hpp"
-#include <DirectXMath.h>
-
 #include <string>
 
+#include "../json/json.hpp"
 using json = nlohmann::json;
+
+#include <DirectXMath.h>
+using namespace DirectX;
 
 int GetFormatSize(int id);
 int GetDimensions(const std::string &str);
 void SplitGltfAttribute(std::string attribute, std::string *semanticName, uint32_t *semanticIndex);
 
-DirectX::XMVECTOR GetVector(const json::array_t &accessor);
-DirectX::XMMATRIX GetMatrix(const json::array_t &accessor);
+XMVECTOR GetVector(const json::array_t &accessor);
+XMMATRIX GetMatrix(const json::array_t &accessor);
 std::string GetElementString(const json::object_t &root, char *path, std::string pDefault);
 float GetElementFloat(const json::object_t &root, char *path, float pDefault);
 int GetElementInt(const json::object_t &root, char *path, int pDefault);
 bool GetElementBoolean(const json::object_t &root, char *path, bool pDefault);
 json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::array_t pDefault);
-DirectX::XMVECTOR GetElementVector(json::object_t &root, char *path, DirectX::XMVECTOR default_value);
+XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default_value);
