@@ -76,13 +76,13 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             int positionId = primitives[p]["attributes"]["POSITION"];
             json::object_t accessor = m_pAccessors->at(positionId);
 
-            XMVECTOR max = GetVector(GetElementJsonArray(accessor, "max", { 0.0, 0.0, 0.0, 0.0 }));
-            XMVECTOR min = GetVector(GetElementJsonArray(accessor, "min", { 0.0, 0.0, 0.0, 0.0 }));
+            DirectX::XMVECTOR max = GetVector(GetElementJsonArray(accessor, "max", { 0.0, 0.0, 0.0, 0.0 }));
+            DirectX::XMVECTOR min = GetVector(GetElementJsonArray(accessor, "min", { 0.0, 0.0, 0.0, 0.0 }));
 
             pPrimitive->m_center = (min + max)*.5;
             pPrimitive->m_radius = max - pPrimitive->m_center;
 
-            pPrimitive->m_center = XMVectorSetW(pPrimitive->m_center, 1.0f); //set the W to 1 since this is a position not a direction
+            pPrimitive->m_center = DirectX::XMVectorSetW(pPrimitive->m_center, 1.0f); //set the W to 1 since this is a position not a direction
         }
     }
 
@@ -101,10 +101,10 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                 for (int i = 0; i < lights.size(); i++)
                 {
                     json::object_t light = lights[i];
-                    m_lights[i].m_color = GetElementVector(light, "color", XMVectorSet(1, 1, 1, 0));
+                    m_lights[i].m_color = GetElementVector(light, "color", DirectX::XMVectorSet(1, 1, 1, 0));
                     m_lights[i].m_range = GetElementFloat(light, "range", 105);
                     m_lights[i].m_innerConeAngle = GetElementFloat(light, "spot/innerConeAngle", 0);
-                    m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/m_outerConeAngle", XM_PIDIV4);
+                    m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/m_outerConeAngle", DirectX::XM_PIDIV4);
 
                     std::string name = GetElementString(light, "type", "");
                     if (name == "spot")
@@ -172,11 +172,11 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             tfnode->m_tranform.m_scale = GetElementVector(node, "scale", XMVectorSet(1, 1, 1, 0));
 
             if (node.find("rotation") != node.end())
-                tfnode->m_tranform.m_rotation = XMMatrixRotationQuaternion(GetVector(node["rotation"].get<json::array_t>()));
+                tfnode->m_tranform.m_rotation = DirectX::XMMatrixRotationQuaternion(GetVector(node["rotation"].get<json::array_t>()));
             else if (node.find("matrix") != node.end())
                 tfnode->m_tranform.m_rotation = GetMatrix(node["matrix"].get<json::array_t>());
             else
-                tfnode->m_tranform.m_rotation = XMMatrixIdentity();
+                tfnode->m_tranform.m_rotation = DirectX::XMMatrixIdentity();
         }
     }
 
@@ -424,7 +424,7 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id)
 //
 // Transforms a node hierarchy recursively
 //
-void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pNodes, GLTFCommonTransformed *pTransformed)
+void TransformNodes(tfNode *pRootNode, DirectX::XMMATRIX world, std::vector<tfNode *> *pNodes, GLTFCommonTransformed *pTransformed)
 {
     for (uint32_t n = 0; n < pNodes->size(); n++)
     {
@@ -432,7 +432,7 @@ void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pN
 
         uint32_t nodeIdx = (uint32_t)(pNode - pRootNode);
 
-        XMMATRIX m = pTransformed->m_animatedMats[nodeIdx] * world;
+        DirectX::XMMATRIX m = pTransformed->m_animatedMats[nodeIdx] * world;
         pTransformed->m_worldSpaceMats[nodeIdx] = m;
 
         TransformNodes(pRootNode, m, &pNode->m_children, pTransformed);
@@ -465,7 +465,7 @@ void GLTFCommon::InitTransformedData()
 //
 // Takes the animated matrices and processes the hierarchy, also computes the skinning matrix buffers.
 //
-void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
+void GLTFCommon::TransformScene(int sceneIndex, DirectX::XMMATRIX world)
 {
     // transform all the nodes of the scene
     //
@@ -479,8 +479,8 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
         tfSkins &skin = m_skins[i];
 
         //pick the matrices that affect the skin and multiply by the inverse of the bind
-        XMMATRIX *pM = (XMMATRIX *)skin.m_InverseBindMatrices.m_data;
-        std::vector<XMMATRIX> &skinningMats = m_transformedData.m_worldSpaceSkeletonMats[i];
+        DirectX::XMMATRIX *pM = (DirectX::XMMATRIX *)skin.m_InverseBindMatrices.m_data;
+        std::vector<DirectX::XMMATRIX> &skinningMats = m_transformedData.m_worldSpaceSkeletonMats[i];
         for (int j = 0; j < skin.m_InverseBindMatrices.m_count; j++)
         {
             skinningMats[j] = pM[j] * m_transformedData.m_worldSpaceMats[skin.m_jointsNodeIdx[j]];
@@ -494,16 +494,16 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
 //
 per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx)
 {
-    XMMATRIX *pMats = m_transformedData.m_worldSpaceMats.data();
+    DirectX::XMMATRIX *pMats = m_transformedData.m_worldSpaceMats.data();
 
     //Sets the camera
     if (m_cameras.size() > 0)
     {
         assert(cameraIdx < m_cameras.size());
 
-        XMMATRIX cameraMat = pMats[m_cameras[cameraIdx].m_nodeIndex];
-        XMMATRIX cameraView = XMMatrixInverse(nullptr, cameraMat);
-        m_perFrameData.mCameraViewProj = XMMatrixInverse(nullptr, cameraMat) * XMMatrixPerspectiveFovRH(m_cameras[0].yfov, 1280.0f / 720.0f, 0.1f, 100.0f);
+        DirectX::XMMATRIX cameraMat = pMats[m_cameras[cameraIdx].m_nodeIndex];
+        DirectX::XMMATRIX cameraView = DirectX::XMMatrixInverse(nullptr, cameraMat);
+        m_perFrameData.mCameraViewProj = DirectX::XMMatrixInverse(nullptr, cameraMat) * DirectX::XMMatrixPerspectiveFovRH(m_cameras[0].yfov, 1280.0f / 720.0f, 0.1f, 100.0f);
         m_perFrameData.cameraPos = cameraMat.r[3];
     }
 
@@ -511,13 +511,13 @@ per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx)
     m_perFrameData.lightCount = (int32_t)m_lights.size();
     for (int i = 0; i < m_lights.size(); i++)
     {
-        XMMATRIX lightMat = pMats[m_lights[i].m_nodeIndex];
-        XMMATRIX lightView = XMMatrixInverse(nullptr, lightMat);
+        DirectX::XMMATRIX lightMat = pMats[m_lights[i].m_nodeIndex];
+        DirectX::XMMATRIX lightView = DirectX::XMMatrixInverse(nullptr, lightMat);
 
         Light *pSL = &m_perFrameData.lights[i];
-        pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle, 1, .1f, 100.0f);
+        pSL->mLightViewProj = lightView * DirectX::XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle, 1, .1f, 100.0f);
 
-        GetXYZ(pSL->direction, XMVector4Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMMatrixTranspose(lightView)));
+        GetXYZ(pSL->direction, DirectX::XMVector4Transform(DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), DirectX::XMMatrixTranspose(lightView)));
         pSL->range = m_lights[i].m_range;
         GetXYZ(pSL->color, m_lights[i].m_color);
         pSL->intensity = 10.0f;

@@ -24,6 +24,8 @@
 #include "base/DynamicBufferRing.h"
 #include "base/StaticBufferPool.h"
 
+#include <DirectXMath.h>
+
 namespace CAULDRON_VK
 {
     class CheckerBoardFloor
@@ -38,7 +40,7 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMVECTOR vColor);
+        void Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX worldMatrix, DirectX::XMVECTOR vColor);
     private:
 
         Device* m_pDevice;
@@ -61,8 +63,8 @@ namespace CAULDRON_VK
 
         struct per_object
         {
-            XMMATRIX m_mWorldViewProj;
-            XMVECTOR m_vColor;
+            DirectX::XMMATRIX m_mWorldViewProj;
+            DirectX::XMVECTOR m_vColor;
         };
     };
 }

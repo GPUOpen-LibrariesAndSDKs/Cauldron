@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <DirectXMath.h>
+
 //
 // This file holds all the structures/classes used to load a glTF model
 //
@@ -32,8 +34,8 @@ public:
     int m_dimension;
     int m_type;
 
-    XMVECTOR m_min;
-    XMVECTOR m_max;
+    DirectX::XMVECTOR m_min;
+    DirectX::XMVECTOR m_max;
 
     void *Get(int i)
     {
@@ -67,8 +69,8 @@ public:
 
 struct tfPrimitives
 {
-    XMVECTOR m_center;
-    XMVECTOR m_radius;
+    DirectX::XMVECTOR m_center;
+    DirectX::XMVECTOR m_radius;
 };
 
 struct tfMesh
@@ -78,11 +80,11 @@ struct tfMesh
 
 struct Transform
 {
-    XMVECTOR m_translation;
-    XMMATRIX m_rotation;
-    XMVECTOR m_scale;
+    DirectX::XMVECTOR m_translation;
+    DirectX::XMMATRIX m_rotation;
+    DirectX::XMVECTOR m_scale;
 
-    XMMATRIX GetWorldMat() { return XMMatrixScalingFromVector(m_scale)  * m_rotation  * XMMatrixTranslationFromVector(m_translation); }
+    DirectX::XMMATRIX GetWorldMat() { return DirectX::XMMatrixScalingFromVector(m_scale)  * m_rotation  * DirectX::XMMatrixTranslationFromVector(m_translation); }
 };
 
 struct tfNode
@@ -99,7 +101,7 @@ struct tfNode
 
 struct NodeMatrixPostTransform
 {
-    tfNode *pN; XMMATRIX m;
+    tfNode *pN; DirectX::XMMATRIX m;
 };
 
 struct tfScene
@@ -174,7 +176,7 @@ struct tfLight
 
     int m_nodeIndex = -1;
 
-    XMVECTOR m_color;
+    DirectX::XMVECTOR m_color;
     float m_range;
     float m_innerConeAngle;
     float m_outerConeAngle;

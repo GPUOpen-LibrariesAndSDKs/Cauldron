@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <DirectXMath.h>
+
 double MillisecondsNow();
 size_t Hash(const void *ptr, size_t size, size_t result = 2166136261);
 std::string format(const char* format, ...);
@@ -26,7 +28,7 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary);
 bool SaveFile(const char *name, void const*data, size_t size, bool isbinary);
 void Trace(const std::string &str);
 bool LaunchProcess(const std::string &commandLine, const std::string &filenameErr);
-void GetXYZ(float *, XMVECTOR v);
+void GetXYZ(float *, DirectX::XMVECTOR v);
 
 // align uLocation to the next multiple of uAlign
 inline SIZE_T AlignOffset(SIZE_T uOffset, SIZE_T uAlign) { return ((uOffset + (uAlign - 1)) & ~(uAlign - 1)); }
