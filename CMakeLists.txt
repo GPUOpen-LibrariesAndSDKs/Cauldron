@@ -17,6 +17,7 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 add_subdirectory(src/common)
 add_subdirectory(libs/json)
 add_subdirectory(libs/imgui)
+include(libs/DxgiFormat.cmake)
 
 if(GFX_API STREQUAL DX12)
     add_subdirectory(libs/d3d12x)
