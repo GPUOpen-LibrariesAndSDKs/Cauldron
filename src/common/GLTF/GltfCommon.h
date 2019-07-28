@@ -18,7 +18,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "../json/json.h"
+
+#include "../json/json.hpp"
 #include "../../common/Misc/Camera.h"
 #include "GltfStructures.h"
 
