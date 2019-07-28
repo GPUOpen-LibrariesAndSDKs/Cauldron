@@ -329,7 +329,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
             // Animate translation
             //
-            if (it->second.m_pTranslation != NULL)
+            if (it->second.m_pTranslation != nullptr)
             {
                 it->second.m_pTranslation->SampleLinear(time, &frac, &pCurr, &pNext);
                 animated.m_translation = (1.0f - frac) * XMVectorSet(pCurr[0], pCurr[1], pCurr[2], 0) + (frac) * XMVectorSet(pNext[0], pNext[1], pNext[2], 0);
@@ -341,7 +341,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
             // Animate rotation
             //
-            if (it->second.m_pRotation != NULL)
+            if (it->second.m_pRotation != nullptr)
             {
                 it->second.m_pRotation->SampleLinear(time, &frac, &pCurr, &pNext);
                 animated.m_rotation = XMMatrixRotationQuaternion(XMQuaternionSlerp(XMVectorSet(pCurr[0], pCurr[1], pCurr[2], pCurr[3]), XMVectorSet(pNext[0], pNext[1], pNext[2], pNext[3]), frac));
@@ -353,7 +353,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
             // Animate scale
             //
-            if (it->second.m_pScale != NULL)
+            if (it->second.m_pScale != nullptr)
             {
                 it->second.m_pScale->SampleLinear(time, &frac, &pCurr, &pNext);
                 animated.m_scale = (1.0f - frac) * XMVectorSet(pCurr[0], pCurr[1], pCurr[2], 0) + (frac)*XMVectorSet(pNext[0], pNext[1], pNext[2], 0);

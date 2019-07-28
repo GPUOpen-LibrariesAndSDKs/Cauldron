@@ -63,7 +63,8 @@ void SplitGltfAttribute(std::string attribute, std::string *semanticName, uint32
 
 XMVECTOR GetVector(const json::array_t &accessor)
 {
-    return XMVectorSet(accessor[0], accessor[1], accessor[2], (accessor.size() == 4) ? accessor[3] : 0);
+    return XMVectorSet(accessor[0].get<float>(), accessor[1].get<float>(), accessor[2].get<float>(), 
+        (accessor.size() == 4) ? accessor[3].get<float>() : 0.0f);
 }
 
 XMMATRIX GetMatrix(const json::array_t &accessor)
