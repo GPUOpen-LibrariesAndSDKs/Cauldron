@@ -17,8 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <algorithm>
 
 #include "Camera.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 Camera::Camera()
 {
@@ -37,7 +42,7 @@ void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane
     m_aspectRatio = width *1.f / height;
 
     m_fovV = fovV;
-    m_fovH = std::min<float>((m_fovV * width) / height, DirectX::XM_PI / 2.0f);
+    m_fovH = std::min<float>((m_fovV * width) / height, XM_PI / 2.0f);
     m_fovV = m_fovH * height / width;
 
     float halfWidth = (float)width / 2.0f;
@@ -152,7 +157,10 @@ XMVECTOR MoveWASD(const bool keyDown[256])
         y = -1;
     }
 
-    float scale = keyDown[VK_SHIFT] ? 5.0f : 1.0f;
+	scale = keyDown[VK_SHIFT] ? 5.0f : scale;
+#else 
+#warning "TODO: implement Camera::MoveWASD() for Linux"
+#endif
 
     return XMVectorSet(x, y, z, 0.0f) * scale;
 }

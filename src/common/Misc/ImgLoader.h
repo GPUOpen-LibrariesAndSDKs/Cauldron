@@ -18,9 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#ifndef _WIN32
-#include "dxgiformat.h"
-#endif
+#include <dxgiformat.h>
 
 #include <cstdint>
 

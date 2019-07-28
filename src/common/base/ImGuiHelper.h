@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <Windows.h>
+
 #include "../imgui/imgui.h"
 
 bool ImGUI_Init(void* hwnd);

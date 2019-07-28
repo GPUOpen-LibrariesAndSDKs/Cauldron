@@ -22,10 +22,6 @@
 #include "Misc/Misc.h"
 #include <vulkan/vulkan.h>
 
-#ifdef _WIN32
-#include <vulkan/vulkan_win32.h>
-#endif
-
 namespace CAULDRON_VK
 {
     static VkPhysicalDeviceFloat16Int8FeaturesKHR FP16Features = {};

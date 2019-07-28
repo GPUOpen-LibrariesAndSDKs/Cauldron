@@ -100,6 +100,7 @@ static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt)
     }
 }
 
+#ifdef _WIN32
 HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
 {
     typedef enum RESOURCE_DIMENSION
@@ -137,7 +138,7 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
 
     // read the header
     char headerData[4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)];
-    uint32_t dwBytesRead = 0;
+    DWORD dwBytesRead = 0;
     if (ReadFile(hFile, headerData, 4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10), &dwBytesRead, NULL))
     {
         char *pByteData = headerData;
@@ -212,3 +213,7 @@ void DDSLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, ui
         ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, nullptr, nullptr);
     }
 }
+
+#else 
+#warning "TODO: implement crossplatform DDS loading"
+#endif

@@ -24,10 +24,6 @@
 #include "Instance.h"
 #include "InstanceProperties.h"
 
-#ifdef _WIN32
-#include <vulkan/vulkan_win32.h>
-#endif
-
 namespace CAULDRON_VK
 {
     VkInstance CreateInstance(VkApplicationInfo app_info, InstanceProperties *pIP)

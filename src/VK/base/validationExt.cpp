@@ -21,9 +21,6 @@
 #include <vector>
 
 #include <vulkan/vulkan.h>
-#ifdef _WIN32
-#include <vulkan/vulkan_win32.h>
-#endif
 
 #include "Instance.h"
 #include "InstanceProperties.h"
