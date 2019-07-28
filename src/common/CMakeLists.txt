@@ -25,7 +25,7 @@ file(GLOB_RECURSE Misc_src
 )
 
 add_library (${PROJECT_NAME} STATIC ${base_src} ${GLTF_src} ${Misc_src} )
-target_link_libraries (${PROJECT_NAME} NJSON DxgiFormat)
+target_link_libraries (${PROJECT_NAME} NJSON DxgiFormat DirectXMath)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("base"         FILES ${base_src})
