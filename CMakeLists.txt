@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.4)
 
 project (Framework_${GFX_API})
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
 # ouput exe to bin directory
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
