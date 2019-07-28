@@ -22,6 +22,8 @@
 #include "base/DynamicBufferRing.h"
 #include "base/StaticBufferPool.h"
 
+#include <DirectXMath.h>
+
 namespace CAULDRON_VK
 {
     // This class takes a GltfCommon class (that holds all the non-GPU specific data) as an input and loads all the GPU specific data
@@ -38,7 +40,7 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMMATRIX axisMatrix);
+        void Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX worldMatrix, DirectX::XMMATRIX axisMatrix);
     private:
 
         Device* m_pDevice;
@@ -61,7 +63,7 @@ namespace CAULDRON_VK
 
         struct per_object
         {
-            XMMATRIX m_mWorldViewProj;
+            DirectX::XMMATRIX m_mWorldViewProj;
         };
     };
 }

@@ -123,10 +123,10 @@ namespace CAULDRON_VK
             m_defaultMaterial.m_pbrMaterialParameters.m_doubleSided = false;
             m_defaultMaterial.m_pbrMaterialParameters.m_blending = false;
 
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_emissiveFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_baseColorFactor = XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f);
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_metallicRoughnessValues = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_specularGlossinessFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_emissiveFactor = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_baseColorFactor = DirectX::XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f);
+            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_metallicRoughnessValues = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_specularGlossinessFactor = DirectX::XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
 
             std::map<std::string, VkImageView> texturesBase;
             CreateGPUMaterialData(&m_defaultMaterial, texturesBase, pSkyDome, ShadowMapView);
@@ -622,12 +622,12 @@ namespace CAULDRON_VK
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_transformedData.m_worldSpaceMats.data();
+        DirectX::XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_transformedData.m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
             tfNode *pNode = &pNodes->at(i);
-            if ((pNode == NULL) || (pNode->meshIndex < 0))
+            if ((pNode == nullptr) || (pNode->meshIndex < 0))
                 continue;
 
             // skinning matrices constant buffer
@@ -665,11 +665,11 @@ namespace CAULDRON_VK
                 {
                     // If transparent queue it for sorting
                     //
-                    XMMATRIX mat = pNodesMatrices[i] * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraViewProj;
-                    XMVECTOR v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
+                    DirectX::XMMATRIX mat = pNodesMatrices[i] * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraViewProj;
+                    DirectX::XMVECTOR v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
 
                     Transparent t;
-                    t.m_depth = XMVectorGetW(XMVector4Transform(v, mat));
+                    t.m_depth = DirectX::XMVectorGetW(DirectX::XMVector4Transform(v, mat));
                     t.m_pPrimitive = pPrimitive;
                     t.m_perFrameDesc = m_pGLTFTexturesAndBuffers->m_perFrameConstants;
                     t.m_perObjectDesc = perObjectDesc;

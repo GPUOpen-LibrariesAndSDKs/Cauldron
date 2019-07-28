@@ -292,7 +292,7 @@ namespace CAULDRON_VK
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
     }
 
-    void Wireframe::Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
+    void Wireframe::Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX worldMatrix, DirectX::XMVECTOR vCenter, DirectX::XMVECTOR vRadius, DirectX::XMVECTOR vColor)
     {
         vkCmdBindVertexBuffers(cmd_buf, 0, 1, &m_VBV.buffer, &m_VBV.offset);
         vkCmdBindIndexBuffer(cmd_buf, m_IBV.buffer, m_IBV.offset, m_indexType);

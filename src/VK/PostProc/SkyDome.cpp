@@ -89,7 +89,7 @@ namespace CAULDRON_VK
         layout_bindings[1].pImmutableSamplers = NULL;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layout_bindings, &m_descriptorLayout, &m_descriptorSet);
-        pDynamicBufferRing->SetDescriptorSet(0, sizeof(XMMATRIX), m_descriptorSet);
+        pDynamicBufferRing->SetDescriptorSet(0, sizeof(DirectX::XMMATRIX), m_descriptorSet);
         SetDescriptorSpec(1, m_descriptorSet);
 
         m_skydome.OnCreate(pDevice, renderPass, "SkyDome.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount);
@@ -122,13 +122,13 @@ namespace CAULDRON_VK
         SetDescriptorSet(m_pDevice->GetDevice(), index, m_CubeSpecularTextureView, &m_samplerSpecularCube, descriptorSet);
     }
 
-    void SkyDome::Draw(VkCommandBuffer cmd_buf, XMMATRIX invViewProj)
+    void SkyDome::Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX invViewProj)
     {
         SetPerfMarkerBegin(cmd_buf, "Skydome cube");
 
-        XMMATRIX *cbPerDraw;
+        DirectX::XMMATRIX *cbPerDraw;
         VkDescriptorBufferInfo constantBuffer;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(XMMATRIX), (void **)&cbPerDraw, &constantBuffer);
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(DirectX::XMMATRIX), (void **)&cbPerDraw, &constantBuffer);
         *cbPerDraw = invViewProj;
 
         m_skydome.Draw(cmd_buf, constantBuffer, m_descriptorSet);

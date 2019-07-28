@@ -22,6 +22,8 @@
 #include "base/Texture.h"
 #include "base/UploadHeap.h"
 
+#include <DirectXMath.h>
+
 namespace CAULDRON_VK
 {
     class SkyDome
@@ -29,7 +31,7 @@ namespace CAULDRON_VK
     public:
         void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, char *pDiffuseCubemap, char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount);
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX invViewProj);
+        void Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX invViewProj);
         void GenerateDiffuseMapFromEnvironmentMap();
 
         void SetDescriptorDiff(uint32_t index, VkDescriptorSet descriptorSet);

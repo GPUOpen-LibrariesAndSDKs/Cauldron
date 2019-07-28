@@ -327,7 +327,7 @@ namespace CAULDRON_VK
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
     }
 
-    void CheckerBoardFloor::Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMVECTOR vColor)
+    void CheckerBoardFloor::Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX worldMatrix, DirectX::XMVECTOR vColor)
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;
@@ -345,7 +345,7 @@ namespace CAULDRON_VK
         VkDescriptorBufferInfo perObjectDesc;
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), (void **)&cbPerObject, &perObjectDesc);
         cbPerObject->m_mWorldViewProj = worldMatrix;
-        cbPerObject->m_vColor = XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
+        cbPerObject->m_vColor = DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f);
 
         uint32_t uniformOffsets[1] = { (uint32_t)perObjectDesc.offset };
         vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, descritorSets, 1, uniformOffsets);

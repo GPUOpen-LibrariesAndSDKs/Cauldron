@@ -22,6 +22,8 @@
 #include "../../common/Misc/Camera.h"
 #include "GltfStructures.h"
 
+#include <DirectXMath.h>
+
 // The GlTF file is loaded in 2 steps
 //
 // 1) loading the GPU agnostic data that is common to all pass (This is done in the GLTFCommon class you can see here below)
@@ -39,9 +41,9 @@ using json = nlohmann::json;
 
 struct GLTFCommonTransformed
 {
-    std::vector<XMMATRIX> m_animatedMats;       // objext space matrices of each node after being animated
-    std::vector<XMMATRIX> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
-    std::map<int, std::vector<XMMATRIX>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
+    std::vector<DirectX::XMMATRIX> m_animatedMats;       // objext space matrices of each node after being animated
+    std::vector<DirectX::XMMATRIX> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
+    std::map<int, std::vector<DirectX::XMMATRIX>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
 };
 
 //
@@ -49,7 +51,7 @@ struct GLTFCommonTransformed
 //
 struct Light
 {
-    XMMATRIX      mLightViewProj;
+    DirectX::XMMATRIX      mLightViewProj;
 
     float         direction[3];
     float         range;
@@ -72,8 +74,8 @@ const uint32_t LightType_Spot = 2;
 
 struct per_frame
 {
-    XMMATRIX  mCameraViewProj;
-    XMVECTOR  cameraPos;
+    DirectX::XMMATRIX  mCameraViewProj;
+    DirectX::XMVECTOR  cameraPos;
     float     iblFactor;
     float     emmisiveFactor;
 
@@ -120,6 +122,6 @@ public:
     // transformation and animation functions
     void InitTransformedData();
     void SetAnimationTime(uint32_t animationIndex, float time);
-    void TransformScene(int sceneIndex, XMMATRIX world);
+    void TransformScene(int sceneIndex, DirectX::XMMATRIX world);
     per_frame *SetPerFrameData(uint32_t cameraIdx);
 };

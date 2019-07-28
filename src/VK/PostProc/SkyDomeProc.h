@@ -20,6 +20,8 @@
 #pragma once
 #include "PostProcPS.h"
 
+#include <DirectXMath.h>
+
 namespace CAULDRON_VK
 {
     // This renders a procedural sky, see the SkyDomeProc.glsl for more references and credits
@@ -30,8 +32,8 @@ namespace CAULDRON_VK
 
         struct Constants
         {
-            XMMATRIX invViewProj;
-            XMVECTOR vSunDirection;
+            DirectX::XMMATRIX invViewProj;
+            DirectX::XMVECTOR vSunDirection;
             float rayleigh;
             float turbidity;
             float mieCoefficient;

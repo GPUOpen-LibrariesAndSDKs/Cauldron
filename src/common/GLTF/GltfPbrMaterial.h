@@ -23,15 +23,15 @@
 
 struct PBRMaterialParametersConstantBuffer
 {
-    XMVECTOR m_emissiveFactor;
+    DirectX::XMVECTOR m_emissiveFactor;
 
     // pbrMetallicRoughness
-    XMVECTOR m_baseColorFactor;
-    XMVECTOR m_metallicRoughnessValues;
+    DirectX::XMVECTOR m_baseColorFactor;
+    DirectX::XMVECTOR m_metallicRoughnessValues;
 
     // KHR_materials_pbrSpecularGlossiness
-    XMVECTOR m_DiffuseFactor;
-    XMVECTOR m_specularGlossinessFactor;
+    DirectX::XMVECTOR m_DiffuseFactor;
+    DirectX::XMVECTOR m_specularGlossinessFactor;
 };
 
 
@@ -44,7 +44,7 @@ struct PBRMaterialParameters
     bool     m_doubleSided = false;
     bool     m_blending = false;
 
-    XMVECTOR m_DiffuseFactor;
+    DirectX::XMVECTOR m_DiffuseFactor;
 
     DefineList m_defines;
 

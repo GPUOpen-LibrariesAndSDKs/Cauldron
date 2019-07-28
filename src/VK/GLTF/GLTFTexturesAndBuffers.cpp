@@ -156,11 +156,11 @@ namespace CAULDRON_VK
     {
         for (auto &t : m_pGLTFCommon->m_transformedData.m_worldSpaceSkeletonMats)
         {
-            std::vector<XMMATRIX> *matrices = &t.second;
+            std::vector<DirectX::XMMATRIX> *matrices = &t.second;
 
             VkDescriptorBufferInfo perSkeleton = {};
-            XMMATRIX *cbPerSkeleton;
-            m_pDynamicBufferRing->AllocConstantBuffer((uint32_t)(matrices->size() * sizeof(XMMATRIX)), (void **)&cbPerSkeleton, &perSkeleton);
+            DirectX::XMMATRIX *cbPerSkeleton;
+            m_pDynamicBufferRing->AllocConstantBuffer((uint32_t)(matrices->size() * sizeof(DirectX::XMMATRIX)), (void **)&cbPerSkeleton, &perSkeleton);
             for (int i = 0; i < matrices->size(); i++)
             {
                 cbPerSkeleton[i] = matrices->at(i);
