@@ -115,7 +115,7 @@ public:
         {
             m_memAllocatedInFrame += padding;
 
-            if (m_mem.Alloc(padding, NULL) == false) //alloc chunk to avoid crossover, ignore offset        
+            if (m_mem.Alloc(padding, nullptr) == false) //alloc chunk to avoid crossover, ignore offset        
             {
                 return false;  //no mem, cannot allocate apdding
             }

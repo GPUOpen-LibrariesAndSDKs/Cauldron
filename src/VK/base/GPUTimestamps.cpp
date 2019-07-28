@@ -32,14 +32,14 @@ namespace CAULDRON_VK
         const VkQueryPoolCreateInfo queryPoolCreateInfo =
         {
             VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,    // VkStructureType                    sType
-            NULL,                                           // const void*                        pNext
+            nullptr,                                           // const void*                        pNext
             (VkQueryPoolCreateFlags)0,                    // VkQueryPoolCreateFlags            flags
             VK_QUERY_TYPE_TIMESTAMP ,                     // VkQueryType                        queryType
             MaxValuesPerFrame * numberOfBackBuffers,    // deUint32                            entryCount
             0,                                            // VkQueryPipelineStatisticFlags    pipelineStatistics
         };
 
-        VkResult res = vkCreateQueryPool(pDevice->GetDevice(), &queryPoolCreateInfo, NULL, &m_QueryPool);
+        VkResult res = vkCreateQueryPool(pDevice->GetDevice(), &queryPoolCreateInfo, nullptr, &m_QueryPool);
     }
 
     void GPUTimestamps::OnDestroy()

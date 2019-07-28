@@ -208,6 +208,6 @@ void DDSLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, ui
 {
     for (uint32_t y = 0; y < height; y++)
     {
-        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, NULL, NULL);
+        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, nullptr, nullptr);
     }
 }

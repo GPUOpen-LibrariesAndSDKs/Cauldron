@@ -44,7 +44,7 @@ namespace CAULDRON_VK
         defines["HEIGHT"] = std::to_string(dwHeight);
         defines["DEPTH"] = std::to_string(dwDepth);
 
-        if (pUserDefines != NULL)
+        if (pUserDefines != nullptr)
             defines = *pUserDefines;
 
         res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_COMPUTE_BIT, shaderFilename.c_str(), shaderEntryPoint.c_str(), &defines, &computeShader);
@@ -55,13 +55,13 @@ namespace CAULDRON_VK
 
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
         pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pPipelineLayoutCreateInfo.pNext = NULL;
+        pPipelineLayoutCreateInfo.pNext = nullptr;
         pPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-        pPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+        pPipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
         pPipelineLayoutCreateInfo.setLayoutCount = 1;
         pPipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 
-        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &m_pipelineLayout);
+        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, nullptr, &m_pipelineLayout);
         assert(res == VK_SUCCESS);
 
         // Create pipeline
@@ -69,14 +69,14 @@ namespace CAULDRON_VK
 
         VkComputePipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        pipeline.pNext = NULL;
+        pipeline.pNext = nullptr;
         pipeline.flags = 0;
         pipeline.layout = m_pipelineLayout;
         pipeline.stage = computeShader;
         pipeline.basePipelineHandle = VK_NULL_HANDLE;
         pipeline.basePipelineIndex = 0;
 
-        res = vkCreateComputePipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
+        res = vkCreateComputePipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &m_pipeline);
         assert(res == VK_SUCCESS);
     }
 

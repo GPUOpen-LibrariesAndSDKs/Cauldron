@@ -40,12 +40,12 @@ namespace CAULDRON_VK
         layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layoutBindings[0].descriptorCount = 1;
         layoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layoutBindings[0].pImmutableSamplers = NULL;
+        layoutBindings[0].pImmutableSamplers = nullptr;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, &m_descriptorLayout, &m_descriptorSet);
         pDynamicBufferRing->SetDescriptorSet(0, sizeof(SkyDomeProc::Constants), m_descriptorSet);
 
-        m_skydome.OnCreate(pDevice, renderPass, "SkyDomeProc.hlsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount);
+        m_skydome.OnCreate(pDevice, renderPass, "SkyDomeProc.hlsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, nullptr, sampleDescCount);
     }
 
     void SkyDomeProc::OnDestroy()
@@ -54,7 +54,7 @@ namespace CAULDRON_VK
 
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
 
-        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, NULL);
+        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, nullptr);
     }
 
     void SkyDomeProc::Draw(VkCommandBuffer cmd_buf, SkyDomeProc::Constants constants)

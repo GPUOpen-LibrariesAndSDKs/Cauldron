@@ -39,7 +39,7 @@ namespace CAULDRON_VK
         // Enumerate device extensions
         //
         uint32_t extensionCount;
-        VkResult res = vkEnumerateDeviceExtensionProperties(physicaldevice, nullptr, &extensionCount, NULL);
+        VkResult res = vkEnumerateDeviceExtensionProperties(physicaldevice, nullptr, &extensionCount, nullptr);
         m_deviceExtensionProperties.resize(extensionCount);
         res = vkEnumerateDeviceExtensionProperties(physicaldevice, nullptr, &extensionCount, m_deviceExtensionProperties.data());
 

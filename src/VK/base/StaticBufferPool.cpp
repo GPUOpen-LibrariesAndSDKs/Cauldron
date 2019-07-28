@@ -30,7 +30,7 @@ namespace CAULDRON_VK
 
         m_totalMemSize = totalMemSize;
         m_memOffset = 0;
-        m_pData = NULL;
+        m_pData = nullptr;
         m_bUseVidMem = bUseVidMem;
 
 #ifdef USE_VMA

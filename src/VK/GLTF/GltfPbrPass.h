@@ -39,7 +39,7 @@ namespace CAULDRON_VK
     {
         Geometry m_geometry;
 
-        PBRMaterial *m_pMaterial = NULL;
+        PBRMaterial *m_pMaterial = nullptr;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout;
