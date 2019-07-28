@@ -28,7 +28,7 @@
 class tfAccessor
 {
 public:
-    void *m_data = NULL;
+    void *m_data = nullptr;
     int m_count = 0;
     int m_stride;
     int m_dimension;
@@ -112,7 +112,7 @@ struct tfScene
 struct tfSkins
 {
     tfAccessor m_InverseBindMatrices;
-    tfNode *m_pSkeleton = NULL;
+    tfNode *m_pSkeleton = nullptr;
     std::vector<int> m_jointsNodeIdx;
 };
 

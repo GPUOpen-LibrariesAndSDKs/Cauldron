@@ -83,7 +83,7 @@ namespace CAULDRON_VK
         bool m_usingFreeSync2 = false;
         bool m_usingFp16 = false;
 #ifdef USE_VMA
-        VmaAllocator m_hAllocator = NULL;
+        VmaAllocator m_hAllocator = nullptr;
 #endif
     };
 

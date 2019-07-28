@@ -95,7 +95,7 @@ class Async
     std::thread *m_pT;
 
 public:
-    Async(std::function<void()> job, Sync *pSync = NULL);
+    Async(std::function<void()> job, Sync *pSync = nullptr);
     ~Async();
     static void Wait(Sync *pSync);
 };

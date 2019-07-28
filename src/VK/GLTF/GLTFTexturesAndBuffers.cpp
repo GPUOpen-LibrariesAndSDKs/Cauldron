@@ -103,7 +103,7 @@ namespace CAULDRON_VK
     {
         for (int i = 0; i < m_textures.size(); i++)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_textureViews[i], NULL);
+            vkDestroyImageView(m_pDevice->GetDevice(), m_textureViews[i], nullptr);
             m_textures[i].OnDestroy();
         }
     }
@@ -175,7 +175,7 @@ namespace CAULDRON_VK
         auto it = m_skeletonMatricesBuffer.find(skinIndex);
 
         if (it == m_skeletonMatricesBuffer.end())
-            return NULL;
+            return nullptr;
 
         return &it->second;
     }

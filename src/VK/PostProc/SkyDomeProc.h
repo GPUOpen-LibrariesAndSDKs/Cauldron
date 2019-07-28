@@ -62,6 +62,6 @@ namespace CAULDRON_VK
 
         PostProcPS  m_skydome;
 
-        DynamicBufferRing *m_pDynamicBufferRing = NULL;
+        DynamicBufferRing *m_pDynamicBufferRing = nullptr;
     };
 }
