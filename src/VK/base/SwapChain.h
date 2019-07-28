@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "Device.h"
 
 namespace CAULDRON_VK

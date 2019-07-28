@@ -17,11 +17,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
-#include "ShaderCompilerHelper.h"
-
-#include "Misc/Misc.h"
 #include "Misc/Cache.h"
+#include "ShaderCompilerHelper.h"
+#include "Misc/Misc.h"
+
 
 namespace CAULDRON_VK
 {
@@ -165,7 +168,7 @@ namespace CAULDRON_VK
             if (ReadFile(filenameSpv.c_str(), &SpvData, &SpvSize, true) == false)
 #endif
             {
-                std::string &shader = GenerateSource(sourceType, shader_type, pshader, pEntryPoint, pDefines);
+                std::string shader = GenerateSource(sourceType, shader_type, pshader, pEntryPoint, pDefines);
                 VKCompileToSpirv(hash, sourceType, shader_type, shader.c_str(), pEntryPoint, pDefines, &SpvData, &SpvSize);
             }
 

@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <vector>
+
 #include "vulkan/vulkan.h"
 
 namespace CAULDRON_VK

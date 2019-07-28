@@ -17,6 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cassert>
 
 #include "ResourceViewHeaps.h"
 #include "Texture.h"
@@ -60,7 +61,7 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     // return the byte size of a pixel (or block if block compressed)
     //--------------------------------------------------------------------------------------
-    UINT32 Texture::GetPixelSize(DXGI_FORMAT fmt) const
+    uint32_t Texture::GetPixelSize(DXGI_FORMAT fmt) const
     {
         switch (fmt)
         {
@@ -95,7 +96,7 @@ namespace CAULDRON_VK
         return 0;
     }
 
-    void Texture::PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, UINT32 pixelCount)
+    void Texture::PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, uint32_t pixelCount)
     {
         // copy pixel data, interleave with A
         for (unsigned int i = 0; i < pixelCount; ++i)
@@ -114,7 +115,7 @@ namespace CAULDRON_VK
         return m_header.arraySize == 6;
     }
 
-    INT32 Texture::Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name)
+    int32_t Texture::Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name)
     {
         m_pDevice = pDevice;
         m_header.mipMapCount = pCreateInfo->mipLevels;

@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <string>
+
 #include "base/StaticBufferPool.h"
 #include "base/DynamicBufferRing.h"
 #include "base/ResourceViewHeaps.h"

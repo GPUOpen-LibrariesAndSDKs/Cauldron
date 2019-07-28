@@ -18,10 +18,11 @@
 // THE SOFTWARE.
 #pragma once
 
+#include "../imgui/imgui.h"
+
 #include "DynamicBufferRing.h"
 #include "CommandListRing.h"
 #include "UploadHeap.h"
-#include "../imgui/imgui.h"
 #include "base/ImGuiHelper.h"
 
 namespace CAULDRON_VK

@@ -18,6 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <mutex>
+#include <vector>
+
 #include "Device.h"
 
 namespace CAULDRON_VK

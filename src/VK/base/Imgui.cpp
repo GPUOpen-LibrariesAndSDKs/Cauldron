@@ -18,15 +18,21 @@
 // THE SOFTWARE.
 
 #include <iterator>
+#include <vector>
+
+#include "Imgui.h"
 
 #include "ShaderCompilerHelper.h"
 #include "base/DebugMarkersExt.h"
-#include "Imgui.h"
+#include "base/Device.h"
+
 
 namespace CAULDRON_VK
 {
     // Data
+    #ifdef _WIN32
     static HWND                     g_hWnd = 0;
+    #endif
 
     struct VERTEX_CONSTANT_BUFFER
     {

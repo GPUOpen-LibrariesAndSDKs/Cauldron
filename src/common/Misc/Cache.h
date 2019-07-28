@@ -18,6 +18,9 @@
 // THE SOFTWARE.
 
 #pragma once
+
+#include <map>
+
 #include "threadpool.h"
 
 // This is a multithreaded shader cache. This is how it works:
@@ -119,7 +122,7 @@ public:
     bool CacheMiss(size_t hash, T *pOut)
     {
 #ifdef CACHE_ENABLE
-        std::map<size_t, CacheEntry>::iterator it;
+        typename std::map<size_t, CacheEntry>::iterator it;
 
         // find whether the shader is in the cache, create an empty entry just so other threads know this thread will be compiling the shader
         {
@@ -162,7 +165,7 @@ public:
     void UpdateCache(size_t hash, T *pValue)
     {
 #ifdef CACHE_ENABLE
-        std::map<size_t, CacheEntry>::iterator it;
+        typename std::map<size_t, CacheEntry>::iterator it;
 
         {
             std::lock_guard<std::mutex> lock(m_mutex);

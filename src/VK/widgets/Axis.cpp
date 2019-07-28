@@ -17,11 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cstring>
 #include <iterator>
 
+#include "Axis.h"
 #include "base/Device.h"
 #include "base/ShaderCompilerHelper.h"
-#include "Axis.h"
+
 
 namespace CAULDRON_VK
 {

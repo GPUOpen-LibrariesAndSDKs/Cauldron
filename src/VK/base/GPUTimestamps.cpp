@@ -17,6 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cstdint>
 
 #include "Device.h"
 #include "GPUTimestamps.h"
@@ -50,7 +51,7 @@ namespace CAULDRON_VK
             m_labels[i].clear();
     }
 
-    void GPUTimestamps::GetTimeStamp(VkCommandBuffer cmd_buf, char *label)
+    void GPUTimestamps::GetTimeStamp(VkCommandBuffer cmd_buf, const char *label)
     {
         uint32_t measurements = (uint32_t)m_labels[m_frame].size();
         uint32_t offset = m_frame*MaxValuesPerFrame + measurements;
@@ -70,8 +71,8 @@ namespace CAULDRON_VK
         uint32_t measurements = (uint32_t)m_labels[m_frame].size();
         uint32_t offset = m_frame*MaxValuesPerFrame;
 
-        UINT64 TimingsInTicks[256] = {};
-        VkResult res = vkGetQueryPoolResults(m_pDevice->GetDevice(), m_QueryPool, offset, measurements, sizeof(TimingsInTicks) * sizeof(UINT64), &TimingsInTicks, sizeof(UINT64), VK_QUERY_RESULT_64_BIT);
+        uint64_t TimingsInTicks[256] = {};
+        VkResult res = vkGetQueryPoolResults(m_pDevice->GetDevice(), m_QueryPool, offset, measurements, sizeof(TimingsInTicks) * sizeof(uint64_t), &TimingsInTicks, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
 
         if (measurements == 0)
             vkCmdResetQueryPool(cmd_buf, m_QueryPool, 0, MaxValuesPerFrame);

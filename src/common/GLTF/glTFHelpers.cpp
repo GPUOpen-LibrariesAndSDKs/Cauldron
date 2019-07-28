@@ -118,30 +118,30 @@ std::string GetElementString(const json::object_t &root, char *path, std::string
     return GetElement<std::string>(&root, path, pDefault);
 }
 
-bool GetElementBoolean(const json::object_t &root, char *path, bool default)
+bool GetElementBoolean(const json::object_t &root, char *path, bool default_value)
 {
-    return GetElement<bool>(&root, path, default);
+    return GetElement<bool>(&root, path, default_value);
 }
 
-float GetElementFloat(const json::object_t &root, char *path, float default)
+float GetElementFloat(const json::object_t &root, char *path, float default_value)
 {
-    return GetElement<float>(&root, path, default);
+    return GetElement<float>(&root, path, default_value);
 }
 
-int GetElementInt(const json::object_t &root, char *path, int default)
+int GetElementInt(const json::object_t &root, char *path, int default_value)
 {
-    return GetElement<int>(&root, path, default);
+    return GetElement<int>(&root, path, default_value);
 }
 
-json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::array_t default)
+json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::array_t default_value)
 {
-    return GetElement<json::array_t>(&root, path, default);
+    return GetElement<json::array_t>(&root, path, default_value);
 }
 
-XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default)
+DirectX::XMVECTOR GetElementVector(json::object_t &root, char *path, DirectX::XMVECTOR default_value)
 {
     if (root.find(path) != root.end())
         return GetVector(root[path].get<json::array_t>());
     else
-        return default;
+        return default_value;
 }

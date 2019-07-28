@@ -21,6 +21,8 @@
 #include "../json/json.h"
 #include <DirectXMath.h>
 
+#include <string>
+
 using json = nlohmann::json;
 
 int GetFormatSize(int id);
