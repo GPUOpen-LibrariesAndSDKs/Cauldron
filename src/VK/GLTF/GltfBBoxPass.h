@@ -42,7 +42,7 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX cameraViewProjMatrix);
+        void Draw(VkCommandBuffer cmd_buf, XMMATRIX cameraViewProjMatrix);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
         WireframeBox m_wireframeBox;

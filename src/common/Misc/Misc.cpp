@@ -244,9 +244,9 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
 }
 
 
-void GetXYZ(float *f, DirectX::XMVECTOR v)
+void GetXYZ(float *f, XMVECTOR v)
 {
-    f[0] = DirectX::XMVectorGetX(v);
-    f[1] = DirectX::XMVectorGetY(v);
-    f[2] = DirectX::XMVectorGetZ(v);
+    f[0] = XMVectorGetX(v);
+    f[1] = XMVectorGetY(v);
+    f[2] = XMVectorGetZ(v);
 }

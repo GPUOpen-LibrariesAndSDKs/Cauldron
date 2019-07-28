@@ -59,12 +59,12 @@ namespace CAULDRON_VK
     public:
         struct per_frame
         {
-            DirectX::XMMATRIX mViewProj;
+            XMMATRIX mViewProj;
         };
 
         struct per_object
         {
-            DirectX::XMMATRIX mWorld;
+            XMMATRIX mWorld;
         };
 
         void OnCreate(

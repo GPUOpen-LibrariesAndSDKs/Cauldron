@@ -23,6 +23,7 @@
 #include "base/StaticBufferPool.h"
 
 #include <DirectXMath.h>
+using namespace DirectX;
 
 namespace CAULDRON_VK
 {
@@ -40,7 +41,7 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX worldMatrix, DirectX::XMVECTOR vCenter, DirectX::XMVECTOR vRadius, DirectX::XMVECTOR vColor);
+        void Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
     protected:
 
         Device* m_pDevice;
@@ -63,10 +64,10 @@ namespace CAULDRON_VK
 
         struct per_object
         {
-            DirectX::XMMATRIX m_mWorldViewProj;
-            DirectX::XMVECTOR m_vCenter;
-            DirectX::XMVECTOR m_vRadius;
-            DirectX::XMVECTOR m_vColor;
+            XMMATRIX m_mWorldViewProj;
+            XMVECTOR m_vCenter;
+            XMVECTOR m_vRadius;
+            XMVECTOR m_vColor;
         };
     };
 }

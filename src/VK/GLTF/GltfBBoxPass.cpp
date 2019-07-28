@@ -59,7 +59,7 @@ namespace CAULDRON_VK
     // Draw
     //
     //--------------------------------------------------------------------------------------
-    void GltfBBoxPass::Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX cameraViewProjMatrix)
+    void GltfBBoxPass::Draw(VkCommandBuffer cmd_buf, XMMATRIX cameraViewProjMatrix)
     {
         SetPerfMarkerBegin(cmd_buf, "bounding boxes");
 
@@ -71,12 +71,12 @@ namespace CAULDRON_VK
             if (pNode->meshIndex < 0)
                 continue;
 
-            DirectX::XMMATRIX mWorldViewProj = pC->m_transformedData.m_worldSpaceMats[i] * cameraViewProjMatrix;
+            XMMATRIX mWorldViewProj = pC->m_transformedData.m_worldSpaceMats[i] * cameraViewProjMatrix;
 
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
-                m_wireframeBox.Draw(cmd_buf, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, DirectX::XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
+                m_wireframeBox.Draw(cmd_buf, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
             }
         }
 

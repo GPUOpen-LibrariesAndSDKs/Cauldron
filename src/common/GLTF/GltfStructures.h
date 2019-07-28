@@ -37,8 +37,8 @@ public:
     int m_dimension;
     int m_type;
 
-    DirectX::XMVECTOR m_min;
-    DirectX::XMVECTOR m_max;
+    XMVECTOR m_min;
+    XMVECTOR m_max;
 
     void *Get(int i)
     {
@@ -72,8 +72,8 @@ public:
 
 struct tfPrimitives
 {
-    DirectX::XMVECTOR m_center;
-    DirectX::XMVECTOR m_radius;
+    XMVECTOR m_center;
+    XMVECTOR m_radius;
 };
 
 struct tfMesh
@@ -83,11 +83,11 @@ struct tfMesh
 
 struct Transform
 {
-    DirectX::XMVECTOR m_translation;
-    DirectX::XMMATRIX m_rotation;
-    DirectX::XMVECTOR m_scale;
+    XMVECTOR m_translation;
+    XMMATRIX m_rotation;
+    XMVECTOR m_scale;
 
-    DirectX::XMMATRIX GetWorldMat() { return DirectX::XMMatrixScalingFromVector(m_scale)  * m_rotation  * DirectX::XMMatrixTranslationFromVector(m_translation); }
+    XMMATRIX GetWorldMat() { return XMMatrixScalingFromVector(m_scale)  * m_rotation  * XMMatrixTranslationFromVector(m_translation); }
 };
 
 struct tfNode
@@ -104,7 +104,7 @@ struct tfNode
 
 struct NodeMatrixPostTransform
 {
-    tfNode *pN; DirectX::XMMATRIX m;
+    tfNode *pN; XMMATRIX m;
 };
 
 struct tfScene
@@ -179,7 +179,7 @@ struct tfLight
 
     int m_nodeIndex = -1;
 
-    DirectX::XMVECTOR m_color;
+    XMVECTOR m_color;
     float m_range;
     float m_innerConeAngle;
     float m_outerConeAngle;

@@ -316,7 +316,7 @@ namespace CAULDRON_VK
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
     }
 
-    void Axis::Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX worldMatrix, DirectX::XMMATRIX axisMatrix)
+    void Axis::Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMMATRIX axisMatrix)
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;

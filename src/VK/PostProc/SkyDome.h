@@ -23,6 +23,7 @@
 #include "base/UploadHeap.h"
 
 #include <DirectXMath.h>
+using namespace DirectX;
 
 namespace CAULDRON_VK
 {
@@ -31,7 +32,7 @@ namespace CAULDRON_VK
     public:
         void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, char *pDiffuseCubemap, char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount);
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, DirectX::XMMATRIX invViewProj);
+        void Draw(VkCommandBuffer cmd_buf, XMMATRIX invViewProj);
         void GenerateDiffuseMapFromEnvironmentMap();
 
         void SetDescriptorDiff(uint32_t index, VkDescriptorSet descriptorSet);

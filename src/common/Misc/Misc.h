@@ -22,6 +22,7 @@
 #include <string>
 
 #include <DirectXMath.h>
+using namespace DirectX;
 
 double MillisecondsNow();
 size_t Hash(const void *ptr, size_t size, size_t result = 2166136261);
@@ -30,7 +31,7 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary);
 bool SaveFile(const char *name, void const*data, size_t size, bool isbinary);
 void Trace(const std::string &str);
 bool LaunchProcess(const std::string &commandLine, const std::string &filenameErr);
-void GetXYZ(float *, DirectX::XMVECTOR v);
+void GetXYZ(float *, XMVECTOR v);
 
 // align uLocation to the next multiple of uAlign
 inline size_t AlignOffset(size_t uOffset, size_t uAlign) { return ((uOffset + (uAlign - 1)) & ~(uAlign - 1)); }

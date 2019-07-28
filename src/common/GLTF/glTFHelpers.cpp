@@ -61,14 +61,14 @@ void SplitGltfAttribute(std::string attribute, std::string *semanticName, uint32
     *semanticName = attribute;
 }
 
-DirectX::XMVECTOR GetVector(const json::array_t &accessor)
+XMVECTOR GetVector(const json::array_t &accessor)
 {
-    return DirectX::XMVectorSet(accessor[0], accessor[1], accessor[2], (accessor.size() == 4) ? accessor[3] : 0);
+    return XMVectorSet(accessor[0], accessor[1], accessor[2], (accessor.size() == 4) ? accessor[3] : 0);
 }
 
-DirectX::XMMATRIX GetMatrix(const json::array_t &accessor)
+XMMATRIX GetMatrix(const json::array_t &accessor)
 {
-    return DirectX::XMMatrixSet(accessor[0], accessor[1], accessor[2], accessor[3],
+    return XMMatrixSet(accessor[0], accessor[1], accessor[2], accessor[3],
         accessor[4], accessor[5], accessor[6], accessor[7],
         accessor[8], accessor[9], accessor[10], accessor[11],
         accessor[12], accessor[13], accessor[14], accessor[15]);
@@ -138,7 +138,7 @@ json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::
     return GetElement<json::array_t>(&root, path, default_value);
 }
 
-DirectX::XMVECTOR GetElementVector(json::object_t &root, char *path, DirectX::XMVECTOR default_value)
+XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default_value)
 {
     if (root.find(path) != root.end())
         return GetVector(root[path].get<json::array_t>());
