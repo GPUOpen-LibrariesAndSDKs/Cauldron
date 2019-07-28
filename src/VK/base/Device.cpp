@@ -20,7 +20,9 @@
 
 
 #include "Device.h"
+#ifdef _WIN32
 #include <vulkan/vulkan_win32.h>
+#endif
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
@@ -44,6 +46,7 @@ namespace CAULDRON_VK
     {
     }
 
+#ifdef _WIN32
     void Device::OnCreate(const char *pAppName, const char *pEngineName, bool bValidationEnabled, HWND hWnd)
     {
         InstanceProperties ip;
@@ -222,7 +225,9 @@ namespace CAULDRON_VK
             ExtFreeSync2Init(m_device);
         }
     }
-
+#else
+#warning "TODO: Implement Device::OnCreate() for Linux"
+#endif
 
     void Device::CreatePipelineCache()
     {

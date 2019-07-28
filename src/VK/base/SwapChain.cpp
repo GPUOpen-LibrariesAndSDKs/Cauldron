@@ -27,6 +27,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
+    #ifdef _WIN32
     void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd)
     {
         VkResult res;
@@ -128,6 +129,9 @@ namespace CAULDRON_VK
             assert(res == VK_SUCCESS);
         }
     }
+    #else
+    #warning "TODO: implement SwapChain::OnCreate()"
+    #endif
 
     //--------------------------------------------------------------------------------------
     //
@@ -179,13 +183,13 @@ namespace CAULDRON_VK
     {
         VkPresentInfoKHR present = {};
         present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        present.pNext = NULL;
+        present.pNext = nullptr;
         present.waitSemaphoreCount = 1;
         present.pWaitSemaphores = &(m_RenderFinishedSemaphores[m_index]);
         present.swapchainCount = 1;
         present.pSwapchains = &m_swapChain;
         present.pImageIndices = &m_imageIndex;
-        present.pResults = NULL;
+        present.pResults = nullptr;
 
         VkResult res = vkQueuePresentKHR(m_presentQueue, &present);
         assert(res == VK_SUCCESS);
@@ -199,6 +203,7 @@ namespace CAULDRON_VK
     {
         m_isFullScreen = fullscreen;
 
+#ifdef _WIN32
         if (m_isFullScreen)
         {
             m_windowedState.IsMaximized = (bool)::IsZoomed(m_hWnd);
@@ -241,6 +246,9 @@ namespace CAULDRON_VK
                 ::SendMessage(m_hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
             }
         }
+#else
+    #warning "TODO: implement SwapChain::SetFullScreen()"
+#endif
     }
 
     void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight)
@@ -370,9 +378,13 @@ namespace CAULDRON_VK
         // keep track of the window size, so when we know switch from fullscreen mode into windowed
         if (m_isFullScreen == false)
         {
+            #ifdef _WIN32
             m_windowedState.Style = GetWindowLongPtr(m_hWnd, GWL_STYLE);
             m_windowedState.ExStyle = GetWindowLongPtr(m_hWnd, GWL_EXSTYLE);
             GetWindowRect(m_hWnd, &m_windowedState.WindowRect);
+            #else
+            #warning "TODO: implement SwapChain::OnCreateWindowSizeDependentResources()"
+            #endif
         }
 
         m_index = 0;

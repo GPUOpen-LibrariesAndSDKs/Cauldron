@@ -26,7 +26,9 @@ namespace CAULDRON_VK
     class SwapChain
     {
     public:
+    #ifdef _WIN32
         void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd);
+    #endif
         void OnDestroy();
 
         void SetFullScreen(bool fullscreen);
@@ -52,7 +54,9 @@ namespace CAULDRON_VK
         void CreateFramebuffers(uint32_t dwWidth, uint32_t dwHeight);
         void DestroyFramebuffers();
 
+#ifdef _WIN32
         HWND m_hWnd;
+#endif
         Device *m_pDevice;
 
         VkSwapchainKHR m_swapChain;
@@ -77,6 +81,7 @@ namespace CAULDRON_VK
 
         // fullscreen/windowed vars
         bool m_isFullScreen = false;
+#ifdef _WIN32
         struct SavedWindowInfo
         {
             LONG_PTR Style;
@@ -85,5 +90,6 @@ namespace CAULDRON_VK
             RECT WindowRect;
         };
         SavedWindowInfo m_windowedState = {};
+#endif
     };
 }

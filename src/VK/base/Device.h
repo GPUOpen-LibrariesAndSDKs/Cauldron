@@ -38,7 +38,11 @@ namespace CAULDRON_VK
     public:
         Device();
         ~Device();
+        #ifdef _WIN32
         void OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd);
+        #else
+        #warning "TODO: Implement Device::OnCreate() for Linux"
+        #endif
         void OnDestroy();
         VkDevice GetDevice() { return m_device; }
         VkQueue GetGraphicsQueue() { return graphics_queue; }

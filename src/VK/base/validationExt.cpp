@@ -18,7 +18,11 @@
 // THE SOFTWARE.
 
 
+#include <vulkan/vulkan.h>
+#ifdef _WIN32
 #include <vulkan/vulkan_win32.h>
+#endif
+
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
@@ -41,8 +45,12 @@ namespace CAULDRON_VK
         const char* pMessage,
         void* pUserData)
     {
+        #ifdef _WIN32
         OutputDebugStringA(pMessage);
         OutputDebugStringA("\n");
+		#else
+		#warning "TODO: implement debug messages for Linux"
+        #endif
         return VK_FALSE;
     }
 

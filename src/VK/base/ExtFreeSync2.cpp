@@ -21,29 +21,36 @@
 #include "ExtFreeSync2.h"
 #include "Misc/Misc.h"
 #include <vulkan/vulkan.h>
+#ifdef _WIN32
 #include <vulkan/vulkan_win32.h>
+#endif
 
 namespace CAULDRON_VK
 {
 
-    static PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR g_vkGetPhysicalDeviceSurfaceCapabilities2KHR = NULL;
-    static PFN_vkGetDeviceProcAddr g_vkGetDeviceProcAddr = NULL;
-    static PFN_vkSetHdrMetadataEXT g_vkSetHdrMetadataEXT = NULL;
-    static PFN_vkAcquireFullScreenExclusiveModeEXT g_vkAcquireFullScreenExclusiveModeEXT = NULL;
-    static PFN_vkReleaseFullScreenExclusiveModeEXT g_vkReleaseFullScreenExclusiveModeEXT = NULL;
-    static PFN_vkGetPhysicalDeviceSurfaceFormats2KHR      g_vkGetPhysicalDeviceSurfaceFormats2KHR = NULL;
-    static PFN_vkGetDeviceGroupSurfacePresentModes2EXT    g_vkGetDeviceGroupSurfacePresentModes2EXT = NULL;
-    static PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT g_vkGetPhysicalDeviceSurfacePresentModes2EXT = NULL;
-    static PFN_vkSetLocalDimmingAMD                       g_vkSetLocalDimmingAMD = NULL;
-    static PFN_vkGetPhysicalDevicePresentRectanglesKHR    g_vkGetPhysicalDevicePresentRectanglesKHR = NULL;
+    static PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR g_vkGetPhysicalDeviceSurfaceCapabilities2KHR =  nullptr;
+    static PFN_vkGetDeviceProcAddr g_vkGetDeviceProcAddr =  nullptr;
+    static PFN_vkSetHdrMetadataEXT g_vkSetHdrMetadataEXT =  nullptr;
+    #ifdef _WIN32
+    static PFN_vkAcquireFullScreenExclusiveModeEXT g_vkAcquireFullScreenExclusiveModeEXT =  nullptr;
+    static PFN_vkReleaseFullScreenExclusiveModeEXT g_vkReleaseFullScreenExclusiveModeEXT =  nullptr;
+    #endif
+    static PFN_vkGetPhysicalDeviceSurfaceFormats2KHR      g_vkGetPhysicalDeviceSurfaceFormats2KHR =  nullptr;
+    #ifdef _WIN32
+    static PFN_vkGetDeviceGroupSurfacePresentModes2EXT    g_vkGetDeviceGroupSurfacePresentModes2EXT =  nullptr;
+    static PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT g_vkGetPhysicalDeviceSurfacePresentModes2EXT =  nullptr;
+    static PFN_vkSetLocalDimmingAMD                       g_vkSetLocalDimmingAMD =  nullptr;
+    #endif
+    static PFN_vkGetPhysicalDevicePresentRectanglesKHR    g_vkGetPhysicalDevicePresentRectanglesKHR =  nullptr;
 
 
     bool ExtFreeSync2CheckExtensions(DeviceProperties *pDP)
     {
-        std::vector<const char *> required_extension_names = { VK_EXT_HDR_METADATA_EXTENSION_NAME, VK_AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME, VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME };
-    
         bool res = true;
 
+        #ifdef _WIN32
+        std::vector<const char *> required_extension_names = { VK_EXT_HDR_METADATA_EXTENSION_NAME, VK_AMD_DISPLAY_NATIVE_HDR_EXTENSION_NAME, VK_EXT_FULL_SCREEN_EXCLUSIVE_EXTENSION_NAME };
+    
         for (auto& ext : required_extension_names)
         {
             if (pDP->Add(ext) == false)
@@ -53,6 +60,11 @@ namespace CAULDRON_VK
             }
             
         }
+        #else
+        res = false;
+        Trace(format("FreeSync2 disabled, unsupported platform"));
+        #endif
+
         return res;
     }
 
@@ -64,11 +76,13 @@ namespace CAULDRON_VK
         g_vkGetPhysicalDeviceSurfaceFormats2KHR = (PFN_vkGetPhysicalDeviceSurfaceFormats2KHR)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceSurfaceFormats2KHR");
         assert(g_vkGetPhysicalDeviceSurfaceFormats2KHR);
 
+#ifdef _WIN32
         g_vkGetPhysicalDeviceSurfacePresentModes2EXT = (PFN_vkGetPhysicalDeviceSurfacePresentModes2EXT)vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceSurfacePresentModes2EXT");
         assert(g_vkGetPhysicalDeviceSurfacePresentModes2EXT);
 
         g_vkGetDeviceGroupSurfacePresentModes2EXT = (PFN_vkGetDeviceGroupSurfacePresentModes2EXT)vkGetInstanceProcAddr(instance, "vkGetDeviceGroupSurfacePresentModes2EXT");
         assert(g_vkGetDeviceGroupSurfacePresentModes2EXT);
+#endif
     }
 
     void ExtFreeSync2Init(VkDevice device)
@@ -76,6 +90,7 @@ namespace CAULDRON_VK
         g_vkSetHdrMetadataEXT = (PFN_vkSetHdrMetadataEXT)g_vkGetDeviceProcAddr(device, "vkSetHdrMetadataEXT");
         assert(g_vkSetHdrMetadataEXT);
 
+#ifdef _WIN32
         g_vkAcquireFullScreenExclusiveModeEXT = (PFN_vkAcquireFullScreenExclusiveModeEXT)g_vkGetDeviceProcAddr(device, "vkAcquireFullScreenExclusiveModeEXT");
         assert(g_vkAcquireFullScreenExclusiveModeEXT);
 
@@ -84,7 +99,7 @@ namespace CAULDRON_VK
 
         g_vkSetLocalDimmingAMD = (PFN_vkSetLocalDimmingAMD)g_vkGetDeviceProcAddr(device, "vkSetLocalDimmingAMD");
         assert(g_vkSetLocalDimmingAMD);
-
+#endif
         g_vkGetPhysicalDevicePresentRectanglesKHR = (PFN_vkGetPhysicalDevicePresentRectanglesKHR)g_vkGetDeviceProcAddr(device, "vkGetPhysicalDevicePresentRectanglesKHR");
         assert(g_vkGetPhysicalDevicePresentRectanglesKHR);
     }

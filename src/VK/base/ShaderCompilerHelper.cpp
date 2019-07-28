@@ -220,7 +220,7 @@ namespace CAULDRON_VK
 
         //append path
         char fullpath[1024];
-        sprintf_s(fullpath, SHADER_LIB_DIR"\\%s", pFilename);
+        sprintf(fullpath, SHADER_LIB_DIR"\\%s", pFilename);
 
         if (ReadFile(fullpath, &pShaderCode, &size, false))
         {
@@ -235,8 +235,12 @@ namespace CAULDRON_VK
     //
     void CreateShaderCache()
     {
+        #ifdef _WIN32
         CreateDirectoryA(SHADER_LIB_DIR, 0);
         CreateDirectoryA(SHADER_CACHE_DIR, 0);
+        #else
+        #warning "TODO: create shader cache directories"
+        #endif
     }
 
     //

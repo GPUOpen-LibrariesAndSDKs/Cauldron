@@ -20,6 +20,7 @@
 
 #include "ImGuiHelper.h"
 
+#ifdef _WIN32
 static HWND g_hWnd;
 
 bool ImGUI_Init(void* hwnd)
@@ -52,6 +53,9 @@ bool ImGUI_Init(void* hwnd)
 
     return true;
 }
+#else
+#warning "TODO: implement ImGUI_Init for Linux"
+#endif
 
 void ImGUI_Shutdown()
 {
@@ -63,6 +67,7 @@ void ImGUI_UpdateIO()
 {
     ImGuiIO& io = ImGui::GetIO();
 
+#ifdef _WIN32
     // Setup display size (every frame to accommodate for window resizing)
     RECT rect;
     GetClientRect(g_hWnd, &rect);
@@ -77,6 +82,9 @@ void ImGUI_UpdateIO()
     // io.MousePos : filled by WM_MOUSEMOVE events
     // io.MouseDown : filled by WM_*BUTTON* events
     // io.MouseWheel : filled by WM_MOUSEWHEEL events
+#else
+#warning "TODO: implement ImGUI_UpdateIO for Linux"
+#endif
 
     // Hide OS mouse cursor if ImGui is drawing it
     if (io.MouseDrawCursor)
@@ -92,6 +100,7 @@ static bool IsAnyMouseButtonDown()
     return false;
 }
 
+#ifdef _WIN32
 IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     ImGuiIO& io = ImGui::GetIO();
@@ -148,3 +157,6 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     }
     return 0;
 }
+#else
+#warning "TODO: implement ImGUI_WndProcHandler for Linux"
+#endif
