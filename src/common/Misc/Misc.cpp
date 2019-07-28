@@ -25,9 +25,11 @@
 //
 double MillisecondsNow()
 {
+    double milliseconds = 0;
+
+#ifdef __WIN32
     static LARGE_INTEGER s_frequency;
     static BOOL s_use_qpc = QueryPerformanceFrequency(&s_frequency);
-    double milliseconds = 0;
 
     if (s_use_qpc)
     {
@@ -39,6 +41,9 @@ double MillisecondsNow()
     {
         milliseconds = double(GetTickCount());
     }
+#else
+#warning "TODO: Implement timer for Linux"
+#endif
 
     return milliseconds;
 }
@@ -84,7 +89,11 @@ void Trace(const std::string &str)
 {
     std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
+    #ifdef __WIN32
     OutputDebugStringA(str.c_str());
+    #else
+    #warning "TODO: Implement debugging for Linux"
+    #endif
 }
 
 //
@@ -92,10 +101,8 @@ void Trace(const std::string &str)
 //
 bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
 {
-    FILE *file;
-
     //Open file
-    fopen_s(&file, name, isbinary ? "rb" : "r");
+    FILE *file = fopen(name, isbinary ? "rb" : "r");
     if (!file)
     {
         return false;
@@ -129,7 +136,7 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
     }
 
     *data = buffer;
-    if (size != NULL)
+    if (size != nullptr)
         *size = fileLen;
 
     return true;
@@ -137,9 +144,8 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
 
 bool SaveFile(const char *name, void const*data, size_t size, bool isbinary)
 {
-    FILE *file;
-    fopen_s(&file, name, isbinary ? "wb" : "w");
-    if (file != NULL)
+    FILE *file = fopen(name, isbinary ? "wb" : "w");
+    if (file != nullptr)
     {
         fwrite(data, size, 1, file);
         fclose(file);
@@ -156,6 +162,7 @@ bool SaveFile(const char *name, void const*data, size_t size, bool isbinary)
 //
 bool LaunchProcess(const std::string &commandLine, const std::string &filenameErr)
 {
+#ifdef _WIN32
     char cmdLine[1024];
     strcpy_s<1024>(cmdLine, commandLine.c_str());
 
@@ -226,6 +233,9 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
     {
         Trace(format("*** Can't launch: %s \n", cmdLine));
     }
+#else
+#warning "TODO: implement process launching for Linux"
+#endif
 
     return false;
 }

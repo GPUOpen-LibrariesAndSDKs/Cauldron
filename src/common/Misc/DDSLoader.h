@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <cstdio>
+
 #include "ImgLoader.h"
 
 
@@ -33,5 +35,9 @@ public:
     // after calling Load, calls to CopyPixels return each time a lower mip level
     void CopyPixels(void *pDest, uint32_t stride, uint32_t width, uint32_t height);
 private:
+#ifdef _WIN32
     HANDLE m_handle;
+#else
+#warning "TODO: implement crossplatform DDS loading"
+#endif
 };
