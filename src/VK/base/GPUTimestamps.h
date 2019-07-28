@@ -18,6 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <string>
+#include <vector>
+
 namespace CAULDRON_VK
 {
     // This class helps insert queries in the command buffer and readback the results.
@@ -37,7 +40,7 @@ namespace CAULDRON_VK
         void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers);
         void OnDestroy();
 
-        void GetTimeStamp(VkCommandBuffer cmd_buf, char *label);
+        void GetTimeStamp(VkCommandBuffer cmd_buf, const char *label);
 
         void OnBeginFrame(VkCommandBuffer cmd_buf, std::vector<TimeStamp> *pTimestamp);
         void OnEndFrame();

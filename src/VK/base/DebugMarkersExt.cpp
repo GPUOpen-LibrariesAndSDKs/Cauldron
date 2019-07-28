@@ -17,6 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cstring>
 
 #include "DebugMarkersExt.h"
 
@@ -40,7 +41,7 @@ namespace CAULDRON_VK
     }
 
 
-    void SetPerfMarkerBegin(VkCommandBuffer cmd_buf, char *pMsg)
+    void SetPerfMarkerBegin(VkCommandBuffer cmd_buf, const char *pMsg)
     {
         if (vkCmdDebugMarkerBegin)
         {

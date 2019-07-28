@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include "base/ShaderCompiler.h"
+
 #include "GLTFTexturesAndBuffers.h"
 
 namespace CAULDRON_VK

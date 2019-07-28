@@ -17,12 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "Misc/threadpool.h"
 
 #include "glTFHelpers.h"
 #include "base/UploadHeap.h"
 #include "GLTFTexturesAndBuffers.h"
 #include "Misc/Misc.h"
-#include "Misc/threadpool.h"
+
 
 namespace CAULDRON_VK
 {

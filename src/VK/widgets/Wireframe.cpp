@@ -19,9 +19,10 @@
 
 #include <iterator>
 
+#include "Wireframe.h"
+
 #include "base/Device.h"
 #include "base/ShaderCompilerHelper.h"
-#include "Wireframe.h"
 
 namespace CAULDRON_VK
 {

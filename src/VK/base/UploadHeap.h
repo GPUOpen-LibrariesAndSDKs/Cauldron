@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <cstdint>
+
 #include "Device.h"
 
 namespace CAULDRON_VK
@@ -30,12 +32,12 @@ namespace CAULDRON_VK
     class UploadHeap
     {
     public:
-        void OnCreate(Device *pDevice, SIZE_T uSize);
+        void OnCreate(Device *pDevice, size_t uSize);
         void OnDestroy();
 
-        UINT8* Suballocate(SIZE_T uSize, UINT64 uAlign);
+        uint8_t* Suballocate(size_t uSize, uint64_t uAlign);
 
-        UINT8* BasePtr() { return m_pDataBegin; }
+        uint8_t* BasePtr() { return m_pDataBegin; }
         VkBuffer GetResource() { return m_buffer; }
         VkCommandBuffer GetCommandList() { return m_pCommandBuffer; }
 
@@ -54,9 +56,9 @@ namespace CAULDRON_VK
 
         VkFence m_fence;
 
-        UINT8* m_pDataBegin = nullptr;    // starting position of upload heap
-        UINT8* m_pDataCur   = nullptr;      // current position of upload heap
-        UINT8* m_pDataEnd   = nullptr;      // ending position of upload heap 
+        uint8_t* m_pDataBegin = nullptr;    // starting position of upload heap
+        uint8_t* m_pDataCur   = nullptr;      // current position of upload heap
+        uint8_t* m_pDataEnd   = nullptr;      // ending position of upload heap 
 
     };
 }

@@ -18,17 +18,21 @@
 // THE SOFTWARE.
 #pragma once
 
+#ifndef _WIN32
+#include "dxgiformat.h"
+#endif
 
+#include <cstdint>
 
 struct IMG_INFO
 {
-    UINT32           width;
-    UINT32           height;
-    UINT32           depth;
-    UINT32           arraySize;
-    UINT32           mipMapCount;
+    uint32_t         width;
+    uint32_t         height;
+    uint32_t         depth;
+    uint32_t         arraySize;
+    uint32_t         mipMapCount;
     DXGI_FORMAT      format;
-    UINT32           bitCount;
+    uint32_t         bitCount;
 };
 
 //Loads a Image file

@@ -29,7 +29,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void UploadHeap::OnCreate(Device *pDevice, SIZE_T uSize)
+    void UploadHeap::OnCreate(Device *pDevice, size_t uSize)
     {
         m_pDevice = pDevice;
 
@@ -138,9 +138,9 @@ namespace CAULDRON_VK
     // SuballocateFromUploadHeap
     //
     //--------------------------------------------------------------------------------------
-    UINT8* UploadHeap::Suballocate(SIZE_T uSize, UINT64 uAlign)
+    uint8_t* UploadHeap::Suballocate(size_t uSize, uint64_t uAlign)
     {
-        m_pDataCur = reinterpret_cast<UINT8*>(AlignOffset(reinterpret_cast<SIZE_T>(m_pDataCur), uAlign));
+        m_pDataCur = reinterpret_cast<uint8_t*>(AlignOffset(reinterpret_cast<size_t>(m_pDataCur), uAlign));
         uSize = AlignOffset(uSize, uAlign);
 
         // flush operations if we ran out of space in the heap
@@ -150,7 +150,7 @@ namespace CAULDRON_VK
             return nullptr;
         }
 
-        UINT8* pRet = m_pDataCur;
+        uint8_t* pRet = m_pDataCur;
         m_pDataCur += uSize;
         return pRet;
     }

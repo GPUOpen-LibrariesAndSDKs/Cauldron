@@ -18,6 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <map>
+#include <string>
+
 #include "../Misc/Misc.h"
 
 //

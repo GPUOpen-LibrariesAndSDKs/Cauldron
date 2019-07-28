@@ -24,6 +24,7 @@
 #include <mutex>
 #include <deque>
 #include <condition_variable>
+#include <functional>
 
 struct Task
 {

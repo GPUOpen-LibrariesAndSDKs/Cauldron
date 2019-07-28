@@ -17,9 +17,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 #include "WirePrimitives.h"
-#include <glm/glm.hpp>
-using namespace glm;
-
 #include "Misc/Camera.h"
 
 void GenerateSphere(int sides, std::vector<short> &outIndices, std::vector<float> &outVertices)

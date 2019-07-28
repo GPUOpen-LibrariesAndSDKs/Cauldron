@@ -19,9 +19,10 @@
 
 #include <iterator>
 
+#include "CheckerboardFloor.h"
+
 #include "base/Device.h"
 #include "base/ShaderCompilerHelper.h"
-#include "CheckerboardFloor.h"
 
 namespace CAULDRON_VK
 {
