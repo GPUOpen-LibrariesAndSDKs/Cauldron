@@ -50,7 +50,7 @@ namespace CAULDRON_DX12
 
     void SkyDomeProc::Draw(ID3D12GraphicsCommandList* pCommandList, SkyDomeProc::Constants constants)
     {
-        UserMarker(pCommandList, "Skydome Proc");
+        UserMarker marker(pCommandList, "Skydome Proc");
 
         SkyDomeProc::Constants *cbPerDraw;
         D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;

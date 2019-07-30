@@ -372,7 +372,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void GltfDepthPass::Draw(ID3D12GraphicsCommandList* pCommandList)
     {
-        UserMarker(pCommandList, "DepthPass");
+        UserMarker marker(pCommandList, "DepthPass");
 
         // Set descriptor heaps
         pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

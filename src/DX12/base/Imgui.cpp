@@ -312,7 +312,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void ImGUI::Draw(ID3D12GraphicsCommandList *pCommandList)
     {
-        UserMarker(pCommandList, "ImGUI");
+        UserMarker marker(pCommandList, "ImGUI");
 
         ImGui::Render();
 

@@ -172,7 +172,7 @@ namespace CAULDRON_DX12
 
     void BlurPS::Draw(ID3D12GraphicsCommandList* pCommandList, int mipLevel)
     {
-        UserMarker(pCommandList, "BlurPS");
+        UserMarker marker(pCommandList, "BlurPS");
 
         // assumes all is in D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE and leaves all in that state
 

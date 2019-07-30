@@ -150,7 +150,7 @@ namespace CAULDRON_DX12
 
     void Bloom::Draw(ID3D12GraphicsCommandList* pCommandList, Texture *pInput)
     {
-        UserMarker(pCommandList, "Bloom");
+        UserMarker marker(pCommandList, "Bloom");
 
         //float weights[6] = { 0.25, 0.75, 1.5, 2, 2.5, 3.0 };
 

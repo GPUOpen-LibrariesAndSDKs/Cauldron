@@ -79,7 +79,7 @@ namespace CAULDRON_DX12
 
     void SkyDome::Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX& invViewProj)
     {
-        UserMarker(pCommandList, "Skydome");
+        UserMarker marker(pCommandList, "Skydome");
 
         XMMATRIX *cbPerDraw;
         D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;

@@ -389,7 +389,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void GltfPbrPass::Draw(ID3D12GraphicsCommandList* pCommandList)
     {
-        UserMarker(pCommandList, "gltfPBR");
+        UserMarker marker(pCommandList, "gltfPBR");
 
         struct Transparent
         {

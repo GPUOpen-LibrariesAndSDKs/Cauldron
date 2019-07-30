@@ -62,7 +62,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void GltfBBoxPass::Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX cameraViewProjMatrix)
     {
-        UserMarker(pCommandList, "bounding boxes");
+        UserMarker marker(pCommandList, "bounding boxes");
 
         GLTFCommon *pC = m_pGLTFTexturesAndBuffers->m_pGLTFCommon;
 
