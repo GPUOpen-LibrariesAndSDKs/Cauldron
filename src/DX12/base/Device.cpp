@@ -24,14 +24,12 @@
 
 #include <dxgi1_4.h>
 
-#pragma comment(lib,"d3dcompiler.lib")
-#pragma comment(lib, "D3D12.lib")
 #ifdef _DEBUG
 #pragma comment(lib, "dxguid.lib")
 #include <DXGIDebug.h>
 #endif 
 
-//#define USE_AGS
+#define USE_AGS
 
 namespace CAULDRON_DX12
 {
@@ -88,6 +86,8 @@ namespace CAULDRON_DX12
             AGSDX12ExtensionParams extensionParams = {};
             AGSDX12ReturnedParams returnedParams = {};
 
+            // Create AGS Device
+            //
             AGSReturnCode rc = agsDriverExtensionsDX12_CreateDevice(m_agsContext, &creationParams, &extensionParams, &returnedParams);
             if (rc == AGS_SUCCESS)
             {
@@ -96,11 +96,11 @@ namespace CAULDRON_DX12
             }
         }
         pAdapter->Release();
-#endif
-
+#else 
         // Create Device
         //
         ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pDevice)));
+#endif
 
         // Check for FP16 support
         //
