@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
  
-// This shader code was ported from https://github.com/KhronosGroup/glTF-WebGL-PBR
+// This shader code was ported from https://github.com/KhronosGroup/glTF-Sample-Viewer/
 // All credits should go to his original author.
 
 //
