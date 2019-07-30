@@ -23,7 +23,7 @@
 #include "../../common/Misc/Camera.h"
 #include "GltfStructures.h"
 
-#include <DirectXMath.h>
+#include "../DirextXMath/Inc/DirectXMath.h"
 
 // The GlTF file is loaded in 2 steps
 //
