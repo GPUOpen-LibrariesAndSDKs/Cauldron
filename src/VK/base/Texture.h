@@ -28,7 +28,7 @@
 #include "Misc/DDSLoader.h"
 
 #ifndef _WIN32
-#include "dxgiformat.h"
+#include "../dxgiformat/dxgiformat.h"
 #endif
 
 namespace CAULDRON_VK

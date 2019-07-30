@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <DirectXMath.h>
+#include "../DirextXMath/Inc/DirectXMath.h"
 using namespace DirectX;
 
 class Camera

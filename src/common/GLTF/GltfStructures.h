@@ -22,7 +22,7 @@
 #include <map>
 #include <vector>
 
-#include <DirectXMath.h>
+#include "../DirextXMath/Inc/DirectXMath.h"
 
 //
 // This file holds all the structures/classes used to load a glTF model

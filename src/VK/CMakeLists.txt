@@ -1,5 +1,12 @@
 project (Framework_VK)
 
+if(MSVC)
+  add_compile_options(/MP)
+else()
+add_compile_options(-M)
+endif()
+
+
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
     GLTF/GltfBBoxPass.h

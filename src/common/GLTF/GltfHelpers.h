@@ -24,7 +24,7 @@
 #include "../json/json.hpp"
 using json = nlohmann::json;
 
-#include <DirectXMath.h>
+#include "../DirextXMath/Inc/DirectXMath.h"
 using namespace DirectX;
 
 int GetFormatSize(int id);

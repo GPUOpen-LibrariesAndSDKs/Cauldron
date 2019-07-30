@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <dxgiformat.h>
+#include "../dxgiformat/dxgiformat.h"
 
 #include <cstdint>
 

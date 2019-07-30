@@ -25,7 +25,7 @@
 #include "GLTFTexturesAndBuffers.h"
 #include "widgets/WireframeBox.h"
 
-#include <DirectXMath.h>
+#include "../DirextXMath/Inc/DirectXMath.h"
 
 namespace CAULDRON_VK
 {

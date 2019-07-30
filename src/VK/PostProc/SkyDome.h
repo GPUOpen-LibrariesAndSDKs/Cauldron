@@ -22,7 +22,7 @@
 #include "base/Texture.h"
 #include "base/UploadHeap.h"
 
-#include <DirectXMath.h>
+#include "../DirextXMath/Inc/DirectXMath.h"
 using namespace DirectX;
 
 namespace CAULDRON_VK

@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.4)
 
 if(MSVC)
 set(CMAKE_GENERATOR_PLATFORM x64)
+add_compile_options(/MP)
+else()
+add_compile_options(-M)
 endif()
 
 project (Framework_${GFX_API})

@@ -22,7 +22,7 @@
 #include "PostProc/SkyDome.h"
 #include "../common/GLTF/GltfPbrMaterial.h"
 
-#include <DirectXMath.h>
+#include "../DirextXMath/Inc/DirectXMath.h"
 
 namespace CAULDRON_VK
 {

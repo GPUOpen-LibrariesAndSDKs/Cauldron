@@ -1,5 +1,9 @@
 project (Framework_Common)
-
+if(MSVC)
+  add_compile_options(/MP)
+else()
+add_compile_options(-M)
+endif()
 set(base_src
     "base/ImGuiHelper.cpp"
     "base/ImGuiHelper.h"
@@ -51,7 +55,7 @@ endif()
 
 add_library (${PROJECT_NAME} STATIC ${base_src} ${GLTF_src} ${Misc_src} ${Misc_src_platform})
 target_link_libraries (${PROJECT_NAME} NJSON DxgiFormat DirectXMath)
-target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${DirectXMath_INCLUDE_DIRS} ${DxgiFormat_INCLUDE_DIRS})
 
 source_group("base"         FILES ${base_src})
 source_group("GLTF"         FILES ${GLTF_src})
