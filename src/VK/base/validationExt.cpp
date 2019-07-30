@@ -17,8 +17,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cassert>
+#include <vector>
 
-#include <vulkan/vulkan_win32.h>
+#include <vulkan/vulkan.h>
+
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
@@ -41,8 +44,12 @@ namespace CAULDRON_VK
         const char* pMessage,
         void* pUserData)
     {
+        #ifdef _WIN32
         OutputDebugStringA(pMessage);
         OutputDebugStringA("\n");
+		#else
+		#warning "TODO: implement debug messages for Linux"
+        #endif
         return VK_FALSE;
     }
 

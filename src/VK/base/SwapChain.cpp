@@ -17,6 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cassert>
 
 #include "SwapChain.h"
 
@@ -27,6 +28,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
+    #ifdef _WIN32
     void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd)
     {
         VkResult res;
@@ -128,6 +130,9 @@ namespace CAULDRON_VK
             assert(res == VK_SUCCESS);
         }
     }
+    #else
+    #warning "TODO: implement SwapChain::OnCreate()"
+    #endif
 
     //--------------------------------------------------------------------------------------
     //
@@ -179,13 +184,13 @@ namespace CAULDRON_VK
     {
         VkPresentInfoKHR present = {};
         present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        present.pNext = NULL;
+        present.pNext = nullptr;
         present.waitSemaphoreCount = 1;
         present.pWaitSemaphores = &(m_RenderFinishedSemaphores[m_index]);
         present.swapchainCount = 1;
         present.pSwapchains = &m_swapChain;
         present.pImageIndices = &m_imageIndex;
-        present.pResults = NULL;
+        present.pResults = nullptr;
 
         VkResult res = vkQueuePresentKHR(m_presentQueue, &present);
         assert(res == VK_SUCCESS);
@@ -199,6 +204,7 @@ namespace CAULDRON_VK
     {
         m_isFullScreen = fullscreen;
 
+#ifdef _WIN32
         if (m_isFullScreen)
         {
             m_windowedState.IsMaximized = (bool)::IsZoomed(m_hWnd);
@@ -241,6 +247,9 @@ namespace CAULDRON_VK
                 ::SendMessage(m_hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
             }
         }
+#else
+    #warning "TODO: implement SwapChain::SetFullScreen()"
+#endif
     }
 
     void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight)
@@ -320,7 +329,7 @@ namespace CAULDRON_VK
 
         VkSwapchainCreateInfoKHR swapchain_ci = {};
         swapchain_ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        swapchain_ci.pNext = NULL;
+        swapchain_ci.pNext = nullptr;
         swapchain_ci.surface = surface;
         swapchain_ci.imageFormat = m_surfaceFormat.format;
         swapchain_ci.minImageCount = m_backBufferCount;
@@ -337,7 +346,7 @@ namespace CAULDRON_VK
         swapchain_ci.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         swapchain_ci.queueFamilyIndexCount = 0;
-        swapchain_ci.pQueueFamilyIndices = NULL;
+        swapchain_ci.pQueueFamilyIndices = nullptr;
         uint32_t queueFamilyIndices[2] = { m_pDevice->GetGraphicsQueueFamilyIndex(), m_pDevice->GetPresentQueueFamilyIndex() };
         if (queueFamilyIndices[0] != queueFamilyIndices[1])
         {
@@ -350,12 +359,12 @@ namespace CAULDRON_VK
             swapchain_ci.pQueueFamilyIndices = queueFamilyIndices;
         }
 
-        res = vkCreateSwapchainKHR(device, &swapchain_ci, NULL, &m_swapChain);
+        res = vkCreateSwapchainKHR(device, &swapchain_ci, nullptr, &m_swapChain);
         assert(res == VK_SUCCESS);
 
         // we are queriying the swapchain count so the next call doesn't generate a validation warning warning
         uint32_t backBufferCount;
-        res = vkGetSwapchainImagesKHR(device, m_swapChain, &backBufferCount, NULL);
+        res = vkGetSwapchainImagesKHR(device, m_swapChain, &backBufferCount, nullptr);
         assert(res == VK_SUCCESS);
 
         assert(backBufferCount == m_backBufferCount);
@@ -370,9 +379,13 @@ namespace CAULDRON_VK
         // keep track of the window size, so when we know switch from fullscreen mode into windowed
         if (m_isFullScreen == false)
         {
+            #ifdef _WIN32
             m_windowedState.Style = GetWindowLongPtr(m_hWnd, GWL_STYLE);
             m_windowedState.ExStyle = GetWindowLongPtr(m_hWnd, GWL_EXSTYLE);
             GetWindowRect(m_hWnd, &m_windowedState.WindowRect);
+            #else
+            #warning "TODO: implement SwapChain::OnCreateWindowSizeDependentResources()"
+            #endif
         }
 
         m_index = 0;
@@ -396,7 +409,7 @@ namespace CAULDRON_VK
         {
             VkImageViewCreateInfo color_image_view = {};
             color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            color_image_view.pNext = NULL;
+            color_image_view.pNext = nullptr;
             color_image_view.format = VK_FORMAT_B8G8R8A8_SRGB;
             color_image_view.components.r = VK_COMPONENT_SWIZZLE_R;
             color_image_view.components.g = VK_COMPONENT_SWIZZLE_G;
@@ -411,7 +424,7 @@ namespace CAULDRON_VK
             color_image_view.flags = 0;
             color_image_view.image = m_images[i];
 
-            VkResult res = vkCreateImageView(device, &color_image_view, NULL, &m_imageViews[i]);
+            VkResult res = vkCreateImageView(device, &color_image_view, nullptr, &m_imageViews[i]);
             assert(res == VK_SUCCESS);
         }
     }
@@ -433,7 +446,7 @@ namespace CAULDRON_VK
 
             VkFramebufferCreateInfo fb_info = {};
             fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            fb_info.pNext = NULL;
+            fb_info.pNext = nullptr;
             fb_info.renderPass = m_render_pass_swap_chain;
             fb_info.attachmentCount = 1;
             fb_info.pAttachments = attachments;
@@ -441,7 +454,7 @@ namespace CAULDRON_VK
             fb_info.height = dwHeight;
             fb_info.layers = 1;
 
-            VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_framebuffers[i]);
+            VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, nullptr, &m_framebuffers[i]);
             assert(res == VK_SUCCESS);
         }
     }

@@ -22,6 +22,8 @@
 #include "PostProc/SkyDome.h"
 #include "../common/GLTF/GltfPbrMaterial.h"
 
+#include <DirectXMath.h>
+
 namespace CAULDRON_VK
 {
     // Material, primitive and mesh structs specific for the PBR pass (you might want to compare these structs with the ones used for the depth pass in GltfDepthPass.h)
@@ -39,7 +41,7 @@ namespace CAULDRON_VK
     {
         Geometry m_geometry;
 
-        PBRMaterial *m_pMaterial = NULL;
+        PBRMaterial *m_pMaterial = nullptr;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout;
@@ -90,7 +92,7 @@ namespace CAULDRON_VK
         std::vector<PBRMesh> m_meshes;
         std::vector<PBRMaterial> m_materialsData;
 
-        GltfPbrPass::per_frame m_cbPerFrame;
+        per_frame m_cbPerFrame;
 
         PBRMaterial m_defaultMaterial;
 

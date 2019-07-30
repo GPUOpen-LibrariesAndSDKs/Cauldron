@@ -6,6 +6,9 @@ endif()
 
 project (Framework_${GFX_API})
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+
 # ouput exe to bin directory
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
@@ -17,6 +20,8 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 add_subdirectory(src/common)
 add_subdirectory(libs/json)
 add_subdirectory(libs/imgui)
+include(libs/DirectXMath.cmake)
+include(libs/DxgiFormat.cmake)
 
 if(GFX_API STREQUAL DX12)
     add_subdirectory(libs/d3d12x)

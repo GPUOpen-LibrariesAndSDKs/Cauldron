@@ -38,19 +38,19 @@ namespace CAULDRON_VK
 
         VkDescriptorPoolCreateInfo descriptor_pool = {};
         descriptor_pool.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        descriptor_pool.pNext = NULL;
+        descriptor_pool.pNext = nullptr;
         descriptor_pool.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         descriptor_pool.maxSets = 6000;
         descriptor_pool.poolSizeCount = (uint32_t)type_count.size();
         descriptor_pool.pPoolSizes = type_count.data();
 
-        VkResult res = vkCreateDescriptorPool(pDevice->GetDevice(), &descriptor_pool, NULL, &m_descriptorPool);
+        VkResult res = vkCreateDescriptorPool(pDevice->GetDevice(), &descriptor_pool, nullptr, &m_descriptorPool);
         assert(res == VK_SUCCESS);
     }
 
     void ResourceViewHeaps::OnDestroy()
     {
-        vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, NULL);
+        vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, nullptr);
     }
 
     bool ResourceViewHeaps::CreateDescriptorSetLayoutAndAllocDescriptorSet(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *pDescSetLayout, VkDescriptorSet *pDescriptorSet)
@@ -59,11 +59,11 @@ namespace CAULDRON_VK
 
         VkDescriptorSetLayoutCreateInfo descriptor_layout = {};
         descriptor_layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptor_layout.pNext = NULL;
+        descriptor_layout.pNext = nullptr;
         descriptor_layout.bindingCount = (uint32_t)pDescriptorLayoutBinding->size();
         descriptor_layout.pBindings = pDescriptorLayoutBinding->data();
 
-        VkResult res = vkCreateDescriptorSetLayout(m_pDevice->GetDevice(), &descriptor_layout, NULL, pDescSetLayout);
+        VkResult res = vkCreateDescriptorSetLayout(m_pDevice->GetDevice(), &descriptor_layout, nullptr, pDescSetLayout);
         assert(res == VK_SUCCESS);
 
         return AllocDescriptor(*pDescSetLayout, pDescriptorSet);
@@ -75,7 +75,7 @@ namespace CAULDRON_VK
 
         VkDescriptorSetAllocateInfo alloc_info;
         alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc_info.pNext = NULL;
+        alloc_info.pNext = nullptr;
         alloc_info.descriptorPool = m_descriptorPool;
         alloc_info.descriptorSetCount = 1;
         alloc_info.pSetLayouts = &descLayout;
@@ -103,7 +103,7 @@ namespace CAULDRON_VK
             layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             layoutBindings[i].descriptorCount = 1;
             layoutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            layoutBindings[i].pImmutableSamplers = (pSamplers!=NULL)? &pSamplers[i]:NULL;
+            layoutBindings[i].pImmutableSamplers = (pSamplers!=nullptr)? &pSamplers[i]:nullptr;
         }
 
         return CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, pDescSetLayout, pDescriptorSet);

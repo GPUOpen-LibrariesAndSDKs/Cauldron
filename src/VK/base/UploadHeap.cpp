@@ -29,7 +29,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void UploadHeap::OnCreate(Device *pDevice, SIZE_T uSize)
+    void UploadHeap::OnCreate(Device *pDevice, size_t uSize)
     {
         m_pDevice = pDevice;
 
@@ -39,15 +39,15 @@ namespace CAULDRON_VK
         {
             VkCommandPoolCreateInfo cmd_pool_info = {};
             cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            cmd_pool_info.pNext = NULL;
+            cmd_pool_info.pNext = nullptr;
             cmd_pool_info.queueFamilyIndex = m_pDevice->GetGraphicsQueueFamilyIndex();
             cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-            res = vkCreateCommandPool(m_pDevice->GetDevice(), &cmd_pool_info, NULL, &m_commandPool);
+            res = vkCreateCommandPool(m_pDevice->GetDevice(), &cmd_pool_info, nullptr, &m_commandPool);
             assert(res == VK_SUCCESS);
 
             VkCommandBufferAllocateInfo cmd = {};
             cmd.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-            cmd.pNext = NULL;
+            cmd.pNext = nullptr;
             cmd.commandPool = m_commandPool;
             cmd.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
             cmd.commandBufferCount = 1;
@@ -62,7 +62,7 @@ namespace CAULDRON_VK
             buffer_info.size = uSize;
             buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
             buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-            res = vkCreateBuffer(m_pDevice->GetDevice(), &buffer_info, NULL, &m_buffer);
+            res = vkCreateBuffer(m_pDevice->GetDevice(), &buffer_info, nullptr, &m_buffer);
             assert(res == VK_SUCCESS);
 
             VkMemoryRequirements mem_reqs;
@@ -73,12 +73,13 @@ namespace CAULDRON_VK
             alloc_info.allocationSize = mem_reqs.size;
             alloc_info.memoryTypeIndex = 0;
 
-            bool pass = memory_type_from_properties(m_pDevice->GetPhysicalDeviceMemoryProperties(), mem_reqs.memoryTypeBits,
+            auto properties = m_pDevice->GetPhysicalDeviceMemoryProperties();
+            bool pass = memory_type_from_properties(properties, mem_reqs.memoryTypeBits,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                 &alloc_info.memoryTypeIndex);
             assert(pass && "No mappable, coherent memory");
 
-            res = vkAllocateMemory(m_pDevice->GetDevice(), &alloc_info, NULL, &m_deviceMemory);
+            res = vkAllocateMemory(m_pDevice->GetDevice(), &alloc_info, nullptr, &m_deviceMemory);
             assert(res == VK_SUCCESS);
 
             res = vkBindBufferMemory(m_pDevice->GetDevice(), m_buffer, m_deviceMemory, 0);
@@ -95,10 +96,10 @@ namespace CAULDRON_VK
         {
             VkFenceCreateInfo fence_ci;
             fence_ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            fence_ci.pNext = NULL;
+            fence_ci.pNext = nullptr;
             fence_ci.flags = 0;
 
-            res = vkCreateFence(m_pDevice->GetDevice(), &fence_ci, NULL, &m_fence);
+            res = vkCreateFence(m_pDevice->GetDevice(), &fence_ci, nullptr, &m_fence);
             assert(res == VK_SUCCESS);
         }
 
@@ -106,9 +107,9 @@ namespace CAULDRON_VK
         {
             VkCommandBufferBeginInfo cmd_buf_info;
             cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            cmd_buf_info.pNext = NULL;
+            cmd_buf_info.pNext = nullptr;
             cmd_buf_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-            cmd_buf_info.pInheritanceInfo = NULL;
+            cmd_buf_info.pInheritanceInfo = nullptr;
 
             res = vkBeginCommandBuffer(m_pCommandBuffer, &cmd_buf_info);
             assert(res == VK_SUCCESS);
@@ -123,13 +124,13 @@ namespace CAULDRON_VK
     void UploadHeap::OnDestroy()
     {
         vkUnmapMemory(m_pDevice->GetDevice(), m_deviceMemory);
-        vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemory, NULL);
-        vkDestroyBuffer(m_pDevice->GetDevice(), m_buffer, NULL);
+        vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemory, nullptr);
+        vkDestroyBuffer(m_pDevice->GetDevice(), m_buffer, nullptr);
 
         vkFreeCommandBuffers(m_pDevice->GetDevice(), m_commandPool, 1, &m_pCommandBuffer);
-        vkDestroyCommandPool(m_pDevice->GetDevice(), m_commandPool, NULL);
+        vkDestroyCommandPool(m_pDevice->GetDevice(), m_commandPool, nullptr);
 
-        vkDestroyFence(m_pDevice->GetDevice(), m_fence, NULL);
+        vkDestroyFence(m_pDevice->GetDevice(), m_fence, nullptr);
     }
 
     //--------------------------------------------------------------------------------------
@@ -137,19 +138,19 @@ namespace CAULDRON_VK
     // SuballocateFromUploadHeap
     //
     //--------------------------------------------------------------------------------------
-    UINT8* UploadHeap::Suballocate(SIZE_T uSize, UINT64 uAlign)
+    uint8_t* UploadHeap::Suballocate(size_t uSize, uint64_t uAlign)
     {
-        m_pDataCur = reinterpret_cast<UINT8*>(AlignOffset(reinterpret_cast<SIZE_T>(m_pDataCur), uAlign));
+        m_pDataCur = reinterpret_cast<uint8_t*>(AlignOffset(reinterpret_cast<size_t>(m_pDataCur), uAlign));
         uSize = AlignOffset(uSize, uAlign);
 
         // flush operations if we ran out of space in the heap
 
         if ((m_pDataCur >= m_pDataEnd) || (m_pDataCur + uSize >= m_pDataEnd))
         {
-            return NULL;
+            return nullptr;
         }
 
-        UINT8* pRet = m_pDataCur;
+        uint8_t* pRet = m_pDataCur;
         m_pDataCur += uSize;
         return pRet;
     }
@@ -186,14 +187,14 @@ namespace CAULDRON_VK
         const VkCommandBuffer cmd_bufs[] = { m_pCommandBuffer };
         VkSubmitInfo submit_info;
         submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit_info.pNext = NULL;
+        submit_info.pNext = nullptr;
         submit_info.waitSemaphoreCount = 0;
-        submit_info.pWaitSemaphores = NULL;
-        submit_info.pWaitDstStageMask = NULL;
+        submit_info.pWaitSemaphores = nullptr;
+        submit_info.pWaitDstStageMask = nullptr;
         submit_info.commandBufferCount = 1;
         submit_info.pCommandBuffers = cmd_bufs;
         submit_info.signalSemaphoreCount = 0;
-        submit_info.pSignalSemaphores = NULL;
+        submit_info.pSignalSemaphores = nullptr;
 
         res = vkQueueSubmit(m_pDevice->GetGraphicsQueue(), 1, &submit_info, m_fence);
         assert(res == VK_SUCCESS);
@@ -208,9 +209,9 @@ namespace CAULDRON_VK
         // Reset so it can be reused
         VkCommandBufferBeginInfo cmd_buf_info;
         cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmd_buf_info.pNext = NULL;
+        cmd_buf_info.pNext = nullptr;
         cmd_buf_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        cmd_buf_info.pInheritanceInfo = NULL;
+        cmd_buf_info.pInheritanceInfo = nullptr;
 
         res = vkBeginCommandBuffer(m_pCommandBuffer, &cmd_buf_info);
         assert(res == VK_SUCCESS);

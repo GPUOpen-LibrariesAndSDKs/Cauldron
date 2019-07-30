@@ -17,10 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
+#include <vector>
 
 #include "Device.h"
-#include <vulkan/vulkan_win32.h>
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
@@ -44,6 +43,7 @@ namespace CAULDRON_VK
     {
     }
 
+#ifdef _WIN32
     void Device::OnCreate(const char *pAppName, const char *pEngineName, bool bValidationEnabled, HWND hWnd)
     {
         InstanceProperties ip;
@@ -222,7 +222,9 @@ namespace CAULDRON_VK
             ExtFreeSync2Init(m_device);
         }
     }
-
+#else
+#warning "TODO: Implement Device::OnCreate() for Linux"
+#endif
 
     void Device::CreatePipelineCache()
     {

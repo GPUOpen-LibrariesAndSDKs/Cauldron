@@ -17,10 +17,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <iterator>
+
+#include "CheckerboardFloor.h"
 
 #include "base/Device.h"
 #include "base/ShaderCompilerHelper.h"
-#include "CheckerboardFloor.h"
 
 namespace CAULDRON_VK
 {
@@ -46,7 +48,7 @@ namespace CAULDRON_VK
                 0,1,2,
                 0,2,3
             };
-            m_NumIndices = _countof(indices);
+            m_NumIndices = std::size(indices);
             m_indexType = VK_INDEX_TYPE_UINT16;
 
             m_pStaticBufferPool->AllocBuffer(m_NumIndices, sizeof(short), indices, &m_IBV);
@@ -138,7 +140,7 @@ namespace CAULDRON_VK
         layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layoutBindings[0].descriptorCount = 1;
         layoutBindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        layoutBindings[0].pImmutableSamplers = NULL;
+        layoutBindings[0].pImmutableSamplers = nullptr;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, &m_descriptorSetLayout, &m_descriptorSet);
         m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(per_object), m_descriptorSet);
@@ -148,13 +150,13 @@ namespace CAULDRON_VK
 
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
         pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pPipelineLayoutCreateInfo.pNext = NULL;
+        pPipelineLayoutCreateInfo.pNext = nullptr;
         pPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-        pPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+        pPipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
         pPipelineLayoutCreateInfo.setLayoutCount = (uint32_t)1;
         pPipelineLayoutCreateInfo.pSetLayouts = &m_descriptorSetLayout;
 
-        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &m_pipelineLayout);
+        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, nullptr, &m_pipelineLayout);
         assert(res == VK_SUCCESS);
 
         /////////////////////////////////////////////
@@ -175,18 +177,18 @@ namespace CAULDRON_VK
 
         VkPipelineVertexInputStateCreateInfo vi = {};
         vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vi.pNext = NULL;
+        vi.pNext = nullptr;
         vi.flags = 0;
         vi.vertexBindingDescriptionCount = 1;
         vi.pVertexBindingDescriptions = &vi_binding;
-        vi.vertexAttributeDescriptionCount = _countof(vi_attrs);
+        vi.vertexAttributeDescriptionCount = std::size(vi_attrs);
         vi.pVertexAttributeDescriptions = vi_attrs;
 
         // input assembly state
         //
         VkPipelineInputAssemblyStateCreateInfo ia;
         ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        ia.pNext = NULL;
+        ia.pNext = nullptr;
         ia.flags = 0;
         ia.primitiveRestartEnable = VK_FALSE;
         ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -195,7 +197,7 @@ namespace CAULDRON_VK
         //
         VkPipelineRasterizationStateCreateInfo rs;
         rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rs.pNext = NULL;
+        rs.pNext = nullptr;
         rs.flags = 0;
         rs.polygonMode = VK_POLYGON_MODE_FILL;
         rs.cullMode = VK_CULL_MODE_NONE;
@@ -223,7 +225,7 @@ namespace CAULDRON_VK
         VkPipelineColorBlendStateCreateInfo cb;
         cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         cb.flags = 0;
-        cb.pNext = NULL;
+        cb.pNext = nullptr;
         cb.attachmentCount = 1;
         cb.pAttachments = att_state;
         cb.logicOpEnable = VK_FALSE;
@@ -239,7 +241,7 @@ namespace CAULDRON_VK
         };
         VkPipelineDynamicStateCreateInfo dynamicState = {};
         dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.pNext = NULL;
+        dynamicState.pNext = nullptr;
         dynamicState.pDynamicStates = dynamicStateEnables.data();
         dynamicState.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
@@ -247,18 +249,18 @@ namespace CAULDRON_VK
         //
         VkPipelineViewportStateCreateInfo vp = {};
         vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        vp.pNext = NULL;
+        vp.pNext = nullptr;
         vp.flags = 0;
         vp.viewportCount = 1;
         vp.scissorCount = 1;
-        vp.pScissors = NULL;
-        vp.pViewports = NULL;
+        vp.pScissors = nullptr;
+        vp.pViewports = nullptr;
 
         // depth stencil state
         //
         VkPipelineDepthStencilStateCreateInfo ds;
         ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        ds.pNext = NULL;
+        ds.pNext = nullptr;
         ds.flags = 0;
         ds.depthTestEnable = true;
         ds.depthWriteEnable = true;
@@ -281,9 +283,9 @@ namespace CAULDRON_VK
         //
         VkPipelineMultisampleStateCreateInfo ms;
         ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        ms.pNext = NULL;
+        ms.pNext = nullptr;
         ms.flags = 0;
-        ms.pSampleMask = NULL;
+        ms.pSampleMask = nullptr;
         ms.rasterizationSamples = sampleDescCount;
         ms.sampleShadingEnable = VK_FALSE;
         ms.alphaToCoverageEnable = VK_FALSE;
@@ -294,7 +296,7 @@ namespace CAULDRON_VK
 
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipeline.pNext = NULL;
+        pipeline.pNext = nullptr;
         pipeline.layout = m_pipelineLayout;
         pipeline.basePipelineHandle = VK_NULL_HANDLE;
         pipeline.basePipelineIndex = 0;
@@ -303,7 +305,7 @@ namespace CAULDRON_VK
         pipeline.pInputAssemblyState = &ia;
         pipeline.pRasterizationState = &rs;
         pipeline.pColorBlendState = &cb;
-        pipeline.pTessellationState = NULL;
+        pipeline.pTessellationState = nullptr;
         pipeline.pMultisampleState = &ms;
         pipeline.pDynamicState = &dynamicState;
         pipeline.pViewportState = &vp;
@@ -313,7 +315,7 @@ namespace CAULDRON_VK
         pipeline.renderPass = renderPass;
         pipeline.subpass = 0;
 
-        res = vkCreateGraphicsPipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
+        res = vkCreateGraphicsPipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &m_pipeline);
         assert(res == VK_SUCCESS);
 
     }
@@ -322,7 +324,7 @@ namespace CAULDRON_VK
     {
         vkDestroyPipeline(m_pDevice->GetDevice(), m_pipeline, nullptr);
         vkDestroyPipelineLayout(m_pDevice->GetDevice(), m_pipelineLayout, nullptr);
-        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorSetLayout, NULL);
+        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorSetLayout, nullptr);
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
     }
 

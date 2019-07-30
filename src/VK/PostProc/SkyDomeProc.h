@@ -20,6 +20,9 @@
 #pragma once
 #include "PostProcPS.h"
 
+#include <DirectXMath.h>
+using namespace DirectX;
+
 namespace CAULDRON_VK
 {
     // This renders a procedural sky, see the SkyDomeProc.glsl for more references and credits
@@ -60,6 +63,6 @@ namespace CAULDRON_VK
 
         PostProcPS  m_skydome;
 
-        DynamicBufferRing *m_pDynamicBufferRing = NULL;
+        DynamicBufferRing *m_pDynamicBufferRing = nullptr;
     };
 }

@@ -18,9 +18,12 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "../json/json.h"
+
+#include "../json/json.hpp"
 #include "../../common/Misc/Camera.h"
 #include "GltfStructures.h"
+
+#include <DirectXMath.h>
 
 // The GlTF file is loaded in 2 steps
 //

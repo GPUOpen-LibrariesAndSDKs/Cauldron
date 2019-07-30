@@ -1,11 +1,5 @@
 project (Framework_VK)
 
-if(MSVC)
-  add_compile_options(/MP)
-else()
-add_compile_options(-M)
-endif()
-
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
     GLTF/GltfBBoxPass.h
@@ -129,7 +123,12 @@ copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
 
 add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src})
 
-target_link_libraries (${PROJECT_NAME} Framework_Common Vulkan::Vulkan NJSON)
+if(WIN32)
+	target_compile_definitions(${PROJECT_NAME} PUBLIC "-DVK_USE_PLATFORM_WIN32_KHR")
+	target_compile_definitions(${PROJECT_NAME} PRIVATE "-DNOMINMAX")
+endif()
+
+target_link_libraries (${PROJECT_NAME} Framework_Common Vulkan::Vulkan NJSON DxgiFormat DirectXMath)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("GLTF"            FILES ${GLTF_src})

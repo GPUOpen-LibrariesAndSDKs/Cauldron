@@ -17,11 +17,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <algorithm>
+#include <cstring>
+#include <fstream>
+#include <iostream>
 
-#include "ShaderCompilerHelper.h"
-
-#include "Misc/Misc.h"
 #include "Misc/Cache.h"
+#include "ShaderCompilerHelper.h"
+#include "Misc/Misc.h"
+
 
 namespace CAULDRON_VK
 {
@@ -51,7 +55,7 @@ namespace CAULDRON_VK
 
         // compute command line to invoke the shader compiler
         //
-        char *stage = NULL;
+        char *stage = nullptr;
         switch (shader_type)
         {
         case VK_SHADER_STAGE_VERTEX_BIT:  stage = "vertex"; break;
@@ -117,7 +121,7 @@ namespace CAULDRON_VK
         auto *database = s_shaderCache.GetDatabase();
         for (auto it = database->begin(); it != database->end(); it++)
         {
-            vkDestroyShaderModule(device, it->second.m_data, NULL);
+            vkDestroyShaderModule(device, it->second.m_data, nullptr);
         }
     }
 
@@ -127,7 +131,7 @@ namespace CAULDRON_VK
         moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         moduleCreateInfo.pCode = (uint32_t*)SpvData;
         moduleCreateInfo.codeSize = SpvSize;
-        return vkCreateShaderModule(device, &moduleCreateInfo, NULL, pShaderModule);
+        return vkCreateShaderModule(device, &moduleCreateInfo, nullptr, pShaderModule);
     }
 
     //
@@ -143,7 +147,7 @@ namespace CAULDRON_VK
         hash = HashShaderString(SHADER_LIB_DIR"\\", pshader);
         hash = Hash(pEntryPoint, strlen(pEntryPoint), hash);
         hash = Hash((char*)&shader_type, sizeof(shader_type), hash);
-        if (pDefines != NULL)
+        if (pDefines != nullptr)
         {
             hash = pDefines->Hash(hash);
         }
@@ -157,7 +161,7 @@ namespace CAULDRON_VK
         if (s_shaderCache.CacheMiss(hash, &pShader->module))
 #endif
         {
-            char *SpvData = NULL;
+            char *SpvData = nullptr;
             size_t SpvSize = 0;
 
 #ifdef USE_SPIRV_FROM_DISK
@@ -165,7 +169,7 @@ namespace CAULDRON_VK
             if (ReadFile(filenameSpv.c_str(), &SpvData, &SpvSize, true) == false)
 #endif
             {
-                std::string &shader = GenerateSource(sourceType, shader_type, pshader, pEntryPoint, pDefines);
+                std::string shader = GenerateSource(sourceType, shader_type, pshader, pEntryPoint, pDefines);
                 VKCompileToSpirv(hash, sourceType, shader_type, shader.c_str(), pEntryPoint, pDefines, &SpvData, &SpvSize);
             }
 
@@ -178,8 +182,8 @@ namespace CAULDRON_VK
         }
 
         pShader->sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        pShader->pNext = NULL;
-        pShader->pSpecializationInfo = NULL;
+        pShader->pNext = nullptr;
+        pShader->pSpecializationInfo = nullptr;
         pShader->flags = 0;
         pShader->stage = shader_type;
         pShader->pName = pEntryPoint;
@@ -220,7 +224,7 @@ namespace CAULDRON_VK
 
         //append path
         char fullpath[1024];
-        sprintf_s(fullpath, SHADER_LIB_DIR"\\%s", pFilename);
+        sprintf(fullpath, SHADER_LIB_DIR"\\%s", pFilename);
 
         if (ReadFile(fullpath, &pShaderCode, &size, false))
         {
@@ -235,8 +239,12 @@ namespace CAULDRON_VK
     //
     void CreateShaderCache()
     {
+        #ifdef _WIN32
         CreateDirectoryA(SHADER_LIB_DIR, 0);
         CreateDirectoryA(SHADER_CACHE_DIR, 0);
+        #else
+        #warning "TODO: create shader cache directories"
+        #endif
     }
 
     //

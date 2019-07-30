@@ -17,8 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <algorithm>
 
 #include "Camera.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 Camera::Camera()
 {
@@ -97,11 +102,11 @@ void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float d
     m_eyePos += GetSide() * x * distance / 10.0f;
     m_eyePos += GetUp() * y * distance / 10.0f;
 
-    XMVECTOR dir = GetDirection();
-    XMVECTOR pol = PolarToVector(yaw, pitch);
+	XMVECTOR dir = GetDirection();
+	XMVECTOR pol = PolarToVector(yaw, pitch);
 
-    XMVECTOR at = m_eyePos - dir * m_distance;
-    XMVECTOR m_eyePos = at + pol * distance;
+	XMVECTOR at = m_eyePos - dir * m_distance;
+	XMVECTOR m_eyePos = at + pol * distance;
 
     LookAt(m_eyePos, at);
 }
@@ -124,8 +129,10 @@ XMMATRIX LookAtRH(XMVECTOR eyePos, XMVECTOR lookAt)
 XMVECTOR MoveWASD(const bool keyDown[256])
 {
     float x = 0, y = 0, z = 0;
+	float scale = 1.0f;
 
-    if (keyDown['W'])
+#ifdef _WIN32
+	if (keyDown['W'])
     {
         z = -1;
     }
@@ -150,7 +157,10 @@ XMVECTOR MoveWASD(const bool keyDown[256])
         y = -1;
     }
 
-    float scale = keyDown[VK_SHIFT] ? 5.0f : 1.0f;
+	scale = keyDown[VK_SHIFT] ? 5.0f : scale;
+#else 
+#warning "TODO: implement Camera::MoveWASD() for Linux"
+#endif
 
     return XMVectorSet(x, y, z, 0.0f) * scale;
 }

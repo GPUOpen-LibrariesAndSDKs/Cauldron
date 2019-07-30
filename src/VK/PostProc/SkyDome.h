@@ -22,6 +22,9 @@
 #include "base/Texture.h"
 #include "base/UploadHeap.h"
 
+#include <DirectXMath.h>
+using namespace DirectX;
+
 namespace CAULDRON_VK
 {
     class SkyDome
@@ -53,6 +56,6 @@ namespace CAULDRON_VK
 
         PostProcPS  m_skydome;
 
-        DynamicBufferRing *m_pDynamicBufferRing = NULL;
+        DynamicBufferRing *m_pDynamicBufferRing = nullptr;
     };
 }

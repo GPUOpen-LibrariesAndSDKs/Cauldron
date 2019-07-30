@@ -17,6 +17,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <algorithm>
+#include <cassert>
 
 #include "ResourceViewHeaps.h"
 #include "Texture.h"
@@ -60,7 +62,7 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     // return the byte size of a pixel (or block if block compressed)
     //--------------------------------------------------------------------------------------
-    UINT32 Texture::GetPixelSize(DXGI_FORMAT fmt) const
+    uint32_t Texture::GetPixelSize(DXGI_FORMAT fmt) const
     {
         switch (fmt)
         {
@@ -95,7 +97,7 @@ namespace CAULDRON_VK
         return 0;
     }
 
-    void Texture::PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, UINT32 pixelCount)
+    void Texture::PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, uint32_t pixelCount)
     {
         // copy pixel data, interleave with A
         for (unsigned int i = 0; i < pixelCount; ++i)
@@ -114,7 +116,7 @@ namespace CAULDRON_VK
         return m_header.arraySize == 6;
     }
 
-    INT32 Texture::Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name)
+    int32_t Texture::Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name)
     {
         m_pDevice = pDevice;
         m_header.mipMapCount = pCreateInfo->mipLevels;
@@ -161,11 +163,11 @@ namespace CAULDRON_VK
         return 0;
     }
 
-    INT32 Texture::InitRendertarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name)
+    int32_t Texture::InitRendertarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name)
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        image_info.pNext = NULL;
+        image_info.pNext = nullptr;
         image_info.imageType = VK_IMAGE_TYPE_2D;
         image_info.format = format;
         image_info.extent.width = width;
@@ -176,7 +178,7 @@ namespace CAULDRON_VK
         image_info.samples = msaa;
         image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         image_info.queueFamilyIndexCount = 0;
-        image_info.pQueueFamilyIndices = NULL;
+        image_info.pQueueFamilyIndices = nullptr;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         image_info.usage = usage; //TODO    
         image_info.flags = 0;
@@ -210,7 +212,7 @@ namespace CAULDRON_VK
 
         info.subresourceRange.baseArrayLayer = 0;
         info.subresourceRange.layerCount = 1;
-        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
+        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, nullptr, pImageView);
         assert(res == VK_SUCCESS);
     }
 
@@ -240,7 +242,7 @@ namespace CAULDRON_VK
         info.subresourceRange.baseArrayLayer = 0;
         info.subresourceRange.layerCount = 1;
 
-        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
+        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, nullptr, pImageView);
         assert(res == VK_SUCCESS);
     }
 
@@ -257,7 +259,7 @@ namespace CAULDRON_VK
         info.subresourceRange.baseArrayLayer = 0;
         info.subresourceRange.layerCount = m_header.arraySize;
 
-        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
+        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, nullptr, pImageView);
         assert(res == VK_SUCCESS);
     }
 
@@ -265,7 +267,7 @@ namespace CAULDRON_VK
     {
         VkImageViewCreateInfo view_info = {};
         view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        view_info.pNext = NULL;
+        view_info.pNext = nullptr;
         view_info.image = m_pResource;
         view_info.format = m_format;
         view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -282,15 +284,15 @@ namespace CAULDRON_VK
 
         m_header.mipMapCount = 1;
 
-        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &view_info, NULL, pImageView);
+        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &view_info, nullptr, pImageView);
         assert(res == VK_SUCCESS);
     }
 
-    INT32 Texture::InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, char *name)
+    int32_t Texture::InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, char *name)
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        image_info.pNext = NULL;
+        image_info.pNext = nullptr;
         image_info.imageType = VK_IMAGE_TYPE_2D;
         image_info.format = format;
         image_info.extent.width = width;
@@ -301,7 +303,7 @@ namespace CAULDRON_VK
         image_info.samples = msaa;
         image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         image_info.queueFamilyIndexCount = 0;
-        image_info.pQueueFamilyIndices = NULL;
+        image_info.pQueueFamilyIndices = nullptr;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; //TODO    
         image_info.flags = 0;
@@ -390,12 +392,12 @@ namespace CAULDRON_VK
             copy_barrier.subresourceRange.baseMipLevel = 0;
             copy_barrier.subresourceRange.levelCount = m_header.mipMapCount;
             copy_barrier.subresourceRange.layerCount = m_header.arraySize;
-            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &copy_barrier);
+            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &copy_barrier);
         }
 
         //compute pixel size
         //
-        UINT32 bytePP = m_header.bitCount / 8;
+        uint32_t bytePP = m_header.bitCount / 8;
         if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
         {
             bytePP = GetPixelSize((DXGI_FORMAT)m_header.format);
@@ -410,15 +412,15 @@ namespace CAULDRON_VK
                 uint32_t dwWidth = std::max<uint32_t>(m_header.width >> mip, 1);
                 uint32_t dwHeight = std::max<uint32_t>(m_header.height >> mip, 1);
 
-                UINT8* pixels = NULL;
-                UINT64 UplHeapSize = dwWidth*dwHeight * 4;
+                uint8_t* pixels = nullptr;
+                uint64_t UplHeapSize = dwWidth*dwHeight * 4;
                 pixels = pUploadHeap->Suballocate(UplHeapSize, 512);
-                if (pixels == NULL)
+                if (pixels == nullptr)
                 {
                     // oh! We ran out of mem in the upload heap, flush it and try allocating mem from it again
                     pUploadHeap->FlushAndFinish();
-                    pixels = pUploadHeap->Suballocate(SIZE_T(UplHeapSize), 512);
-                    assert(pixels != NULL);
+                    pixels = pUploadHeap->Suballocate(size_t(UplHeapSize), 512);
+                    assert(pixels != nullptr);
                 }
 
                 uint32_t offset = uint32_t(pixels - pUploadHeap->BasePtr());
@@ -455,7 +457,7 @@ namespace CAULDRON_VK
             use_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             use_barrier.subresourceRange.levelCount = m_header.mipMapCount;
             use_barrier.subresourceRange.layerCount = m_header.arraySize;
-            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &use_barrier);
+            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &use_barrier);
         }
     }
 
@@ -465,7 +467,7 @@ namespace CAULDRON_VK
     bool Texture::InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *pFilename, bool useSRGB, float cutOff)
     {
         m_pDevice = pDevice;
-        assert(m_pResource == NULL);
+        assert(m_pResource == nullptr);
 
         ImgLoader *img = GetImageLoader(pFilename);
         bool result = img->Load(pFilename, cutOff, &m_header);

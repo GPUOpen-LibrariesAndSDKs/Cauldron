@@ -19,9 +19,10 @@
 
 
 #include <algorithm>
+#include <cassert>
+
 #include "Instance.h"
 #include "InstanceProperties.h"
-#include <vulkan/vulkan_win32.h>
 
 namespace CAULDRON_VK
 {
@@ -36,7 +37,9 @@ namespace CAULDRON_VK
         pIP->GetExtensionNamesAndConfigs(&instance_layer_names, &instance_extension_names);
 
         // Add 2 more thatn should aways be present in windows
+        #ifdef _WIN32
         instance_extension_names.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+        #endif
         instance_extension_names.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
         instance_extension_names.push_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
 

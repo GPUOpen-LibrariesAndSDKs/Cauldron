@@ -17,15 +17,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <iterator>
+#include <vector>
+
+#include "Imgui.h"
 
 #include "ShaderCompilerHelper.h"
 #include "base/DebugMarkersExt.h"
-#include "Imgui.h"
+#include "base/Device.h"
+
 
 namespace CAULDRON_VK
 {
     // Data
+    #ifdef _WIN32
     static HWND                     g_hWnd = 0;
+    #endif
 
     struct VERTEX_CONSTANT_BUFFER
     {
@@ -70,7 +77,7 @@ namespace CAULDRON_VK
             info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
             info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            res = vkCreateImage(pDevice->GetDevice(), &info, NULL, &m_pTexture2D);
+            res = vkCreateImage(pDevice->GetDevice(), &info, nullptr, &m_pTexture2D);
             assert(res == VK_SUCCESS);
 
             VkMemoryRequirements mem_reqs;
@@ -81,12 +88,13 @@ namespace CAULDRON_VK
             alloc_info.allocationSize = mem_reqs.size;
             alloc_info.memoryTypeIndex = 0;
 
-            bool pass = memory_type_from_properties(m_pDevice->GetPhysicalDeviceMemoryProperties(), mem_reqs.memoryTypeBits,
+            auto properties = m_pDevice->GetPhysicalDeviceMemoryProperties();
+            bool pass = memory_type_from_properties(properties, mem_reqs.memoryTypeBits,
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                 &alloc_info.memoryTypeIndex);
             assert(pass && "No mappable, coherent memory");
 
-            res = vkAllocateMemory(pDevice->GetDevice(), &alloc_info, NULL, &m_deviceMemory);
+            res = vkAllocateMemory(pDevice->GetDevice(), &alloc_info, nullptr, &m_deviceMemory);
             assert(res == VK_SUCCESS);
 
             res = vkBindImageMemory(pDevice->GetDevice(), m_pTexture2D, m_deviceMemory, 0);
@@ -104,7 +112,7 @@ namespace CAULDRON_VK
             info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             info.subresourceRange.levelCount = 1;
             info.subresourceRange.layerCount = 1;
-            res = vkCreateImageView(pDevice->GetDevice(), &info, NULL, &m_pTextureSRV);
+            res = vkCreateImageView(pDevice->GetDevice(), &info, nullptr, &m_pTextureSRV);
             assert(res == VK_SUCCESS);
         }
 
@@ -132,7 +140,7 @@ namespace CAULDRON_VK
             copy_barrier[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             copy_barrier[0].subresourceRange.levelCount = 1;
             copy_barrier[0].subresourceRange.layerCount = 1;
-            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, copy_barrier);
+            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, copy_barrier);
 
             VkBufferImageCopy region = {};
             region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -154,7 +162,7 @@ namespace CAULDRON_VK
             use_barrier[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             use_barrier[0].subresourceRange.levelCount = 1;
             use_barrier[0].subresourceRange.layerCount = 1;
-            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, use_barrier);
+            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, use_barrier);
         }
 
         // Kick off the upload
@@ -175,7 +183,7 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_sampler);
+            res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_sampler);
             assert(res == VK_SUCCESS);
         }
         
@@ -266,42 +274,42 @@ namespace CAULDRON_VK
         layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layout_bindings[0].descriptorCount = 1;
         layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_bindings[0].pImmutableSamplers = NULL;
+        layout_bindings[0].pImmutableSamplers = nullptr;
 
         layout_bindings[1].binding = 1;
         layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         layout_bindings[1].descriptorCount = 1;
         layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_bindings[1].pImmutableSamplers = NULL;
+        layout_bindings[1].pImmutableSamplers = nullptr;
 
         layout_bindings[2].binding = 2;
         layout_bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
         layout_bindings[2].descriptorCount = 1;
         layout_bindings[2].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_bindings[2].pImmutableSamplers = NULL;
+        layout_bindings[2].pImmutableSamplers = nullptr;
 
         // Next take layout bindings and use them to create a descriptor set layout
         VkDescriptorSetLayoutCreateInfo descriptor_layout = {};
         descriptor_layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptor_layout.pNext = NULL;
+        descriptor_layout.pNext = nullptr;
         descriptor_layout.flags = 0;
         descriptor_layout.bindingCount = 3;
         descriptor_layout.pBindings = layout_bindings;
 
 
-        res = vkCreateDescriptorSetLayout(pDevice->GetDevice(), &descriptor_layout, NULL, &m_desc_layout);
+        res = vkCreateDescriptorSetLayout(pDevice->GetDevice(), &descriptor_layout, nullptr, &m_desc_layout);
         assert(res == VK_SUCCESS);
 
         /* Now use the descriptor layout to create a pipeline layout */
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
         pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pPipelineLayoutCreateInfo.pNext = NULL;
+        pPipelineLayoutCreateInfo.pNext = nullptr;
         pPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-        pPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+        pPipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
         pPipelineLayoutCreateInfo.setLayoutCount = 1;
         pPipelineLayoutCreateInfo.pSetLayouts = &m_desc_layout;
 
-        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &m_pipelineLayout);
+        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, nullptr, &m_pipelineLayout);
         assert(res == VK_SUCCESS);
 
         // Create descriptor pool, allocate and update the descriptors
@@ -309,18 +317,18 @@ namespace CAULDRON_VK
 
         VkDescriptorPoolCreateInfo descriptor_pool = {};
         descriptor_pool.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        descriptor_pool.pNext = NULL;
+        descriptor_pool.pNext = nullptr;
         descriptor_pool.flags = 0;
         descriptor_pool.maxSets = 128 * 3;
         descriptor_pool.poolSizeCount = (uint32_t)type_count.size();
         descriptor_pool.pPoolSizes = type_count.data();
 
-        res = vkCreateDescriptorPool(pDevice->GetDevice(), &descriptor_pool, NULL, &m_descriptorPool);
+        res = vkCreateDescriptorPool(pDevice->GetDevice(), &descriptor_pool, nullptr, &m_descriptorPool);
         assert(res == VK_SUCCESS);
 
         VkDescriptorSetAllocateInfo alloc_info[1];
         alloc_info[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc_info[0].pNext = NULL;
+        alloc_info[0].pNext = nullptr;
         alloc_info[0].descriptorPool = m_descriptorPool;
         alloc_info[0].descriptorSetCount = 1;
         alloc_info[0].pSetLayouts = &m_desc_layout;
@@ -342,7 +350,7 @@ namespace CAULDRON_VK
             VkWriteDescriptorSet writes[2];
             writes[0] = {};
             writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[0].pNext = NULL;
+            writes[0].pNext = nullptr;
             writes[0].dstSet = m_descriptorSet[i];
             writes[0].descriptorCount = 1;
             writes[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -352,7 +360,7 @@ namespace CAULDRON_VK
 
             writes[1] = {};
             writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            writes[1].pNext = NULL;
+            writes[1].pNext = nullptr;
             writes[1].dstSet = m_descriptorSet[i];
             writes[1].descriptorCount = 1;
             writes[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -360,7 +368,7 @@ namespace CAULDRON_VK
             writes[1].dstArrayElement = 0;
             writes[1].dstBinding = 2;
 
-            vkUpdateDescriptorSets(m_pDevice->GetDevice(), 2, writes, 0, NULL);
+            vkUpdateDescriptorSets(m_pDevice->GetDevice(), 2, writes, 0, nullptr);
         }
 
         // Create the pipeline
@@ -382,18 +390,18 @@ namespace CAULDRON_VK
 
         VkPipelineVertexInputStateCreateInfo vi = {};
         vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vi.pNext = NULL;
+        vi.pNext = nullptr;
         vi.flags = 0;
         vi.vertexBindingDescriptionCount = 1;
         vi.pVertexBindingDescriptions = &vi_binding;
-        vi.vertexAttributeDescriptionCount = _countof(vi_attrs);
+        vi.vertexAttributeDescriptionCount = std::size(vi_attrs);
         vi.pVertexAttributeDescriptions = vi_attrs;
 
         // input assembly state
         //
         VkPipelineInputAssemblyStateCreateInfo ia;
         ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        ia.pNext = NULL;
+        ia.pNext = nullptr;
         ia.flags = 0;
         ia.primitiveRestartEnable = VK_FALSE;
         ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -402,7 +410,7 @@ namespace CAULDRON_VK
 
         VkPipelineRasterizationStateCreateInfo rs;
         rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rs.pNext = NULL;
+        rs.pNext = nullptr;
         rs.flags = 0;
         rs.polygonMode = VK_POLYGON_MODE_FILL;
         rs.cullMode = VK_CULL_MODE_NONE;
@@ -430,7 +438,7 @@ namespace CAULDRON_VK
         VkPipelineColorBlendStateCreateInfo cb;
         cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         cb.flags = 0;
-        cb.pNext = NULL;
+        cb.pNext = nullptr;
         cb.attachmentCount = 1;
         cb.pAttachments = att_state;
         cb.logicOpEnable = VK_FALSE;
@@ -446,7 +454,7 @@ namespace CAULDRON_VK
         };
         VkPipelineDynamicStateCreateInfo dynamicState = {};
         dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.pNext = NULL;
+        dynamicState.pNext = nullptr;
         dynamicState.pDynamicStates = dynamicStateEnables.data();
         dynamicState.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
@@ -454,18 +462,18 @@ namespace CAULDRON_VK
 
         VkPipelineViewportStateCreateInfo vp = {};
         vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        vp.pNext = NULL;
+        vp.pNext = nullptr;
         vp.flags = 0;
         vp.viewportCount = 1;
         vp.scissorCount = 1;
-        vp.pScissors = NULL;
-        vp.pViewports = NULL;
+        vp.pScissors = nullptr;
+        vp.pViewports = nullptr;
 
         // depth stencil state
 
         VkPipelineDepthStencilStateCreateInfo ds;
         ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        ds.pNext = NULL;
+        ds.pNext = nullptr;
         ds.flags = 0;
         ds.depthTestEnable = VK_FALSE;
         ds.depthWriteEnable = VK_FALSE;
@@ -488,9 +496,9 @@ namespace CAULDRON_VK
 
         VkPipelineMultisampleStateCreateInfo ms;
         ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        ms.pNext = NULL;
+        ms.pNext = nullptr;
         ms.flags = 0;
-        ms.pSampleMask = NULL;
+        ms.pSampleMask = nullptr;
         ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
         ms.sampleShadingEnable = VK_FALSE;
         ms.alphaToCoverageEnable = VK_FALSE;
@@ -501,7 +509,7 @@ namespace CAULDRON_VK
 
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipeline.pNext = NULL;
+        pipeline.pNext = nullptr;
         pipeline.layout = m_pipelineLayout;
         pipeline.basePipelineHandle = VK_NULL_HANDLE;
         pipeline.basePipelineIndex = 0;
@@ -510,7 +518,7 @@ namespace CAULDRON_VK
         pipeline.pInputAssemblyState = &ia;
         pipeline.pRasterizationState = &rs;
         pipeline.pColorBlendState = &cb;
-        pipeline.pTessellationState = NULL;
+        pipeline.pTessellationState = nullptr;
         pipeline.pMultisampleState = &ms;
         pipeline.pDynamicState = &dynamicState;
         pipeline.pViewportState = &vp;
@@ -520,7 +528,7 @@ namespace CAULDRON_VK
         pipeline.renderPass = renderPass;
         pipeline.subpass = 0;
 
-        res = vkCreateGraphicsPipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
+        res = vkCreateGraphicsPipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &m_pipeline);
         assert(res == VK_SUCCESS);
 
     }
@@ -535,7 +543,7 @@ namespace CAULDRON_VK
         if (!m_pDevice)
             return;
 
-        vkDestroyImageView(m_pDevice->GetDevice(), m_pTextureSRV, NULL);
+        vkDestroyImageView(m_pDevice->GetDevice(), m_pTextureSRV, nullptr);
 
         // Our heaps dot allow freeing descriptosets, this incurrs in driver overhead
         //
@@ -545,13 +553,13 @@ namespace CAULDRON_VK
         //vkFreeDescriptorSets(m_pDevice->GetDevice(), m_descriptorPool, 1, &m_descriptorSet);
         vkDestroyPipeline(m_pDevice->GetDevice(), m_pipeline, nullptr);
 
-        vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, NULL);
+        vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, nullptr);
 
-        vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemory, NULL);
-        vkDestroyPipelineLayout(m_pDevice->GetDevice(), m_pipelineLayout, NULL);
+        vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemory, nullptr);
+        vkDestroyPipelineLayout(m_pDevice->GetDevice(), m_pipelineLayout, nullptr);
 
-        vkDestroySampler(m_pDevice->GetDevice(), m_sampler, NULL);
-        vkDestroyImage(m_pDevice->GetDevice(), m_pTexture2D, NULL);
+        vkDestroySampler(m_pDevice->GetDevice(), m_sampler, nullptr);
+        vkDestroyImage(m_pDevice->GetDevice(), m_pTexture2D, nullptr);
     }
 
     //--------------------------------------------------------------------------------------
@@ -572,11 +580,11 @@ namespace CAULDRON_VK
         ImDrawData* draw_data = ImGui::GetDrawData();
 
         // Create and grow vertex/index buffers if needed
-        char *pVertices = NULL;
+        char *pVertices = nullptr;
         VkDescriptorBufferInfo VerticesView;
         m_pConstBuf->AllocVertexBuffer(draw_data->TotalVtxCount, sizeof(ImDrawVert), (void **)&pVertices, &VerticesView);
 
-        char *pIndices = NULL;
+        char *pIndices = nullptr;
         VkDescriptorBufferInfo IndicesView;
         m_pConstBuf->AllocIndexBuffer(draw_data->TotalIdxCount, sizeof(ImDrawIdx), (void **)&pIndices, &IndicesView);
 
@@ -627,7 +635,7 @@ namespace CAULDRON_VK
         vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
 
         uint32_t uniformOffsets[1] = { (uint32_t)ConstantBufferGpuDescriptor.offset };
-        ImTextureID texID = NULL;
+        ImTextureID texID = nullptr;
 
         // Render command lists
         int vtx_offset = 0;
@@ -664,7 +672,7 @@ namespace CAULDRON_VK
                         VkWriteDescriptorSet writes[2];
                         writes[0] = {};
                         writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                        writes[0].pNext = NULL;
+                        writes[0].pNext = nullptr;
                         writes[0].dstSet = m_descriptorSet[m_currentDescriptorIndex];
                         writes[0].descriptorCount = 1;
                         writes[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -674,7 +682,7 @@ namespace CAULDRON_VK
 
                         writes[1] = {};
                         writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-                        writes[1].pNext = NULL;
+                        writes[1].pNext = nullptr;
                         writes[1].dstSet = m_descriptorSet[m_currentDescriptorIndex];
                         writes[1].descriptorCount = 1;
                         writes[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -682,7 +690,7 @@ namespace CAULDRON_VK
                         writes[1].dstArrayElement = 0;
                         writes[1].dstBinding = 2;
 
-                        vkUpdateDescriptorSets(m_pDevice->GetDevice(), 2, writes, 0, NULL);
+                        vkUpdateDescriptorSets(m_pDevice->GetDevice(), 2, writes, 0, nullptr);
 
                         vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &m_descriptorSet[m_currentDescriptorIndex], 1, uniformOffsets);
 

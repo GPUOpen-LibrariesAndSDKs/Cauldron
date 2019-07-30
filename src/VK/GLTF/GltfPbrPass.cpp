@@ -79,7 +79,7 @@ namespace CAULDRON_VK
             info.minLod = 0;
             info.maxLod = 10000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_samplerPbr);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_samplerPbr);
             assert(res == VK_SUCCESS);
         }
 
@@ -96,7 +96,7 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_brdfLutSampler);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_brdfLutSampler);
             assert(res == VK_SUCCESS);
         }
 
@@ -113,7 +113,7 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_samplerShadow);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_samplerShadow);
             assert(res == VK_SUCCESS);
         }
 
@@ -273,7 +273,7 @@ namespace CAULDRON_VK
         if (tfmat->m_textureCount >= 0)
         {
             // allocate descriptor table for the textures
-            m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, NULL, &tfmat->m_descriptorLayout, &tfmat->m_texturesDescriptorSet);
+            m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, nullptr, &tfmat->m_descriptorLayout, &tfmat->m_texturesDescriptorSet);
 
             uint32_t cnt = 0;
 
@@ -325,25 +325,25 @@ namespace CAULDRON_VK
                 vkDestroyPipeline(m_pDevice->GetDevice(), pPrimitive->m_pipeline, nullptr);
                 pPrimitive->m_pipeline = VK_NULL_HANDLE;
                 vkDestroyPipelineLayout(m_pDevice->GetDevice(), pPrimitive->m_pipelineLayout, nullptr);
-                vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), pPrimitive->m_descriptorLayout, NULL);
+                vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), pPrimitive->m_descriptorLayout, nullptr);
                 m_pResourceViewHeaps->FreeDescriptor(pPrimitive->m_descriptorSet);
             }
         }
 
         for (int i = 0; i < m_materialsData.size(); i++)
         {
-            vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_materialsData[i].m_descriptorLayout, NULL);
+            vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_materialsData[i].m_descriptorLayout, nullptr);
             m_pResourceViewHeaps->FreeDescriptor(m_materialsData[i].m_texturesDescriptorSet);
         }
 
         //destroy default material
-        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_defaultMaterial.m_descriptorLayout, NULL);
+        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_defaultMaterial.m_descriptorLayout, nullptr);
         m_pResourceViewHeaps->FreeDescriptor(m_defaultMaterial.m_texturesDescriptorSet);
 
         vkDestroySampler(m_pDevice->GetDevice(), m_samplerPbr, nullptr);
         vkDestroySampler(m_pDevice->GetDevice(), m_samplerShadow, nullptr);
 
-        vkDestroyImageView(m_pDevice->GetDevice(), m_brdfLutView, NULL);
+        vkDestroyImageView(m_pDevice->GetDevice(), m_brdfLutView, nullptr);
         vkDestroySampler(m_pDevice->GetDevice(), m_brdfLutSampler, nullptr);
         m_brdfLutTexture.OnDestroy();
 
@@ -363,7 +363,7 @@ namespace CAULDRON_VK
         // Constant buffer 'per frame'
         layout_bindings[0].binding = 0;
         layout_bindings[0].descriptorCount = 1;
-        layout_bindings[0].pImmutableSamplers = NULL;
+        layout_bindings[0].pImmutableSamplers = nullptr;
         layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         (*pAttributeDefines)["ID_PER_FRAME"] = std::to_string(layout_bindings[0].binding);
@@ -371,7 +371,7 @@ namespace CAULDRON_VK
         // Constant buffer 'per object'
         layout_bindings[1].binding = 1;
         layout_bindings[1].descriptorCount = 1;
-        layout_bindings[1].pImmutableSamplers = NULL;
+        layout_bindings[1].pImmutableSamplers = nullptr;
         layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layout_bindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
         (*pAttributeDefines)["ID_PER_OBJECT"] = std::to_string(layout_bindings[1].binding);
@@ -384,7 +384,7 @@ namespace CAULDRON_VK
             // skinning matrices
             b.binding = 2;
             b.descriptorCount = 1;
-            b.pImmutableSamplers = NULL;
+            b.pImmutableSamplers = nullptr;
             b.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
             b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
             (*pAttributeDefines)["ID_SKINNING_MATRICES"] = std::to_string(b.binding);
@@ -412,13 +412,13 @@ namespace CAULDRON_VK
 
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
         pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pPipelineLayoutCreateInfo.pNext = NULL;
+        pPipelineLayoutCreateInfo.pNext = nullptr;
         pPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-        pPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+        pPipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
         pPipelineLayoutCreateInfo.setLayoutCount = (uint32_t)descriptorSetLayout.size();
         pPipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayout.data();
 
-        VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &pPrimitive->m_pipelineLayout);
+        VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, nullptr, &pPrimitive->m_pipelineLayout);
         assert(res == VK_SUCCESS);
     }
 
@@ -457,7 +457,7 @@ namespace CAULDRON_VK
 
         VkPipelineVertexInputStateCreateInfo vi = {};
         vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vi.pNext = NULL;
+        vi.pNext = nullptr;
         vi.flags = 0;
         vi.vertexBindingDescriptionCount = (uint32_t)vi_binding.size();
         vi.pVertexBindingDescriptions = vi_binding.data();
@@ -468,7 +468,7 @@ namespace CAULDRON_VK
 
         VkPipelineInputAssemblyStateCreateInfo ia;
         ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        ia.pNext = NULL;
+        ia.pNext = nullptr;
         ia.flags = 0;
         ia.primitiveRestartEnable = VK_FALSE;
         ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -477,7 +477,7 @@ namespace CAULDRON_VK
 
         VkPipelineRasterizationStateCreateInfo rs;
         rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rs.pNext = NULL;
+        rs.pNext = nullptr;
         rs.flags = 0;
         rs.polygonMode = VK_POLYGON_MODE_FILL;
         rs.cullMode = pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_doubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;
@@ -505,7 +505,7 @@ namespace CAULDRON_VK
         VkPipelineColorBlendStateCreateInfo cb;
         cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         cb.flags = 0;
-        cb.pNext = NULL;
+        cb.pNext = nullptr;
         cb.attachmentCount = 1;
         cb.pAttachments = att_state;
         cb.logicOpEnable = VK_FALSE;
@@ -521,7 +521,7 @@ namespace CAULDRON_VK
         };
         VkPipelineDynamicStateCreateInfo dynamicState = {};
         dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.pNext = NULL;
+        dynamicState.pNext = nullptr;
         dynamicState.pDynamicStates = dynamicStateEnables.data();
         dynamicState.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
@@ -529,18 +529,18 @@ namespace CAULDRON_VK
 
         VkPipelineViewportStateCreateInfo vp = {};
         vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        vp.pNext = NULL;
+        vp.pNext = nullptr;
         vp.flags = 0;
         vp.viewportCount = 1;
         vp.scissorCount = 1;
-        vp.pScissors = NULL;
-        vp.pViewports = NULL;
+        vp.pScissors = nullptr;
+        vp.pViewports = nullptr;
 
         // depth stencil state
 
         VkPipelineDepthStencilStateCreateInfo ds;
         ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        ds.pNext = NULL;
+        ds.pNext = nullptr;
         ds.flags = 0;
         ds.depthTestEnable = true;
         ds.depthWriteEnable = true;
@@ -562,9 +562,9 @@ namespace CAULDRON_VK
 
         VkPipelineMultisampleStateCreateInfo ms;
         ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        ms.pNext = NULL;
+        ms.pNext = nullptr;
         ms.flags = 0;
-        ms.pSampleMask = NULL;
+        ms.pSampleMask = nullptr;
         ms.rasterizationSamples = m_sampleCount;
         ms.sampleShadingEnable = VK_FALSE;
         ms.alphaToCoverageEnable = VK_FALSE;
@@ -575,7 +575,7 @@ namespace CAULDRON_VK
         //
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipeline.pNext = NULL;
+        pipeline.pNext = nullptr;
         pipeline.layout = pPrimitive->m_pipelineLayout;
         pipeline.basePipelineHandle = VK_NULL_HANDLE;
         pipeline.basePipelineIndex = 0;
@@ -584,7 +584,7 @@ namespace CAULDRON_VK
         pipeline.pInputAssemblyState = &ia;
         pipeline.pRasterizationState = &rs;
         pipeline.pColorBlendState = &cb;
-        pipeline.pTessellationState = NULL;
+        pipeline.pTessellationState = nullptr;
         pipeline.pMultisampleState = &ms;
         pipeline.pDynamicState = &dynamicState;
         pipeline.pViewportState = &vp;
@@ -594,7 +594,7 @@ namespace CAULDRON_VK
         pipeline.renderPass = m_renderPass;
         pipeline.subpass = 0;
 
-        VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &pPrimitive->m_pipeline);
+        VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &pPrimitive->m_pipeline);
         assert(res == VK_SUCCESS);
     }
 
@@ -627,7 +627,7 @@ namespace CAULDRON_VK
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
             tfNode *pNode = &pNodes->at(i);
-            if ((pNode == NULL) || (pNode->meshIndex < 0))
+            if ((pNode == nullptr) || (pNode->meshIndex < 0))
                 continue;
 
             // skinning matrices constant buffer

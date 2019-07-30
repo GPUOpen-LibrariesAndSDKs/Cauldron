@@ -24,6 +24,9 @@
 #include "base/DynamicBufferRing.h"
 #include "base/StaticBufferPool.h"
 
+#include <DirectXMath.h>
+using namespace DirectX;
+
 namespace CAULDRON_VK
 {
     class CheckerBoardFloor

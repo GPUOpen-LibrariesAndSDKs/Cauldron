@@ -21,7 +21,6 @@
 #include "ExtFp16.h"
 #include "Misc/Misc.h"
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_win32.h>
 
 namespace CAULDRON_VK
 {

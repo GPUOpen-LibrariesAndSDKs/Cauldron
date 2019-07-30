@@ -22,6 +22,9 @@
 #include "base/DynamicBufferRing.h"
 #include "base/StaticBufferPool.h"
 
+#include <DirectXMath.h>
+using namespace DirectX;
+
 namespace CAULDRON_VK
 {
     // This class takes a GltfCommon class (that holds all the non-GPU specific data) as an input and loads all the GPU specific data

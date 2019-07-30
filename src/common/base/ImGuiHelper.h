@@ -18,9 +18,19 @@
 // THE SOFTWARE.
 #pragma once
 
+#ifdef _WIN32
+#include <Windows.h>
+#endif
+
 #include "../imgui/imgui.h"
 
 bool ImGUI_Init(void* hwnd);
 void ImGUI_Shutdown();
 void ImGUI_UpdateIO();
+
+#ifdef _WIN32
 LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#else
+#warning "TODO: implement ImGUI_WndProcHandler for Linux"
+#endif
+

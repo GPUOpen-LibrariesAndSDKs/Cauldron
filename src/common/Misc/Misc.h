@@ -19,6 +19,11 @@
 
 #pragma once
 
+#include <string>
+
+#include <DirectXMath.h>
+using namespace DirectX;
+
 double MillisecondsNow();
 size_t Hash(const void *ptr, size_t size, size_t result = 2166136261);
 std::string format(const char* format, ...);
@@ -29,7 +34,7 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
 void GetXYZ(float *, XMVECTOR v);
 
 // align uLocation to the next multiple of uAlign
-inline SIZE_T AlignOffset(SIZE_T uOffset, SIZE_T uAlign) { return ((uOffset + (uAlign - 1)) & ~(uAlign - 1)); }
+inline size_t AlignOffset(size_t uOffset, size_t uAlign) { return ((uOffset + (uAlign - 1)) & ~(uAlign - 1)); }
 
 class Profile
 {

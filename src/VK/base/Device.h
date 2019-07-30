@@ -18,9 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "vulkan/vulkan.h"
-
-
+#include <vulkan/vulkan.h>
 #define USE_VMA
 
 #ifdef USE_VMA
@@ -38,7 +36,11 @@ namespace CAULDRON_VK
     public:
         Device();
         ~Device();
+        #ifdef _WIN32
         void OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd);
+        #else
+        #warning "TODO: Implement Device::OnCreate() for Linux"
+        #endif
         void OnDestroy();
         VkDevice GetDevice() { return m_device; }
         VkQueue GetGraphicsQueue() { return graphics_queue; }
@@ -83,7 +85,7 @@ namespace CAULDRON_VK
         bool m_usingFreeSync2 = false;
         bool m_usingFp16 = false;
 #ifdef USE_VMA
-        VmaAllocator m_hAllocator = NULL;
+        VmaAllocator m_hAllocator = nullptr;
 #endif
     };
 

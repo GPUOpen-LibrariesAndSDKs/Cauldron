@@ -17,6 +17,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cstring>
+#include <cctype>
 
 #include "ImgLoader.h"
 #include "DDSLoader.h"
@@ -34,7 +36,7 @@ ImgLoader *GetImageLoader(const char *pFilename)
     }
 
     // check if the extension is known
-    UINT32 ext4CC = *reinterpret_cast<const UINT32 *>(ext);
+    uint32_t ext4CC = *reinterpret_cast<const uint32_t *>(ext);
     if (ext4CC == 'sdd.')
     {
         return new DDSLoader();

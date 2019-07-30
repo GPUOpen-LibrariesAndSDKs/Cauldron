@@ -25,6 +25,8 @@
 #include "GLTFTexturesAndBuffers.h"
 #include "widgets/WireframeBox.h"
 
+#include <DirectXMath.h>
+
 namespace CAULDRON_VK
 {
     class GltfBBoxPass

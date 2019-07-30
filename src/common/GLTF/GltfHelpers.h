@@ -18,9 +18,14 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "../json/json.h"
 
+#include <string>
+
+#include "../json/json.hpp"
 using json = nlohmann::json;
+
+#include <DirectXMath.h>
+using namespace DirectX;
 
 int GetFormatSize(int id);
 int GetDimensions(const std::string &str);
@@ -33,4 +38,4 @@ float GetElementFloat(const json::object_t &root, char *path, float pDefault);
 int GetElementInt(const json::object_t &root, char *path, int pDefault);
 bool GetElementBoolean(const json::object_t &root, char *path, bool pDefault);
 json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::array_t pDefault);
-XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default);
+XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default_value);

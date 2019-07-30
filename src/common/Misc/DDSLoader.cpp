@@ -17,39 +17,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cassert>
 
 #include "DDSLoader.h"
 
 
 struct DDS_PIXELFORMAT
 {
-    UINT32 size;
-    UINT32 flags;
-    UINT32 fourCC;
-    UINT32 bitCount;
-    UINT32 bitMaskR;
-    UINT32 bitMaskG;
-    UINT32 bitMaskB;
-    UINT32 bitMaskA;
+    uint32_t size;
+    uint32_t flags;
+    uint32_t fourCC;
+    uint32_t bitCount;
+    uint32_t bitMaskR;
+    uint32_t bitMaskG;
+    uint32_t bitMaskB;
+    uint32_t bitMaskA;
 };
 
 struct DDS_HEADER
 {
 
-    UINT32       dwSize;
-    UINT32       dwHeaderFlags;
-    UINT32       dwHeight;
-    UINT32       dwWidth;
-    UINT32       dwPitchOrLinearSize;
-    UINT32       dwDepth;
-    UINT32       dwMipMapCount;
-    UINT32       dwReserved1[11];
+    uint32_t       dwSize;
+    uint32_t       dwHeaderFlags;
+    uint32_t       dwHeight;
+    uint32_t       dwWidth;
+    uint32_t       dwPitchOrLinearSize;
+    uint32_t       dwDepth;
+    uint32_t       dwMipMapCount;
+    uint32_t       dwReserved1[11];
     DDS_PIXELFORMAT ddspf;
-    UINT32       dwSurfaceFlags;
-    UINT32       dwCubemapFlags;
-    UINT32       dwCaps3;
-    UINT32       dwCaps4;
-    UINT32       dwReserved2;
+    uint32_t       dwSurfaceFlags;
+    uint32_t       dwCubemapFlags;
+    uint32_t       dwCaps3;
+    uint32_t       dwCaps4;
+    uint32_t       dwReserved2;
 };
 
 //--------------------------------------------------------------------------------------
@@ -99,6 +100,7 @@ static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt)
     }
 }
 
+#ifdef _WIN32
 HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
 {
     typedef enum RESOURCE_DIMENSION
@@ -114,9 +116,9 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
     {
         DXGI_FORMAT      dxgiFormat;
         RESOURCE_DIMENSION  resourceDimension;
-        UINT32           miscFlag;
-        UINT32           arraySize;
-        UINT32           reserved;
+        uint32_t           miscFlag;
+        uint32_t           arraySize;
+        uint32_t           reserved;
     } DDS_HEADER_DXT10;
 
     if (GetFileAttributesA(pFilename) == 0xFFFFFFFF)
@@ -131,8 +133,8 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
     LARGE_INTEGER largeFileSize;
     GetFileSizeEx(hFile, &largeFileSize);
     assert(0 == largeFileSize.HighPart);
-    UINT32 fileSize = largeFileSize.LowPart;
-    UINT32 rawTextureSize = fileSize;
+    uint32_t fileSize = largeFileSize.LowPart;
+    uint32_t rawTextureSize = fileSize;
 
     // read the header
     char headerData[4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)];
@@ -140,7 +142,7 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
     if (ReadFile(hFile, headerData, 4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10), &dwBytesRead, NULL))
     {
         char *pByteData = headerData;
-        UINT32 dwMagic = *reinterpret_cast<UINT32 *>(pByteData);
+        uint32_t dwMagic = *reinterpret_cast<uint32_t *>(pByteData);
         pByteData += 4;
         rawTextureSize -= 4;
 
@@ -170,9 +172,9 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
         else if (dwMagic == ' SDD')   // "DDS "
         {
             // DXGI
-            UINT32 arraySize = (header->dwCubemapFlags == 0xfe00) ? 6 : 1;
+            uint32_t arraySize = (header->dwCubemapFlags == 0xfe00) ? 6 : 1;
             DXGI_FORMAT dxgiFormat = GetDxGiFormat(header->ddspf);
-            UINT32 mipMapCount = header->dwMipMapCount ? header->dwMipMapCount : 1;
+            uint32_t mipMapCount = header->dwMipMapCount ? header->dwMipMapCount : 1;
 
             IMG_INFO dx10header =
             {
@@ -208,6 +210,10 @@ void DDSLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, ui
 {
     for (uint32_t y = 0; y < height; y++)
     {
-        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, NULL, NULL);
+        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, nullptr, nullptr);
     }
 }
+
+#else 
+#warning "TODO: implement crossplatform DDS loading"
+#endif

@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <string>
+
 #include "base/StaticBufferPool.h"
 #include "base/DynamicBufferRing.h"
 #include "base/ResourceViewHeaps.h"
@@ -34,11 +36,11 @@ namespace CAULDRON_VK
             StaticBufferPool *pStaticBufferPool,
             DynamicBufferRing *pDynamicBufferRing,
             VkDescriptorSetLayout descriptorSetLayout,
-            VkPipelineColorBlendStateCreateInfo *pBlendDesc = NULL,
+            VkPipelineColorBlendStateCreateInfo *pBlendDesc = nullptr,
             VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT
         );
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo constantBuffer, VkDescriptorSet descriptorSet = NULL);
+        void Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo constantBuffer, VkDescriptorSet descriptorSet = nullptr);
 
     private:
         Device* m_pDevice;

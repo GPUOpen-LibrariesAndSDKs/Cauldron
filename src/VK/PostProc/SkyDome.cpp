@@ -53,7 +53,7 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_samplerDiffuseCube);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_samplerDiffuseCube);
             assert(res == VK_SUCCESS);
         }
 
@@ -69,7 +69,7 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_samplerSpecularCube);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_samplerSpecularCube);
             assert(res == VK_SUCCESS);
         }
 
@@ -80,31 +80,31 @@ namespace CAULDRON_VK
         layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layout_bindings[0].descriptorCount = 1;
         layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_bindings[0].pImmutableSamplers = NULL;
+        layout_bindings[0].pImmutableSamplers = nullptr;
 
         layout_bindings[1].binding = 1;
         layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         layout_bindings[1].descriptorCount = 1;
         layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_bindings[1].pImmutableSamplers = NULL;
+        layout_bindings[1].pImmutableSamplers = nullptr;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layout_bindings, &m_descriptorLayout, &m_descriptorSet);
         pDynamicBufferRing->SetDescriptorSet(0, sizeof(XMMATRIX), m_descriptorSet);
         SetDescriptorSpec(1, m_descriptorSet);
 
-        m_skydome.OnCreate(pDevice, renderPass, "SkyDome.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount);
+        m_skydome.OnCreate(pDevice, renderPass, "SkyDome.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, nullptr, sampleDescCount);
     }
 
     void SkyDome::OnDestroy()
     {
         m_skydome.OnDestroy();
-        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, NULL);
+        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, nullptr);
 
         vkDestroySampler(m_pDevice->GetDevice(), m_samplerDiffuseCube, nullptr);
         vkDestroySampler(m_pDevice->GetDevice(), m_samplerSpecularCube, nullptr);
 
-        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeDiffuseTextureView, NULL);
-        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeSpecularTextureView, NULL);
+        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeDiffuseTextureView, nullptr);
+        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeSpecularTextureView, nullptr);
 
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
 

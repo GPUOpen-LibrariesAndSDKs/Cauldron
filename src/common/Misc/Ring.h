@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <cassert>
+
 // This is the typical ring buffer, it is used by resources that will be reused. 
 // For example the command Lists, the 'dynamic' constant buffers, etc..
 //
@@ -115,7 +117,7 @@ public:
         {
             m_memAllocatedInFrame += padding;
 
-            if (m_mem.Alloc(padding, NULL) == false) //alloc chunk to avoid crossover, ignore offset        
+            if (m_mem.Alloc(padding, nullptr) == false) //alloc chunk to avoid crossover, ignore offset        
             {
                 return false;  //no mem, cannot allocate apdding
             }

@@ -352,7 +352,7 @@ namespace CAULDRON_VK
             for (int i = 1; i < m_mipCount; i++)
             {
                 char buf[32];
-                sprintf_s<32>(buf, "weight %i", i);
+                sprintf(buf, "weight %i", i);
                 ImGui::SliderFloat(buf, &m_mip[i].m_weight, 0.0f, 4.0f);
             }
         }

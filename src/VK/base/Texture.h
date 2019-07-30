@@ -19,11 +19,17 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include "Device.h"
 #include "UploadHeap.h"
 #include "ResourceViewHeaps.h"
 #include "../VulkanMemoryAllocator/vk_mem_alloc.h"
 #include "Misc/DDSLoader.h"
+
+#ifndef _WIN32
+#include "dxgiformat.h"
+#endif
 
 namespace CAULDRON_VK
 {
@@ -37,9 +43,9 @@ namespace CAULDRON_VK
         virtual void OnDestroy();
 
         // load file into heap
-        INT32 Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name = NULL);
-        INT32 InitRendertarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name = NULL);
-        INT32 InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, char *name = NULL);
+        int32_t Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name = nullptr);
+        int32_t InitRendertarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name = nullptr);
+        int32_t InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, char *name = nullptr);
         bool InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f);
 
         VkImage Resource() { return m_pResource; }
@@ -55,7 +61,7 @@ namespace CAULDRON_VK
 
         VkFormat GetFormat() { return m_format; }
     private:
-        Device         *m_pDevice = NULL;
+        Device         *m_pDevice = nullptr;
 
 #ifdef USE_VMA
         VmaAllocation    m_ImageAlloc = VK_NULL_HANDLE;
@@ -71,7 +77,7 @@ namespace CAULDRON_VK
 
         struct FootPrint
         {
-            UINT8* pixels;
+            uint8_t* pixels;
             uint32_t width, height, offset;
         } footprints[6][12];
 
@@ -79,8 +85,8 @@ namespace CAULDRON_VK
         VkImage CreateTextureCommitted(Device* pDevice, UploadHeap* pUploadHeap, const char *pName, bool useSRGB = false);
         void LoadAndUpload(Device* pDevice, UploadHeap* pUploadHeap, ImgLoader *pDds, VkImage pTexture2D);
 
-        void    PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, UINT32 pixelCount);
-        UINT32  GetPixelSize(DXGI_FORMAT fmt) const;
+        void    PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, uint32_t pixelCount);
+        uint32_t  GetPixelSize(DXGI_FORMAT fmt) const;
         bool    isCubemap()const;
     };
 }
