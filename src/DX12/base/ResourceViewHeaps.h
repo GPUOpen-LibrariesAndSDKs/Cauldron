@@ -36,7 +36,7 @@ namespace CAULDRON_DX12
     //      - a view description structure you need to fill
     //      - a CPU handle (lets say the i-th one in your CPU Descritor heap)
     //
-    // In order to bind that resource into the pipeline you'll need to use the i-th handle but from the GPU heap
+    // In order to bind that resource into the pipeline you'll need to use the i-th handle but from the GPU-visible heap
     // this GPU handle is used in SetGraphicsRootDescriptorTable.
     //
     //
