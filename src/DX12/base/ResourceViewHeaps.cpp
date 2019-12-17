@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "ResourceViewHeaps.h"
-#include "..\..\common\Misc\Misc.h"
+#include "../../common/Misc/Misc.h"
 
 namespace CAULDRON_DX12
 {
@@ -28,22 +28,26 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void StaticResourceViewHeap::OnCreate(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t descriptorCount)
+    void StaticResourceViewHeap::OnCreate(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t descriptorCount, bool forceCPUVisible)
     {
         m_descriptorCount = descriptorCount;
         m_index = 0;
-
+        
         m_descriptorElementSize = pDevice->GetDevice()->GetDescriptorHandleIncrementSize(heapType);
 
         D3D12_DESCRIPTOR_HEAP_DESC descHeap;
         descHeap.NumDescriptors = descriptorCount;
         descHeap.Type = heapType;
         descHeap.Flags = ((heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV) || (heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)) ? D3D12_DESCRIPTOR_HEAP_FLAG_NONE : D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        if (forceCPUVisible)
+        {
+            descHeap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+        }
         descHeap.NodeMask = 0;
         ThrowIfFailed(
             pDevice->GetDevice()->CreateDescriptorHeap(&descHeap, IID_PPV_ARGS(&m_pHeap))
         );
-        m_pHeap->SetName(L"StaticHeapDX12");
+        SetName(m_pHeap, "StaticHeapDX12");
     }
 
     //--------------------------------------------------------------------------------------

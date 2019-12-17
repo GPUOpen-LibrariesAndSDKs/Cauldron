@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "DDSLoader.h"
-
+#include "DxgiFormatHelper.h"
 
 struct DDS_PIXELFORMAT
 {
@@ -56,7 +56,7 @@ struct DDS_HEADER
 // retrieve the GetDxGiFormat from a DDS_PIXELFORMAT
 // based on http://msdn.microsoft.com/en-us/library/windows/desktop/bb943991(v=vs.85).aspx
 //--------------------------------------------------------------------------------------
-static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt) 
+static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt)
 {
     if (pixelFmt.flags & 0x00000004)   //DDPF_FOURCC
     {
@@ -154,6 +154,7 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
             header10 = reinterpret_cast<DDS_HEADER_DXT10 *>(&pByteData[4]);
             pByteData += sizeof(DDS_HEADER_DXT10);
             rawTextureSize -= sizeof(DDS_HEADER_DXT10);
+            header->ddspf.bitCount = (UINT32)BitsPerPixel(header10->dxgiFormat);
 
             IMG_INFO dx10header =
             {
@@ -173,6 +174,7 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
             UINT32 arraySize = (header->dwCubemapFlags == 0xfe00) ? 6 : 1;
             DXGI_FORMAT dxgiFormat = GetDxGiFormat(header->ddspf);
             UINT32 mipMapCount = header->dwMipMapCount ? header->dwMipMapCount : 1;
+            header->ddspf.bitCount = (UINT32)BitsPerPixel(dxgiFormat);
 
             IMG_INFO dx10header =
             {

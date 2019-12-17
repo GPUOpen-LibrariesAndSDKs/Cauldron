@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "ShaderCompiler.h"
-#include "..\Misc\Misc.h"
+#include "../Misc/Misc.h"
 
 //
 // Hash a string of source code and recurse over its #include files

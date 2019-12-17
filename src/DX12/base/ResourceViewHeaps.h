@@ -63,6 +63,7 @@ namespace CAULDRON_DX12
             GPUDescriptor.ptr += i * m_descriptorSize;
             return GPUDescriptor;
         }
+
     private:
         friend class StaticResourceViewHeapDX12;
         friend class DynamicResourceViewHeapDX12;
@@ -93,11 +94,11 @@ namespace CAULDRON_DX12
     class StaticResourceViewHeap
     {
     public:
-        void OnCreate(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t descriptorCount);
+        void OnCreate(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t descriptorCount, bool forceCPUVisible = false);
         void OnDestroy();
         bool AllocDescriptor(uint32_t size, ResourceView *pRV)
         {
-            if ((m_index + size) >= m_descriptorCount)
+            if ((m_index + size) > m_descriptorCount)
             {
                 assert(!"StaticResourceViewHeapDX12 heap ran of memory, increase its size");
                 return false;

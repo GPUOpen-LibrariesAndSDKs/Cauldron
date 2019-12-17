@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "Device.h"
-#include "..\..\common\Misc\Misc.h"
+#include "../..\common\Misc/Misc.h"
 #include "Helper.h"
 #include "CommandListRing.h"
 
@@ -50,7 +50,7 @@ namespace CAULDRON_DX12
 
             // Create command buffers
             //
-            pCBPF->m_ppCommandList = new ID3D12GraphicsCommandList*[m_commandListsPerBackBuffer];
+            pCBPF->m_ppCommandList = new ID3D12GraphicsCommandList2*[m_commandListsPerBackBuffer];
             for (uint32_t i = 0; i < m_commandListsPerBackBuffer; i++)
             {
                 ThrowIfFailed(pDevice->GetDevice()->CreateCommandList(0, queueDesc.Type, pCBPF->m_pCommandAllocator, nullptr, IID_PPV_ARGS(&pCBPF->m_ppCommandList[i])));
@@ -62,9 +62,15 @@ namespace CAULDRON_DX12
 
         // Closing all the command buffers so we can call reset on them the first time we use them, otherwise the runtime would show a warning. 
         //
+        ID3D12CommandQueue* queue = pDevice->GetGraphicsQueue();
+        if (queueDesc.Type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
+        {
+            queue = pDevice->GetComputeQueue();
+        }
+
         for (uint32_t a = 0; a < m_numberOfAllocators; a++)
         {
-            pDevice->GetGraphicsQueue()->ExecuteCommandLists(m_commandListsPerBackBuffer, (ID3D12CommandList *const *)m_pCommandBuffers[a].m_ppCommandList);
+            queue->ExecuteCommandLists(m_commandListsPerBackBuffer, (ID3D12CommandList *const *)m_pCommandBuffers[a].m_ppCommandList);
         }        
 
         pDevice->GPUFlush();
@@ -99,9 +105,9 @@ namespace CAULDRON_DX12
     // GetNewCommandList
     //
     //--------------------------------------------------------------------------------------
-    ID3D12GraphicsCommandList *CommandListRing::GetNewCommandList()
+    ID3D12GraphicsCommandList2 *CommandListRing::GetNewCommandList()
     {      
-        ID3D12GraphicsCommandList *pCL = m_pCurrentFrame->m_ppCommandList[m_pCurrentFrame->m_UsedCls++];
+        ID3D12GraphicsCommandList2 *pCL = m_pCurrentFrame->m_ppCommandList[m_pCurrentFrame->m_UsedCls++];
                 
         assert(m_pCurrentFrame->m_UsedCls < m_commandListsPerBackBuffer); //if hit increase commandListsPerBackBuffer
 

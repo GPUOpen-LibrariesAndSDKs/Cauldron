@@ -22,7 +22,7 @@
 
 // DirectX
 #include <d3d11.h>
-#include "..\base\ShaderCompilerHelper.h"
+#include "../Base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_DX12
 {
@@ -142,15 +142,6 @@ namespace CAULDRON_DX12
         SamplerDesc.RegisterSpace = 0;
         SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-
-        // Create the input layout
-        D3D12_INPUT_ELEMENT_DESC layout[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->pos), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->uv),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, (size_t)(&((ImDrawVert*)0)->col), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        };
-        uint32_t numElements = sizeof(layout) / sizeof(layout[0]);
-
         // Vertex shader
         //
         static const char* vertexShader =
@@ -200,10 +191,9 @@ namespace CAULDRON_DX12
         }";
 
         // Compile and create shaders
-        //
-        D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
-        CompileShaderFromString(vertexShader, NULL, "main", "vs_5_0", 0, 0, &shaderVert);
-        CompileShaderFromString(pixelShader, NULL, "main", "ps_5_0", 0, 0, &shaderPixel);
+        //        
+        CompileShaderFromString(vertexShader, NULL, "main", "vs_5_0", 0, 0, &m_shaderVert);
+        CompileShaderFromString(pixelShader, NULL, "main", "ps_5_0", 0, 0, &m_shaderPixel);
 
         // Create descriptor sets
         //
@@ -241,16 +231,43 @@ namespace CAULDRON_DX12
                 pOutBlob->GetBufferSize(),
                 __uuidof(ID3D12RootSignature),
                 (void**)&m_pRootSignature);
-            m_pRootSignature->SetName(L"UI RootSignature");
+            SetName(m_pRootSignature, "ImGUI::m_RootSignature");
         }
+
+        UpdatePipeline(outFormat);
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // UpdatePipeline
+    //
+    //--------------------------------------------------------------------------------------
+    void ImGUI::UpdatePipeline(DXGI_FORMAT outFormat)
+    {
+        if (outFormat == DXGI_FORMAT_UNKNOWN)
+            return;
+
+        if (m_pPipelineState != NULL)
+        {
+            m_pPipelineState->Release();
+            m_pPipelineState = NULL;
+        }
+
+        // Create the input layout
+        D3D12_INPUT_ELEMENT_DESC layout[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->pos), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->uv),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, (size_t)(&((ImDrawVert*)0)->col), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
+        uint32_t numElements = sizeof(layout) / sizeof(layout[0]);
 
         // Create the pipeline
         //
         D3D12_GRAPHICS_PIPELINE_STATE_DESC descPso = {};
         descPso.InputLayout = { layout, numElements };
         descPso.pRootSignature = m_pRootSignature;
-        descPso.VS = shaderVert;
-        descPso.PS = shaderPixel;
+        descPso.VS = m_shaderVert;
+        descPso.PS = m_shaderPixel;
         descPso.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         descPso.RasterizerState.DepthClipEnable = true;
@@ -272,8 +289,7 @@ namespace CAULDRON_DX12
         descPso.SampleDesc.Count = 1;
         descPso.NodeMask = 0;
         m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipelineState));
-        m_pPipelineState->SetName(L"UI PSO");
-
+        SetName(m_pPipelineState, "ImGUI::m_pPipelineState");
     }
 
     //--------------------------------------------------------------------------------------

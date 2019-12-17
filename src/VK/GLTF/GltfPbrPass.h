@@ -19,8 +19,8 @@
 #pragma once
 
 #include "GLTFTexturesAndBuffers.h"
-#include "PostProc\SkyDome.h"
-#include "..\Common\GLTF\GltfPbrMaterial.h"
+#include "PostProc/SkyDome.h"
+#include "../common/GLTF/GltfPbrMaterial.h"
 
 namespace CAULDRON_VK
 {

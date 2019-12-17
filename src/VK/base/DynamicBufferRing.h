@@ -19,8 +19,8 @@
 #pragma once
 
 #include "Device.h"
-#include "Misc\Ring.h"
-#include "..\VulkanMemoryAllocator\vk_mem_alloc.h"
+#include "Misc/Ring.h"
+#include "../VulkanMemoryAllocator/vk_mem_alloc.h"
 
 namespace CAULDRON_VK
 {

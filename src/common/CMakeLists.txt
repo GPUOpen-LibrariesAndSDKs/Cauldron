@@ -9,7 +9,7 @@ set(base_src
     "base/ShaderCompiler.h"
 )
 
-file(GLOB_RECURSE GLTF_src
+set(GLTF_src
     "GLTF/GltfStructures.h"
     "GLTF/GltfCommon.cpp"
     "GLTF/GltfCommon.h"

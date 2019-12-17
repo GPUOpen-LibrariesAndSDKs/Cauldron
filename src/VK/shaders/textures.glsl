@@ -144,3 +144,38 @@ vec2 getDiffuseUV()
 #endif
     return uv.xy;
 }
+
+vec4 getBaseColorTexture()
+{
+#ifdef ID_baseColorTexture
+    return texture(u_BaseColorSampler, getBaseColorUV());
+#else
+    return vec4(0, 0, 0, 1); //OPAQUE
+#endif
+}
+
+vec3 getNormalTexture()
+{
+#ifdef ID_normalTexture
+    return texture(u_NormalSampler, getNormalUV()).rgb;
+#else
+    return vec3(0, 0, 0); //OPAQUE
+#endif
+}
+
+void discardPixelIfAlphaCutOff()
+{
+#ifdef ID_baseColorTexture
+    vec4 baseColor = getBaseColorTexture();
+
+#if defined(DEF_alphaMode_BLEND)
+        if (baseColor.a == 0)
+            discard;
+#elif defined(DEF_alphaMode_MASK) && defined(DEF_alphaCutoff)
+        if (baseColor.a < DEF_alphaCutoff)
+            discard;
+#else
+        //OPAQUE
+#endif
+#endif
+}

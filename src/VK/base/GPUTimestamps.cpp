@@ -27,15 +27,16 @@ namespace CAULDRON_VK
     {
         m_pDevice = pDevice;
         m_NumberOfBackBuffers = numberOfBackBuffers;
+        m_queryNeedsInitialReset = true;
         m_frame = 0;
 
         const VkQueryPoolCreateInfo queryPoolCreateInfo =
         {
-            VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,    // VkStructureType                    sType
-            NULL,                                           // const void*                        pNext
-            (VkQueryPoolCreateFlags)0,                    // VkQueryPoolCreateFlags            flags
-            VK_QUERY_TYPE_TIMESTAMP ,                     // VkQueryType                        queryType
-            MaxValuesPerFrame * numberOfBackBuffers,    // deUint32                            entryCount
+            VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO,     // VkStructureType                  sType
+            NULL,                                         // const void*                      pNext
+            (VkQueryPoolCreateFlags)0,                    // VkQueryPoolCreateFlags           flags
+            VK_QUERY_TYPE_TIMESTAMP ,                     // VkQueryType                      queryType
+            MaxValuesPerFrame * numberOfBackBuffers,      // deUint32                         entryCount
             0,                                            // VkQueryPipelineStatisticFlags    pipelineStatistics
         };
 
@@ -62,6 +63,12 @@ namespace CAULDRON_VK
 
     void GPUTimestamps::OnBeginFrame(VkCommandBuffer cmd_buf, std::vector<TimeStamp> *pTimestamp)
     {
+        if (m_queryNeedsInitialReset)
+        {
+            vkCmdResetQueryPool(cmd_buf, m_QueryPool, 0, MaxValuesPerFrame*MaxValuesPerFrame);
+            m_queryNeedsInitialReset = false;
+        }
+
         pTimestamp->clear();
 
         // timestampPeriod is the number of nanoseconds per timestamp value increment
@@ -71,13 +78,12 @@ namespace CAULDRON_VK
         uint32_t offset = m_frame*MaxValuesPerFrame;
 
         UINT64 TimingsInTicks[256] = {};
-        VkResult res = vkGetQueryPoolResults(m_pDevice->GetDevice(), m_QueryPool, offset, measurements, sizeof(TimingsInTicks) * sizeof(UINT64), &TimingsInTicks, sizeof(UINT64), VK_QUERY_RESULT_64_BIT);
 
-        if (measurements == 0)
-            vkCmdResetQueryPool(cmd_buf, m_QueryPool, 0, MaxValuesPerFrame);
-        else
-            vkCmdResetQueryPool(cmd_buf, m_QueryPool, offset, measurements);
-
+        if (measurements > 0)
+        {
+            vkGetQueryPoolResults(m_pDevice->GetDevice(), m_QueryPool, offset, measurements, sizeof(TimingsInTicks) * sizeof(UINT64), &TimingsInTicks, sizeof(UINT64), VK_QUERY_RESULT_64_BIT);
+        }
+        vkCmdResetQueryPool(cmd_buf, m_QueryPool, offset, measurements);
 
         for (uint32_t i = 0; i < measurements; i++)
         {

@@ -19,9 +19,9 @@
 #include "stdafx.h"
 
 #include "ExtFp16.h"
-#include "Misc\Misc.h"
-#include <vulkan\vulkan.h>
-#include <vulkan\vulkan_win32.h>
+#include "Misc/Misc.h"
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_win32.h>
 
 namespace CAULDRON_VK
 {
@@ -41,7 +41,6 @@ namespace CAULDRON_VK
                 Trace(format("FreeSync2 disabled, missing extension: %s\n", ext));
                 bFp16Enabled = false;
             }
-
         }
 
         if (bFp16Enabled)

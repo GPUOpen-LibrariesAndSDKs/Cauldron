@@ -19,7 +19,7 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
-#include "..\common\GLTF\glTFHelpers.h"
+#include "../common/GLTF/glTFHelpers.h"
 
 namespace CAULDRON_VK
 {

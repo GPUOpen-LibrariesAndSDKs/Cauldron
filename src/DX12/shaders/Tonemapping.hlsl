@@ -24,6 +24,7 @@ cbuffer cbPerFrame : register(b0)
 {
     float u_exposure         : packoffset(c0.x);
     int   u_toneMapper       : packoffset(c0.y);    
+    int   u_applyGamma       : packoffset(c0.z);
 }
 
 //--------------------------------------------------------------------------------------
@@ -78,7 +79,10 @@ float3 TimothyTonemapper(float3 color)
     float b = ColToneB(hdrMax, contrast, shoulder, midIn, midOut);
     float c = ColToneC(hdrMax, contrast, shoulder, midIn, midOut);
 
+    #define EPS 1e-6f
     float peak = max(color.r, max(color.g, color.b));
+    peak = max(EPS, peak); //avoid dividing by zero
+
     float3 ratio = color / peak;
     peak = ColTone(peak, float4(contrast, shoulder, b, c) );
     // then process ratio
@@ -209,7 +213,10 @@ float4 mainPS(VERTEX Input) : SV_Target
 
     // We don't need to apply the gamma because the swapchain format is SRGB
     //
-    //color = ApplyGamma(color); 
-    
+    if (u_applyGamma > 0)
+    {
+        color = ApplyGamma(color);
+    }
+
     return float4(color, 1);
 }

@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base\Texture.h"
-#include "Base\UploadHeap.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\DynamicBufferRing.h" 
-#include "GLTF\GltfCommon.h"
+#include "Base/Texture.h"
+#include "Base/UploadHeap.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/DynamicBufferRing.h" 
+#include "GLTF/GltfCommon.h"
 
 namespace CAULDRON_DX12
 {
@@ -45,6 +45,7 @@ namespace CAULDRON_DX12
 
         std::vector<Texture> m_textures;
 
+        std::map<int, D3D12_GPU_VIRTUAL_ADDRESS> m_skeletonMatricesBuffer;
         std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC> m_InverseBindMatrices;
 
         StaticBufferPool *m_pStaticBufferPool;
@@ -54,18 +55,19 @@ namespace CAULDRON_DX12
         GLTFCommon *m_pGLTFCommon;
 
         D3D12_GPU_VIRTUAL_ADDRESS m_perFrameConstants;
-        std::map<int, D3D12_GPU_VIRTUAL_ADDRESS> m_skeletonMatricesBuffer;
 
         bool OnCreate(Device* pDevice, GLTFCommon *pGLTFCommon, UploadHeap* pUploadHeap, StaticBufferPool *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
         void LoadTextures();
         void OnDestroy();
 
+        void CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, DXGI_FORMAT *pIndexType, D3D12_INDEX_BUFFER_VIEW *pIBV);
         void CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry);
 
-        Texture *GetTextureViewByID(int id);
-
-        D3D12_GPU_VIRTUAL_ADDRESS GetSkinningMatricesBuffer(int skinIndex);
-        void SetSkinningMatricesForSkeletons();
         void SetPerFrameConstants();
+        void SetSkinningMatricesForSkeletons();
+
+        Texture *GetTextureViewByID(int id);
+        D3D12_GPU_VIRTUAL_ADDRESS GetSkinningMatricesBuffer(int skinIndex);
+        D3D12_GPU_VIRTUAL_ADDRESS GetPerFrameConstants() { return m_perFrameConstants; }
     };
 }

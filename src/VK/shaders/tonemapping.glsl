@@ -29,6 +29,7 @@ layout (std140, binding = 0) uniform perBatch
 {
     float u_exposure; 
     int u_toneMapper; 
+    int u_applyGamma;
 } myPerScene;
 
 layout(set=0, binding=1) uniform sampler2D sSampler;
@@ -72,7 +73,10 @@ vec3 TimothyTonemapper(vec3 color)
     float b = ColToneB(hdrMax, contrast, shoulder, midIn, midOut);
     float c = ColToneC(hdrMax, contrast, shoulder, midIn, midOut);
 
+    #define EPS 1e-6f
     float peak = max(color.r, max(color.g, color.b));
+    peak = max(EPS, peak); //avoid dividing by zero
+
     vec3 ratio = color / peak;
     peak = ColTone(peak, vec4(contrast, shoulder, b, c) );
     // then process ratio
@@ -187,7 +191,10 @@ void main()
 
     // We don't need to apply the gamma because the swapchain format is SRGB
     //
-    //color = ApplyGamma(color);
+    if (myPerScene.u_applyGamma>0)
+    {
+        color = ApplyGamma(color);
+    }
 
     outColor = vec4(color,1.0);
 }

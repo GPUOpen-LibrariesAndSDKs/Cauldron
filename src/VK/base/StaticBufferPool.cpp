@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "StaticBufferPool.h"
-#include "misc\Misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {
@@ -164,7 +164,8 @@ namespace CAULDRON_VK
 #endif
 
         }
-        else
+
+        if (m_buffer != VK_NULL_HANDLE)
         {
 #ifdef USE_VMA
             vmaUnmapMemory(m_pDevice->GetAllocator(), m_bufferAlloc);
@@ -174,6 +175,7 @@ namespace CAULDRON_VK
             vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemory, NULL);
             vkDestroyBuffer(m_pDevice->GetDevice(), m_buffer, NULL);
 #endif
+            m_buffer = VK_NULL_HANDLE;
         }
     }
 
@@ -219,6 +221,7 @@ namespace CAULDRON_VK
     {
         if (m_bUseVidMem)
         {
+            assert(m_buffer != VK_NULL_HANDLE);
 #ifdef USE_VMA
             vmaUnmapMemory(m_pDevice->GetAllocator(), m_bufferAlloc);
             vmaDestroyBuffer(m_pDevice->GetAllocator(), m_buffer, m_bufferAlloc);

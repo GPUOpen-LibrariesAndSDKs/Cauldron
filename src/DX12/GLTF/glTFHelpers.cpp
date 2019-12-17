@@ -120,7 +120,7 @@ namespace CAULDRON_DX12
     void CreateSamplerForShadowMap(uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc)
     {
         ZeroMemory(pSamplerDesc, sizeof(D3D12_STATIC_SAMPLER_DESC));
-        pSamplerDesc->Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+        pSamplerDesc->Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
         pSamplerDesc->AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         pSamplerDesc->AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
         pSamplerDesc->AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -134,5 +134,23 @@ namespace CAULDRON_DX12
         pSamplerDesc->RegisterSpace = 0;
         pSamplerDesc->ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     };
+
+    void CreateSamplerForShadowBuffer(uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc)
+    {
+        ZeroMemory(pSamplerDesc, sizeof(D3D12_STATIC_SAMPLER_DESC));
+        pSamplerDesc->Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+        pSamplerDesc->AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        pSamplerDesc->AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        pSamplerDesc->AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+        pSamplerDesc->BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+        pSamplerDesc->MinLOD = 0.0f;
+        pSamplerDesc->MaxLOD = D3D12_FLOAT32_MAX;
+        pSamplerDesc->MipLODBias = 0;
+        pSamplerDesc->ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        pSamplerDesc->MaxAnisotropy = 1;
+        pSamplerDesc->ShaderRegister = samplerIndex;
+        pSamplerDesc->RegisterSpace = 0;
+        pSamplerDesc->ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    }
 }
 

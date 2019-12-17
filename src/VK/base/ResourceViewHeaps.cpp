@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "ResourceViewHeaps.h"
-#include "misc\misc.h"
+#include "Misc/misc.h"
 
 namespace CAULDRON_VK
 {
@@ -53,6 +53,20 @@ namespace CAULDRON_VK
         vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, NULL);
     }
 
+    bool ResourceViewHeaps::CreateDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *pDescSetLayout)
+    {
+        // Next take layout bindings and use them to create a descriptor set layout
+
+        VkDescriptorSetLayoutCreateInfo descriptor_layout = {};
+        descriptor_layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptor_layout.pNext = NULL;
+        descriptor_layout.bindingCount = (uint32_t)pDescriptorLayoutBinding->size();
+        descriptor_layout.pBindings = pDescriptorLayoutBinding->data();
+
+        VkResult res = vkCreateDescriptorSetLayout(m_pDevice->GetDevice(), &descriptor_layout, NULL, pDescSetLayout);
+        assert(res == VK_SUCCESS);
+        return (res == VK_SUCCESS);
+    }
     bool ResourceViewHeaps::CreateDescriptorSetLayoutAndAllocDescriptorSet(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *pDescSetLayout, VkDescriptorSet *pDescriptorSet)
     {
         // Next take layout bindings and use them to create a descriptor set layout

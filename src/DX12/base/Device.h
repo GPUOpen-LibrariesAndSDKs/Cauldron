@@ -20,7 +20,7 @@
 
 #include <d3d12.h>
 #include "d3dx12.h"
-#include "..\AGS\amd_ags.h"
+#include "../AGS\amd_ags.h"
 
 namespace CAULDRON_DX12
 {
@@ -33,28 +33,32 @@ namespace CAULDRON_DX12
     public:
         Device();
         ~Device();
+
         void Device::OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd);
         void OnDestroy();
+
         ID3D12Device *GetDevice() { return m_pDevice; }
+        IDXGIAdapter *GetAdapter() { return m_pAdapter; }
         ID3D12CommandQueue *GetGraphicsQueue() { return m_pDirectQueue; }
+        ID3D12CommandQueue* GetComputeQueue() { return m_pComputeQueue; }
+
+        AGSContext *GetAGSContext() { return m_agsContext; }
+        AGSGPUInfo *GetAGSGPUInfo() { return &m_agsGPUInfo; }
 
         bool IsFp16Supported() { return m_fp16Supported; };
-
         void CreatePipelineCache();
         void DestroyPipelineCache();
-        //VkPipelineCache GetPipelineCache();
 
         void GPUFlush();
 
-        AGSContext* GetAgsContext();
-
     private:
         ID3D12Device         *m_pDevice;
+        IDXGIAdapter         *m_pAdapter;
         ID3D12CommandQueue   *m_pDirectQueue;
+        ID3D12CommandQueue   *m_pComputeQueue;
 
-        AGSContext*           m_agsContext = nullptr;
+        AGSContext           *m_agsContext = nullptr;
         AGSGPUInfo            m_agsGPUInfo = {};
-        bool                  m_agsCreatedDevice = false;
         bool                  m_fp16Supported = false;
     };
 }

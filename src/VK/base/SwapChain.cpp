@@ -19,15 +19,18 @@
 
 #include "stdafx.h"
 #include "SwapChain.h"
+#include "ExtFreeSync2.h"
+#include <vulkan\vulkan_win32.h>
 
 namespace CAULDRON_VK
 {
+
     //--------------------------------------------------------------------------------------
     //
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd)
+    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd, DisplayModes displayMode)
     {
         VkResult res;
 
@@ -36,6 +39,8 @@ namespace CAULDRON_VK
         m_isFullScreen = false;
         m_backBufferCount = numberBackBuffers;
         m_presentQueue = pDevice->GetPresentQueue();
+
+        m_swapChainFormat = fs2GetFormat(displayMode);
 
         VkDevice device = m_pDevice->GetDevice();
 
@@ -64,69 +69,7 @@ namespace CAULDRON_VK
             assert(res == VK_SUCCESS);
         }
 
-        VkSurfaceKHR surface = m_pDevice->GetSurface();
-        VkPhysicalDevice physicaldevice = m_pDevice->GetPhysicalDevice();
-
-        // Get the list of formats
-        //
-        uint32_t formatCount;
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicaldevice, surface, &formatCount, NULL);
-        assert(res == VK_SUCCESS);
-        std::vector<VkSurfaceFormatKHR> surfFormats(formatCount);
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicaldevice, surface, &formatCount, &surfFormats[0]);
-        assert(res == VK_SUCCESS);
-        assert(formatCount >= 1);
-        m_surfaceFormat.format = VK_FORMAT_UNDEFINED;
-        for (uint32_t i = 0; i < formatCount; i++)
-        {
-            if (surfFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB)
-            {
-                m_surfaceFormat = surfFormats[i];
-                break;
-            }
-        }
-
-        // Create swapchain render pass 
-        {
-            // color RT
-            VkAttachmentDescription attachments[1];
-            attachments[0].format = GetFormat();
-            attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-            attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-            attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-            attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-            attachments[0].flags = 0;
-
-            VkAttachmentReference color_reference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
-
-            VkSubpassDescription subpass = {};
-            subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-            subpass.flags = 0;
-            subpass.inputAttachmentCount = 0;
-            subpass.pInputAttachments = NULL;
-            subpass.colorAttachmentCount = 1;
-            subpass.pColorAttachments = &color_reference;
-            subpass.pResolveAttachments = NULL;
-            subpass.pDepthStencilAttachment = NULL;
-            subpass.preserveAttachmentCount = 0;
-            subpass.pPreserveAttachments = NULL;
-
-            VkRenderPassCreateInfo rp_info = {};
-            rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-            rp_info.pNext = NULL;
-            rp_info.attachmentCount = 1;
-            rp_info.pAttachments = attachments;
-            rp_info.subpassCount = 1;
-            rp_info.pSubpasses = &subpass;
-            rp_info.dependencyCount = 0;
-            rp_info.pDependencies = NULL;
-
-            VkResult res = vkCreateRenderPass(m_pDevice->GetDevice(), &rp_info, NULL, &m_render_pass_swap_chain);
-            assert(res == VK_SUCCESS);
-        }
+        CreateRenderPass();
     }
 
     //--------------------------------------------------------------------------------------
@@ -136,10 +79,7 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     void SwapChain::OnDestroy()
     {
-        if (m_render_pass_swap_chain != VK_NULL_HANDLE)
-        {
-            vkDestroyRenderPass(m_pDevice->GetDevice(), m_render_pass_swap_chain, nullptr);
-        }
+        DestroyRenderPass();
 
         for (int i = 0; i < m_cmdBufExecutedFences.size(); i++)
         {
@@ -161,18 +101,21 @@ namespace CAULDRON_VK
 
     uint32_t SwapChain::WaitForSwapChain()
     {
-        vkAcquireNextImageKHR(m_pDevice->GetDevice(), m_swapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_index], VK_NULL_HANDLE, &m_imageIndex);
+        m_prevImageIndex = m_imageIndex;
+
+        vkAcquireNextImageKHR(m_pDevice->GetDevice(), m_swapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_imageIndex], VK_NULL_HANDLE, &m_imageIndex);
+
+        vkWaitForFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_imageIndex], VK_TRUE, UINT64_MAX);
+        vkResetFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_imageIndex]);
 
         return m_imageIndex;
     }
 
     void SwapChain::GetSemaphores(VkSemaphore *pImageAvailableSemaphore, VkSemaphore *pRenderFinishedSemaphores, VkFence *pCmdBufExecutedFences)
     {
-        vkResetFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_index]);
-
-        *pImageAvailableSemaphore = m_ImageAvailableSemaphores[m_index];
-        *pRenderFinishedSemaphores = m_RenderFinishedSemaphores[m_index];
-        *pCmdBufExecutedFences = m_cmdBufExecutedFences[m_index];
+        *pImageAvailableSemaphore = m_ImageAvailableSemaphores[m_prevImageIndex];
+        *pRenderFinishedSemaphores = m_RenderFinishedSemaphores[m_imageIndex];
+        *pCmdBufExecutedFences = m_cmdBufExecutedFences[m_imageIndex];
     }
 
     void SwapChain::Present()
@@ -181,7 +124,7 @@ namespace CAULDRON_VK
         present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         present.pNext = NULL;
         present.waitSemaphoreCount = 1;
-        present.pWaitSemaphores = &(m_RenderFinishedSemaphores[m_index]);
+        present.pWaitSemaphores = &(m_RenderFinishedSemaphores[m_imageIndex]);
         present.swapchainCount = 1;
         present.pSwapchains = &m_swapChain;
         present.pImageIndices = &m_imageIndex;
@@ -189,10 +132,6 @@ namespace CAULDRON_VK
 
         VkResult res = vkQueuePresentKHR(m_presentQueue, &present);
         assert(res == VK_SUCCESS);
-
-        m_index = (m_index + 1) % m_backBufferCount;
-
-        vkWaitForFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_index], VK_TRUE, UINT64_MAX);
     }
 
     void SwapChain::SetFullScreen(bool fullscreen)
@@ -215,8 +154,8 @@ namespace CAULDRON_VK
             MONITORINFO monitorInfo;
             monitorInfo.cbSize = sizeof(monitorInfo);
             GetMonitorInfo(MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST), &monitorInfo);
-            SetWindowPos(m_hWnd, NULL, 
-                monitorInfo.rcMonitor.left, 
+            SetWindowPos(m_hWnd, NULL,
+                monitorInfo.rcMonitor.left,
                 monitorInfo.rcMonitor.top,
                 monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
                 monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
@@ -229,8 +168,8 @@ namespace CAULDRON_VK
             SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, m_windowedState.ExStyle);
 
             // Set the original window position and size.
-            SetWindowPos(m_hWnd, NULL, 
-                m_windowedState.WindowRect.left, 
+            SetWindowPos(m_hWnd, NULL,
+                m_windowedState.WindowRect.left,
                 m_windowedState.WindowRect.top,
                 m_windowedState.WindowRect.right - m_windowedState.WindowRect.left,
                 m_windowedState.WindowRect.bottom - m_windowedState.WindowRect.top,
@@ -241,20 +180,39 @@ namespace CAULDRON_VK
                 ::SendMessage(m_hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
             }
         }
+
+        if (ExtFreeSync2AreAllExtensionsPresent())
+        {
+            fs2SetFullscreenState(fullscreen, m_swapChain);
+        }
     }
 
-    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight)
+    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode)
     {
         VkResult res;
         VkDevice device = m_pDevice->GetDevice();
-        VkSurfaceKHR surface = m_pDevice->GetSurface();
         VkPhysicalDevice physicaldevice = m_pDevice->GetPhysicalDevice();
+        VkSurfaceKHR surface = m_pDevice->GetSurface();
+
+        m_swapChainFormat = fs2GetFormat(displayMode);
+        m_bVSyncOn = bVSyncOn;
+
+        // redo the render passes for rendering using the new format
+        DestroyRenderPass();
+        CreateRenderPass();
 
         // Get capabilities
         //
         VkSurfaceCapabilitiesKHR surfCapabilities;
-        res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicaldevice, surface, &surfCapabilities);
-        assert(res == VK_SUCCESS);
+        if (displayMode != DISPLAYMODE_SDR && fs2IsHDR10Display())
+        {
+            VkGetPhysicalDeviceSurfaceCapabilities2KHR(physicaldevice, surface, &surfCapabilities);
+        }
+        else
+        {
+            res = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicaldevice, surface, &surfCapabilities);
+            assert(res == VK_SUCCESS);
+        }
 
         VkExtent2D swapchainExtent;
         // width and height are either both 0xFFFFFFFF, or both not 0xFFFFFFFF.
@@ -320,19 +278,30 @@ namespace CAULDRON_VK
 
         VkSwapchainCreateInfoKHR swapchain_ci = {};
         swapchain_ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-        swapchain_ci.pNext = NULL;
+        swapchain_ci.pNext = nullptr;
+        if (displayMode != DISPLAYMODE_SDR && fs2IsHDR10Display())
+        {
+            swapchain_ci.pNext = GetVkSwapchainDisplayNativeHdrCreateInfoAMD();
+        }
+
+        uint32_t surfaceFormatCount = 0;
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicaldevice, surface, &surfaceFormatCount, NULL);
+        assert(res == VK_SUCCESS);
+        std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
+        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicaldevice, surface, &surfaceFormatCount, surfaceFormats.data());
+        assert(res == VK_SUCCESS);
+
         swapchain_ci.surface = surface;
-        swapchain_ci.imageFormat = m_surfaceFormat.format;
+        swapchain_ci.imageFormat = m_swapChainFormat.format;
         swapchain_ci.minImageCount = m_backBufferCount;
-        swapchain_ci.imageColorSpace = m_surfaceFormat.colorSpace;
+        swapchain_ci.imageColorSpace = m_swapChainFormat.colorSpace;
         swapchain_ci.imageExtent.width = swapchainExtent.width;
         swapchain_ci.imageExtent.height = swapchainExtent.height;
         swapchain_ci.preTransform = preTransform;
         swapchain_ci.compositeAlpha = compositeAlpha;
         swapchain_ci.imageArrayLayers = 1;
-        swapchain_ci.presentMode = VK_PRESENT_MODE_FIFO_KHR;  // The FIFO present mode is guaranteed by the spec to be supported
-        swapchain_ci.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;  // Use this for vsync off!
-        swapchain_ci.oldSwapchain = VK_NULL_HANDLE;
+        swapchain_ci.presentMode = m_bVSyncOn ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;  // The FIFO present mode is guaranteed by the spec to be supported
+        swapchain_ci.oldSwapchain = m_swapChain;
         swapchain_ci.clipped = true;
         swapchain_ci.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -350,10 +319,11 @@ namespace CAULDRON_VK
             swapchain_ci.pQueueFamilyIndices = queueFamilyIndices;
         }
 
+        m_swapChain = VK_NULL_HANDLE;
         res = vkCreateSwapchainKHR(device, &swapchain_ci, NULL, &m_swapChain);
         assert(res == VK_SUCCESS);
 
-        // we are queriying the swapchain count so the next call doesn't generate a validation warning warning
+        // we are querying the swapchain count so the next call doesn't generate a validation warning
         uint32_t backBufferCount;
         res = vkGetSwapchainImagesKHR(device, m_swapChain, &backBufferCount, NULL);
         assert(res == VK_SUCCESS);
@@ -375,29 +345,77 @@ namespace CAULDRON_VK
             GetWindowRect(m_hWnd, &m_windowedState.WindowRect);
         }
 
-        m_index = 0;
         m_imageIndex = 0;
-        m_nextIndex = 0;
     }
 
     void SwapChain::OnDestroyWindowSizeDependentResources()
     {
+        DestroyRenderPass();
         DestroyFramebuffers();
         DestroyRTV();
         vkDestroySwapchainKHR(m_pDevice->GetDevice(), m_swapChain, nullptr);
     }
 
+    void SwapChain::CreateRenderPass()
+    {
+        // color RT
+        VkAttachmentDescription attachments[1];
+        attachments[0].format = m_swapChainFormat.format;
+        attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+        attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        attachments[0].flags = 0;
+
+        VkAttachmentReference color_reference = { 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.flags = 0;
+        subpass.inputAttachmentCount = 0;
+        subpass.pInputAttachments = NULL;
+        subpass.colorAttachmentCount = 1;
+        subpass.pColorAttachments = &color_reference;
+        subpass.pResolveAttachments = NULL;
+        subpass.pDepthStencilAttachment = NULL;
+        subpass.preserveAttachmentCount = 0;
+        subpass.pPreserveAttachments = NULL;
+
+        VkRenderPassCreateInfo rp_info = {};
+        rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        rp_info.pNext = NULL;
+        rp_info.attachmentCount = 1;
+        rp_info.pAttachments = attachments;
+        rp_info.subpassCount = 1;
+        rp_info.pSubpasses = &subpass;
+        rp_info.dependencyCount = 0;
+        rp_info.pDependencies = NULL;
+
+        VkResult res = vkCreateRenderPass(m_pDevice->GetDevice(), &rp_info, NULL, &m_render_pass_swap_chain);
+        assert(res == VK_SUCCESS);
+    }
+
+    void SwapChain::DestroyRenderPass()
+    {
+        if (m_render_pass_swap_chain != VK_NULL_HANDLE)
+        {
+            vkDestroyRenderPass(m_pDevice->GetDevice(), m_render_pass_swap_chain, nullptr);
+            m_render_pass_swap_chain = VK_NULL_HANDLE;
+        }
+    }
+
     void SwapChain::CreateRTV()
     {
-        VkDevice device = m_pDevice->GetDevice();
-
         m_imageViews.resize(m_images.size());
         for (uint32_t i = 0; i < m_images.size(); i++)
         {
             VkImageViewCreateInfo color_image_view = {};
             color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
             color_image_view.pNext = NULL;
-            color_image_view.format = VK_FORMAT_B8G8R8A8_SRGB;
+            color_image_view.format = m_swapChainFormat.format;
             color_image_view.components.r = VK_COMPONENT_SWIZZLE_R;
             color_image_view.components.g = VK_COMPONENT_SWIZZLE_G;
             color_image_view.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -411,7 +429,7 @@ namespace CAULDRON_VK
             color_image_view.flags = 0;
             color_image_view.image = m_images[i];
 
-            VkResult res = vkCreateImageView(device, &color_image_view, NULL, &m_imageViews[i]);
+            VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &color_image_view, NULL, &m_imageViews[i]);
             assert(res == VK_SUCCESS);
         }
     }
@@ -453,5 +471,4 @@ namespace CAULDRON_VK
             vkDestroyFramebuffer(m_pDevice->GetDevice(), m_framebuffers[i], nullptr);
         }
     }
-
 }

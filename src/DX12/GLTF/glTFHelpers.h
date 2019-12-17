@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "..\common\GLTF\glTFHelpers.h"
+#include "../common/GLTF/glTFHelpers.h"
 
 namespace CAULDRON_DX12
 {
@@ -26,5 +26,6 @@ namespace CAULDRON_DX12
     void CreateSamplerForPBR(uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc);
     void CreateSamplerForBrdfLut(uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc);
     void CreateSamplerForShadowMap(uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc);
+    void CreateSamplerForShadowBuffer(uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc);
 }
 

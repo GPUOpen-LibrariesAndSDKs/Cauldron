@@ -24,27 +24,25 @@
 
 precision highp float;
 
+//--------------------------------------------------------------------------------------
+// I/O Structures
+//--------------------------------------------------------------------------------------
+
 #ifdef ID_4PS_TEXCOORD_0
-    layout (location = ID_4PS_TEXCOORD_0) in  vec2 v_UV;
+    layout (location = ID_4PS_TEXCOORD_0) in  vec2 v_UV0;
 #endif
 
-#ifdef ID_baseColorTexture
-    layout (set=1, binding = ID_baseColorTexture) uniform sampler2D u_BaseColorSampler;
-#endif
+//--------------------------------------------------------------------------------------
+// Texture definitions
+//--------------------------------------------------------------------------------------
+
+#include "textures.glsl"
+
+//--------------------------------------------------------------------------------------
+// Pixel Shader
+//--------------------------------------------------------------------------------------
 
 void main()
 {
-#ifdef ID_baseColorTexture  
-    vec4 baseColor = texture(u_BaseColorSampler, v_UV);
-
-    #if defined(DEF_alphaMode_BLEND) 
-        if (baseColor.a == 0)
-            discard;
-    #elif defined(DEF_alphaMode_MASK) && defined(DEF_alphaCutoff)
-        if (baseColor.a < DEF_alphaCutoff)
-            discard;
-    #else 
-        //OPAQUE
-    #endif
-#endif
+	discardPixelIfAlphaCutOff();
 }

@@ -21,8 +21,6 @@
 #include <DXGIFormat.h>
 #include "ImgLoader.h"
 
-
-
 //Loads a DDS file
 
 class DDSLoader : public ImgLoader
@@ -35,5 +33,6 @@ public:
 private:
     HANDLE m_handle;
 };
+
 
 

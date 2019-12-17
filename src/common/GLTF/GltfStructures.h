@@ -94,6 +94,8 @@ struct tfNode
     int channel = -1;
     bool bIsJoint = false;
 
+    std::string m_name;
+
     Transform m_tranform;
 };
 
@@ -176,6 +178,7 @@ struct tfLight
 
     XMVECTOR m_color;
     float m_range;
+    float m_intensity;
     float m_innerConeAngle;
     float m_outerConeAngle;
 };

@@ -19,8 +19,10 @@
 #pragma once
 
 #include <d3dCommon.h>
-#include "base\Device.h"
-#include "Base\ShaderCompiler.h"
+#include "Base/Device.h"
+#include "Base/ShaderCompiler.h"
+
+#include <vector>
 
 namespace CAULDRON_DX12
 {

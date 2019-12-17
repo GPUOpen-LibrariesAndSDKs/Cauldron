@@ -18,8 +18,8 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base\Device.h"
-#include "Base\ShaderCompilerHelper.h"
+#include "Base/Device.h"
+#include "Base/ShaderCompilerHelper.h"
 #include "CheckerboardFloor.h"
 
 namespace CAULDRON_VK

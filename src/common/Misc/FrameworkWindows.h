@@ -30,6 +30,8 @@ public:
     uint32_t GetWidth() { return m_Width; }
     uint32_t GetHeight() { return m_Height; }
 
+    virtual void OnActivate(bool windowActive) {};
+
     // Pure virtual functions
 
     virtual void OnCreate(HWND hWnd) = 0;

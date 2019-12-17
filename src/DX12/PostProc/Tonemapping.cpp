@@ -18,9 +18,9 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "base\DynamicBufferRing.h"
-#include "base\StaticBufferPool.h"
-#include "base\UploadHeap.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/UploadHeap.h"
 #include "ToneMapping.h"
 
 namespace CAULDRON_DX12
@@ -44,7 +44,7 @@ namespace CAULDRON_DX12
         SamplerDesc.RegisterSpace = 0;
         SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-        m_toneMapping.OnCreate(pDevice, "Tonemapping.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, &SamplerDesc, outFormat);
+        m_toneMapping.OnCreate(pDevice, "Tonemapping.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, outFormat);
     }
 
     void ToneMapping::OnDestroy()
@@ -52,7 +52,12 @@ namespace CAULDRON_DX12
         m_toneMapping.OnDestroy();
     }
 
-    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper)
+    void ToneMapping::UpdatePipelines(DXGI_FORMAT outFormat)
+    {
+        m_toneMapping.UpdatePipeline(outFormat);
+    }
+
+    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, bool applyGamma)
     {
         UserMarker marker(pCommandList, "Tonemapping");
 
@@ -61,6 +66,7 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
+        pToneMapping->applyGamma = applyGamma ? 1 : 0;
 
         m_toneMapping.Draw(pCommandList, 1, pHDRSRV, cbTonemappingHandle);
     }

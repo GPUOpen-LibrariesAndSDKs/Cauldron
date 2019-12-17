@@ -20,12 +20,13 @@
 #include "stdafx.h"
 #include "ResourceViewHeaps.h"
 #include "Texture.h"
-#include "misc\Misc.h"
-#include "misc\DDSLoader.h"
+#include "Misc/Misc.h"
+#include "Misc/DDSLoader.h"
+#include "Misc/DxgiFormatHelper.h"
 
 namespace CAULDRON_VK
 {
-    VkFormat Translate(DXGI_FORMAT format, bool useSRGB);
+    VkFormat TranslateDxgiFormatIntoVulkans(DXGI_FORMAT format);
 
     //--------------------------------------------------------------------------------------
     // Constructor of the Texture class
@@ -57,58 +58,6 @@ namespace CAULDRON_VK
 
     }
 
-    //--------------------------------------------------------------------------------------
-    // return the byte size of a pixel (or block if block compressed)
-    //--------------------------------------------------------------------------------------
-    UINT32 Texture::GetPixelSize(DXGI_FORMAT fmt) const
-    {
-        switch (fmt)
-        {
-        case(DXGI_FORMAT_BC1_TYPELESS):
-        case(DXGI_FORMAT_BC1_UNORM):
-        case(DXGI_FORMAT_BC1_UNORM_SRGB):
-        case(DXGI_FORMAT_BC4_TYPELESS):
-        case(DXGI_FORMAT_BC4_UNORM):
-        case(DXGI_FORMAT_BC4_SNORM):
-            return 8;
-
-        case(DXGI_FORMAT_BC2_TYPELESS):
-        case(DXGI_FORMAT_BC2_UNORM):
-        case(DXGI_FORMAT_BC2_UNORM_SRGB):
-        case(DXGI_FORMAT_BC3_TYPELESS):
-        case(DXGI_FORMAT_BC3_UNORM):
-        case(DXGI_FORMAT_BC3_UNORM_SRGB):
-        case(DXGI_FORMAT_BC5_TYPELESS):
-        case(DXGI_FORMAT_BC5_UNORM):
-        case(DXGI_FORMAT_BC5_SNORM):
-        case(DXGI_FORMAT_BC6H_TYPELESS):
-        case(DXGI_FORMAT_BC6H_UF16):
-        case(DXGI_FORMAT_BC6H_SF16):
-        case(DXGI_FORMAT_BC7_TYPELESS):
-        case(DXGI_FORMAT_BC7_UNORM):
-        case(DXGI_FORMAT_BC7_UNORM_SRGB):
-            return 16;
-
-        default:
-            break;
-        }
-        return 0;
-    }
-
-    void Texture::PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, UINT32 pixelCount)
-    {
-        // copy pixel data, interleave with A
-        for (unsigned int i = 0; i < pixelCount; ++i)
-        {
-            pDst[0] = pSrc[0];
-            pDst[1] = pSrc[1];
-            pDst[2] = pSrc[2];
-            pDst[3] = 0xFF;
-            pDst += 4;
-            pSrc += 3;
-        }
-    }
-
     bool Texture::isCubemap() const
     {
         return m_header.arraySize == 6;
@@ -121,6 +70,7 @@ namespace CAULDRON_VK
         m_header.width = pCreateInfo->extent.width;
         m_header.height = pCreateInfo->extent.height;
         m_header.depth = pCreateInfo->extent.depth;
+        m_header.arraySize = pCreateInfo->arrayLayers;
         m_format = pCreateInfo->format;
 
 #ifdef USE_VMA
@@ -191,6 +141,15 @@ namespace CAULDRON_VK
         info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         info.image = m_pResource;
         info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        if (m_header.arraySize > 1)
+        {
+            info.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            info.subresourceRange.layerCount = m_header.arraySize;
+        }
+        else
+        {
+            info.subresourceRange.layerCount = 1;
+        }
         info.format = m_format;
         if (m_format == VK_FORMAT_D32_SFLOAT)
             info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -209,7 +168,6 @@ namespace CAULDRON_VK
         }
 
         info.subresourceRange.baseArrayLayer = 0;
-        info.subresourceRange.layerCount = 1;
         VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
         assert(res == VK_SUCCESS);
     }
@@ -220,6 +178,15 @@ namespace CAULDRON_VK
         info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
         info.image = m_pResource;
         info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        if (m_header.arraySize > 1)
+        {
+            info.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+            info.subresourceRange.layerCount = m_header.arraySize;
+        }
+        else
+        {
+            info.subresourceRange.layerCount = 1;
+        }
         info.format = m_format;
         if (m_format == VK_FORMAT_D32_SFLOAT)
             info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -238,7 +205,6 @@ namespace CAULDRON_VK
         }
 
         info.subresourceRange.baseArrayLayer = 0;
-        info.subresourceRange.layerCount = 1;
 
         VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
         assert(res == VK_SUCCESS);
@@ -315,7 +281,9 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     VkImage Texture::CreateTextureCommitted(Device* pDevice, UploadHeap* pUploadHeap, const char *pName, bool useSRGB)
     {
-        m_format = Translate((DXGI_FORMAT)m_header.format, useSRGB);
+        m_header.format = SetFormatGamma(m_header.format, useSRGB);
+
+        m_format = TranslateDxgiFormatIntoVulkans((DXGI_FORMAT)m_header.format);
 
         VkImage tex;
 
@@ -347,7 +315,7 @@ namespace CAULDRON_VK
             VmaAllocationInfo gpuImageAllocInfo = {};
             vmaCreateImage(pDevice->GetAllocator(), &info, &imageAllocCreateInfo, &tex, &m_ImageAlloc, &gpuImageAllocInfo);
 #else
-            VkResult res = vkCreateImage(pDevice->GetDevice(), &info, NULL, &m_pResource);
+            VkResult res = vkCreateImage(pDevice->GetDevice(), &info, NULL, &tex);
             assert(res == VK_SUCCESS);
 
             VkMemoryRequirements mem_reqs;
@@ -398,7 +366,7 @@ namespace CAULDRON_VK
         UINT32 bytePP = m_header.bitCount / 8;
         if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
         {
-            bytePP = GetPixelSize((DXGI_FORMAT)m_header.format);
+            bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format);
         }
 
         for (uint32_t a = 0; a < m_header.arraySize; a++)
@@ -480,30 +448,14 @@ namespace CAULDRON_VK
         return result;
     }
 
-    VkFormat Translate(DXGI_FORMAT format, bool useSRGB)
+    VkFormat TranslateDxgiFormatIntoVulkans(DXGI_FORMAT format)
     {
-        if (useSRGB)
+        switch (format)
         {
-            switch (format)
-            {
-            case DXGI_FORMAT_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_SRGB;
-            case DXGI_FORMAT_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_SRGB;
-            case DXGI_FORMAT_BC1_UNORM: return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
-            case DXGI_FORMAT_BC2_UNORM: return VK_FORMAT_BC2_SRGB_BLOCK;
-            case DXGI_FORMAT_BC3_UNORM: return VK_FORMAT_BC3_SRGB_BLOCK;
-            case DXGI_FORMAT_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
-            case DXGI_FORMAT_BC4_SNORM: return VK_FORMAT_BC4_SNORM_BLOCK;
-            case DXGI_FORMAT_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
-            case DXGI_FORMAT_BC5_SNORM: return VK_FORMAT_BC5_SNORM_BLOCK;
-            default: assert(false);  return VK_FORMAT_UNDEFINED;
-            }
-        }
-        else
-        {
-            switch (format)
-            {
             case DXGI_FORMAT_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
             case DXGI_FORMAT_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+            case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+            case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
             case DXGI_FORMAT_BC1_UNORM: return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
             case DXGI_FORMAT_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
             case DXGI_FORMAT_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
@@ -514,8 +466,9 @@ namespace CAULDRON_VK
             case DXGI_FORMAT_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
             case DXGI_FORMAT_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
             case DXGI_FORMAT_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
+            case DXGI_FORMAT_R10G10B10A2_UNORM: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+            case DXGI_FORMAT_R16G16B16A16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;            
             default: assert(false);  return VK_FORMAT_UNDEFINED;
-            }
         }
     }
 }

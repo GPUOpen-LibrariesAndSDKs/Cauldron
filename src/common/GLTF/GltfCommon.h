@@ -18,8 +18,8 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "..\json\json.h"
-#include "..\..\common\Misc\Camera.h"
+#include "../json/json.h"
+#include "../../common/Misc/Camera.h"
 #include "GltfStructures.h"
 
 // The GlTF file is loaded in 2 steps
@@ -39,7 +39,6 @@ using json = nlohmann::json;
 
 struct GLTFCommonTransformed
 {    
-    std::vector<XMMATRIX> m_animatedMats;       // objext space matrices of each node after being animated
     std::vector<XMMATRIX> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
     std::map<int, std::vector<XMMATRIX>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
 };
@@ -73,6 +72,7 @@ const uint32_t LightType_Spot = 2;
 struct per_frame
 {
     XMMATRIX  mCameraViewProj;
+    XMMATRIX  mInverseCameraViewProj;
     XMVECTOR  cameraPos;
     float     iblFactor;
     float     emmisiveFactor;
@@ -105,7 +105,12 @@ public:
     const json::array_t *m_pAccessors;
     const json::array_t *m_pBufferViews;
 
-    GLTFCommonTransformed m_transformedData;
+    std::vector<XMMATRIX> m_animatedMats;       // object space matrices of each node after being animated
+    
+    // we keep the data for the last 2 frames, this is for computing motion vectors
+    GLTFCommonTransformed m_transformedData[2]; 
+    GLTFCommonTransformed *m_pCurrentFrameTransformedData;
+    GLTFCommonTransformed *m_pPreviousFrameTransformedData;
 
     per_frame m_perFrameData;
 
@@ -116,11 +121,14 @@ public:
     int FindMeshSkinId(int meshId);
     int GetInverseBindMatricesBufferSizeByID(int id);
     void GetBufferDetails(int accessor, tfAccessor *pAccessor);
+    void GetAttributesAccessors(const json::object_t &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors);
 
     // transformation and animation functions
-    void InitTransformedData();
     void SetAnimationTime(uint32_t animationIndex, float time);
     void TransformScene(int sceneIndex, XMMATRIX world);
-    per_frame *SetPerFrameData(uint32_t cameraIdx);
+    per_frame* SetPerFrameData(uint32_t cameraIdx, float cameraAspect = 1280.0f / 720.0f);
+private:
+    void InitTransformedData(); //this is called after loading the data from the GLTF
+    void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pNodes, GLTFCommonTransformed *pTransformed);
 };
 

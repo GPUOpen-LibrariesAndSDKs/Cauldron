@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include <vulkan\vulkan_win32.h>
+#include <vulkan/vulkan_win32.h>
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
-#include "ValidationExt.h"
+#include "ExtValidation.h"
 
 namespace CAULDRON_VK
 {
@@ -30,6 +30,8 @@ namespace CAULDRON_VK
     static PFN_vkDebugReportMessageEXT g_vkDebugReportMessageEXT = NULL;
     static PFN_vkDestroyDebugReportCallbackEXT g_vkDestroyDebugReportCallbackEXT = NULL;
     static VkDebugReportCallbackEXT g_DebugReportCallback = NULL;
+
+    static bool s_bCanUseDebugReport = false;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL MyDebugReportCallback(
         VkDebugReportFlagsEXT flags,
@@ -52,16 +54,10 @@ namespace CAULDRON_VK
     const char instanceExtensionName[] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
     const char instanceLayerName[] = "VK_LAYER_LUNARG_standard_validation";
 
-    bool ValidationCheckExtensions(InstanceProperties *pIP)
+    bool ExtDebugReportCheckInstanceExtensions(InstanceProperties *pIP, void **pNext)
     {
-        bool res = pIP->Add(instanceLayerName, instanceExtensionName);
-        return res;
-    }
-
-    bool ValidationCheckExtensions(DeviceProperties *pDP, void **pNext)
-    {
-        bool res = pDP->Add(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
-        if (res)
+        s_bCanUseDebugReport = pIP->AddInstanceLayerName(instanceLayerName) && pIP->AddInstanceExtensionName(instanceExtensionName);
+        if (s_bCanUseDebugReport)
         {
             features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
             features.pNext = *pNext;
@@ -70,26 +66,36 @@ namespace CAULDRON_VK
 
             *pNext = &features;
         }
-        return res;
-    }
 
-    void ValidationOnCreate(VkInstance instance)
+        return s_bCanUseDebugReport;
+    }
+   
+    void ExtDebugReportGetProcAddresses(VkInstance instance)
     {
-        g_vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
-        g_vkDebugReportMessageEXT = (PFN_vkDebugReportMessageEXT)vkGetInstanceProcAddr(instance, "vkDebugReportMessageEXT");
-        g_vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
-        assert(g_vkCreateDebugReportCallbackEXT);
-        assert(g_vkDebugReportMessageEXT);
-        assert(g_vkDestroyDebugReportCallbackEXT);
-
-        VkDebugReportCallbackCreateInfoEXT debugReportCallbackInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT };
-        debugReportCallbackInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-        debugReportCallbackInfo.pfnCallback = MyDebugReportCallback;
-        VkResult res = g_vkCreateDebugReportCallbackEXT(instance, &debugReportCallbackInfo, nullptr, &g_DebugReportCallback);
-        assert(res == VK_SUCCESS);
+        if (s_bCanUseDebugReport)
+        {
+            g_vkCreateDebugReportCallbackEXT = (PFN_vkCreateDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugReportCallbackEXT");
+            g_vkDebugReportMessageEXT = (PFN_vkDebugReportMessageEXT)vkGetInstanceProcAddr(instance, "vkDebugReportMessageEXT");
+            g_vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugReportCallbackEXT");
+            assert(g_vkCreateDebugReportCallbackEXT);
+            assert(g_vkDebugReportMessageEXT);
+            assert(g_vkDestroyDebugReportCallbackEXT);
+        }
     }
 
-    void ValidationOnDestroy(VkInstance instance)
+    void ExtDebugReportOnCreate(VkInstance instance)
+    {
+        if (g_vkCreateDebugReportCallbackEXT)
+        {
+            VkDebugReportCallbackCreateInfoEXT debugReportCallbackInfo = { VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT };
+            debugReportCallbackInfo.flags = VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT | VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
+            debugReportCallbackInfo.pfnCallback = MyDebugReportCallback;
+            VkResult res = g_vkCreateDebugReportCallbackEXT(instance, &debugReportCallbackInfo, nullptr, &g_DebugReportCallback);
+            assert(res == VK_SUCCESS);
+        }
+    }
+
+    void ExtDebugReportOnDestroy(VkInstance instance)
     {
         // It should happen after destroing device, before destroying instance.
         if (g_DebugReportCallback)

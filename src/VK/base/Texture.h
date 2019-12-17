@@ -22,8 +22,8 @@
 #include "Device.h"
 #include "UploadHeap.h"
 #include "ResourceViewHeaps.h"
-#include "..\VulkanMemoryAllocator\vk_mem_alloc.h"
-#include "misc\DDSLoader.h"
+#include "../VulkanMemoryAllocator/vk_mem_alloc.h"
+#include "Misc/DDSLoader.h"
 
 namespace CAULDRON_VK
 {
@@ -49,11 +49,12 @@ namespace CAULDRON_VK
         void CreateDSV(VkImageView *pView);
         void CreateCubeSRV(VkImageView *pImageView);
 
-        uint32_t GetWidth() { return m_header.width; }
-        uint32_t GetHeight() { return m_header.height; }
-        uint32_t GetMipCount() { return m_header.mipMapCount; }
+        uint32_t GetWidth() const { return m_header.width; }
+        uint32_t GetHeight() const { return m_header.height; }
+        uint32_t GetMipCount() const { return m_header.mipMapCount; }
+        uint32_t GetArraySize() const { return m_header.arraySize; }
+        VkFormat GetFormat() const { return m_format; }
 
-        VkFormat GetFormat() { return m_format; }
     private:
         Device         *m_pDevice = NULL;
 
@@ -79,8 +80,6 @@ namespace CAULDRON_VK
         VkImage CreateTextureCommitted(Device* pDevice, UploadHeap* pUploadHeap, const char *pName, bool useSRGB = false);
         void LoadAndUpload(Device* pDevice, UploadHeap* pUploadHeap, ImgLoader *pDds, VkImage pTexture2D);
 
-        void    PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, UINT32 pixelCount);
-        UINT32  GetPixelSize(DXGI_FORMAT fmt) const;
         bool    isCubemap()const;
     };
 }

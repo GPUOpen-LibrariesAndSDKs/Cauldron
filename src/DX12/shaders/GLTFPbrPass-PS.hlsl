@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
  
-// This shader code was ported from https://github.com/KhronosGroup/glTF-Sample-Viewer/
+// This shader code was ported from https://github.com/KhronosGroup/glTF-WebGL-PBR
 // All credits should go to his original author.
  
 //
@@ -28,13 +28,14 @@
 //     https://github.com/KhronosGroup/glTF-WebGL-PBR/#environment-maps
 // [4] "An Inexpensive BRDF Model for Physically based Rendering" by Christophe Schlick
 //     https://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf
+//
+#include "common.h"
 
 #define USE_PUNCTUAL
 
 //--------------------------------------------------------------------------------------
 //  Include IO structures
 //--------------------------------------------------------------------------------------
-
 #include "GLTFPbrPass-IO.hlsl"
 
 //--------------------------------------------------------------------------------------
@@ -87,43 +88,11 @@
 // PerFrame structure, must match the one in GlTFCommon.h
 //--------------------------------------------------------------------------------------
 
-// KHR_lights_punctual extension.
-// see https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_lights_punctual
-
-struct Light
-{
-    matrix        mLightViewProj;
-
-    float3        direction;
-    float         range;
-
-    float3        color;
-    float         intensity;
-
-    float3        position;
-    float         innerConeCos;
-
-    float         outerConeCos;
-    int           type;
-    float         depthBias;
-    int           shadowMapIndex;
-};
-
-static const int LightType_Directional = 0;
-static const int LightType_Point = 1;
-static const int LightType_Spot = 2;
+#include "perFrameStruct.h"
 
 cbuffer cbPerFrame : register(b0)
 {
-    matrix        myPerFrame_u_mCameraViewProj;
-    float4        myPerFrame_u_CameraPos;
-    float         myPerFrame_u_iblFactor;
-    float         myPerFrame_u_EmissiveFactor;
-    
-    int           myPerFrame_u_padding;
-
-    int           myPerFrame_u_lightCount;
-    Light         myPerFrame_u_lights[4];
+    PerFrame myPerFrame;
 };
 
 //--------------------------------------------------------------------------------------
@@ -151,6 +120,7 @@ cbuffer cbPerObject : register(b1)
 
 #include "textures.hlsl"
 #include "functions.hlsl"
+#include "PixelParams.hlsl"
 #include "shadowFiltering.h"
 
 struct MaterialInfo
@@ -272,7 +242,8 @@ float getRangeAttenuation(float range, float distance)
         // negative range means unlimited
         return 1.0;
     }
-    return max(lerp(1, 0, distance / range), 0);//max(min(1.0 - pow(distance / range, 4.0), 1.0), 0.0) / pow(distance, 2.0);
+    return max(lerp(1, 0, distance / range), 0);
+    //return max(min(1.0 - pow(distance / range, 4.0), 1.0), 0.0) / pow(distance, 2.0);
 }
 
 // https://github.com/KhronosGroup/glTF/blob/master/extensions/2.0/Khronos/KHR_lights_punctual/README.md#inner-and-outer-cone-angles
@@ -348,7 +319,7 @@ float4 mainPS(VS_OUTPUT_SCENE Input) : SV_Target
     baseColor = myPerObject_u_DiffuseFactor;
 #endif // !HAS_DIFFUSE_MAP
 
-    baseColor *= getVertexColor(Input);
+    baseColor *= getPixelColor(Input);
 
     // f0 = specular
     specularColor = f0;
@@ -377,12 +348,12 @@ float4 mainPS(VS_OUTPUT_SCENE Input) : SV_Target
 
     // The albedo may be defined from a base texture or a flat color
 #ifdef ID_baseColorTexture
-    baseColor = (baseColorTexture.Sample(samBaseColor, getBaseColorUV(Input))) * myPerObject_u_BaseColorFactor;
+    baseColor = getBaseColorTexture(Input) * myPerObject_u_BaseColorFactor;
 #else
     baseColor = myPerObject_u_BaseColorFactor;
 #endif
 
-    baseColor *= getVertexColor(Input);
+    baseColor *= getPixelColor(Input);
 
     diffuseColor = baseColor.rgb * (float3(1.0, 1.0, 1.0) - f0) * (1.0 - metallic);
 
@@ -390,17 +361,7 @@ float4 mainPS(VS_OUTPUT_SCENE Input) : SV_Target
 
 #endif // ! MATERIAL_METALLICROUGHNESS
 
-#ifdef DEF_alphaMode_MASK
-    if (baseColor.a < DEF_alphaCutoff)
-    {
-        discard;
-    }
-    baseColor.a = 1.0;
-#endif
-
-#ifdef DEF_alphaMode_OPAQUE
-    baseColor.a = 1.0;
-#endif
+    discardPixelIfAlphaCutOff(Input);
 
 #ifdef MATERIAL_UNLIT
     outColor = float4((baseColor.rgb), baseColor.a);
@@ -433,8 +394,8 @@ float4 mainPS(VS_OUTPUT_SCENE Input) : SV_Target
     // LIGHTING
 
     float3 color = float3(0.0, 0.0, 0.0);
-    float3 normal = getNormal(Input);
-    float3 view = normalize(myPerFrame_u_CameraPos.xyz - Input.WorldPos );
+    float3 normal = getPixelNormal(Input);
+    float3 view = normalize(myPerFrame.u_CameraPos.xyz - Input.WorldPos);
 
 #if (DEF_doubleSided == 1)
     if (dot(normal, view) < 0)
@@ -444,20 +405,20 @@ float4 mainPS(VS_OUTPUT_SCENE Input) : SV_Target
 #endif
 
 #ifdef USE_PUNCTUAL
-    for (int i = 0; i < myPerFrame_u_lightCount; ++i)
+    for (int i = 0; i < myPerFrame.u_lightCount; ++i)
     {
-        Light light = myPerFrame_u_lights[i];
+        Light light = myPerFrame.u_lights[i];
+        float shadowFactor = CalcShadows(Input.WorldPos.xyz, int2(Input.svPosition.xy), light);
         if (light.type == LightType_Directional)
         {
-            color += applyDirectionalLight(Input, light, materialInfo, normal, view);
+            color += applyDirectionalLight(Input, light, materialInfo, normal, view) * shadowFactor;
         }
         else if (light.type == LightType_Point)
         {
-            color += applyPointLight(Input, light, materialInfo, normal, view);
+            color += applyPointLight(Input, light, materialInfo, normal, view) * shadowFactor;
         }
         else if (light.type == LightType_Spot)
         {
-            float shadowFactor = DoSpotShadow(Input.WorldPos.xyz, light);
             color += applySpotLight(Input, light, materialInfo, normal, view) * shadowFactor;
         }
     }
@@ -465,7 +426,7 @@ float4 mainPS(VS_OUTPUT_SCENE Input) : SV_Target
 
     // Calculate lighting contribution from image based lighting source (IBL)
 #ifdef USE_IBL
-    color += getIBLContribution(materialInfo, normal, view) * myPerFrame_u_iblFactor;
+    color += getIBLContribution(materialInfo, normal, view) * myPerFrame.u_iblFactor;
 #endif
 
     float ao = 1.0;
@@ -477,7 +438,7 @@ float4 mainPS(VS_OUTPUT_SCENE Input) : SV_Target
 
     float3 emissive = float3(0,0,0);
 #ifdef ID_emissiveTexture
-    emissive = (emissiveTexture.Sample(samEmissive, getEmissiveUV(Input))).rgb * myPerObject_u_EmissiveFactor.rgb * myPerFrame_u_EmissiveFactor;
+    emissive = (emissiveTexture.Sample(samEmissive, getEmissiveUV(Input))).rgb * myPerObject_u_EmissiveFactor.rgb * myPerFrame.u_EmissiveFactor;
     color += emissive;
 #endif
 

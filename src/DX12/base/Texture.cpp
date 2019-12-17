@@ -24,14 +24,13 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdio.h>
-#include "..\..\common\Misc\Misc.h"
+#include "../../common/Misc/Misc.h"
 #include "Helper.h"
 #include "Texture.h"
+#include "../common/Misc/DxgiFormatHelper.h"
 
 namespace CAULDRON_DX12
 {
-    DXGI_FORMAT Translate(DXGI_FORMAT format, bool useSRGB);
-
     //--------------------------------------------------------------------------------------
     // Constructor of the Texture class
     // initializes all members
@@ -58,99 +57,36 @@ namespace CAULDRON_DX12
         return (format >= DXGI_FORMAT_BC1_TYPELESS) && (format <= DXGI_FORMAT_BC5_SNORM);
     }
 
-    //--------------------------------------------------------------------------------------
-    // return the byte size of a pixel (or block if block compressed)
-    //--------------------------------------------------------------------------------------
-    UINT32 Texture::GetPixelSize(DXGI_FORMAT fmt) const
-    {
-        switch (fmt)
-        {
-        case(DXGI_FORMAT_BC1_TYPELESS):
-        case(DXGI_FORMAT_BC1_UNORM):
-        case(DXGI_FORMAT_BC1_UNORM_SRGB):
-        case(DXGI_FORMAT_BC4_TYPELESS):
-        case(DXGI_FORMAT_BC4_UNORM):
-        case(DXGI_FORMAT_BC4_SNORM):
-        case(DXGI_FORMAT_R16G16B16A16_FLOAT):
-        case(DXGI_FORMAT_R16G16B16A16_TYPELESS):
-            return 8;
-
-        case(DXGI_FORMAT_BC2_TYPELESS):
-        case(DXGI_FORMAT_BC2_UNORM):
-        case(DXGI_FORMAT_BC2_UNORM_SRGB):
-        case(DXGI_FORMAT_BC3_TYPELESS):
-        case(DXGI_FORMAT_BC3_UNORM):
-        case(DXGI_FORMAT_BC3_UNORM_SRGB):
-        case(DXGI_FORMAT_BC5_TYPELESS):
-        case(DXGI_FORMAT_BC5_UNORM):
-        case(DXGI_FORMAT_BC5_SNORM):
-        case(DXGI_FORMAT_BC6H_TYPELESS):
-        case(DXGI_FORMAT_BC6H_UF16):
-        case(DXGI_FORMAT_BC6H_SF16):
-        case(DXGI_FORMAT_BC7_TYPELESS):
-        case(DXGI_FORMAT_BC7_UNORM):
-        case(DXGI_FORMAT_BC7_UNORM_SRGB):
-        case(DXGI_FORMAT_R32G32B32A32_FLOAT):
-        case(DXGI_FORMAT_R32G32B32A32_TYPELESS):
-            return 16;
-
-        case(DXGI_FORMAT_R10G10B10A2_TYPELESS):
-        case(DXGI_FORMAT_R10G10B10A2_UNORM):
-        case(DXGI_FORMAT_R10G10B10A2_UINT):
-        case(DXGI_FORMAT_R11G11B10_FLOAT):
-        case(DXGI_FORMAT_R8G8B8A8_TYPELESS):
-        case(DXGI_FORMAT_R8G8B8A8_UNORM):
-        case(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB):
-        case(DXGI_FORMAT_R8G8B8A8_UINT):
-        case(DXGI_FORMAT_R8G8B8A8_SNORM):
-        case(DXGI_FORMAT_R8G8B8A8_SINT):
-        case(DXGI_FORMAT_B8G8R8A8_UNORM):
-        case(DXGI_FORMAT_B8G8R8X8_UNORM):
-        case(DXGI_FORMAT_R10G10B10_XR_BIAS_A2_UNORM):
-        case(DXGI_FORMAT_B8G8R8A8_TYPELESS):
-        case(DXGI_FORMAT_B8G8R8A8_UNORM_SRGB):
-        case(DXGI_FORMAT_B8G8R8X8_TYPELESS):
-        case(DXGI_FORMAT_B8G8R8X8_UNORM_SRGB):
-        case(DXGI_FORMAT_R16G16_TYPELESS):
-        case(DXGI_FORMAT_R16G16_FLOAT):
-        case(DXGI_FORMAT_R16G16_UNORM):
-        case(DXGI_FORMAT_R16G16_UINT):
-        case(DXGI_FORMAT_R16G16_SNORM):
-        case(DXGI_FORMAT_R16G16_SINT):
-        case(DXGI_FORMAT_R32_TYPELESS):
-        case(DXGI_FORMAT_D32_FLOAT):
-        case(DXGI_FORMAT_R32_FLOAT):
-        case(DXGI_FORMAT_R32_UINT):
-        case(DXGI_FORMAT_R32_SINT):
-            return 4;
-
-        default:
-            assert(0);
-            break;
-        }
-        return 0;
-    }
-
-    void Texture::PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, UINT32 pixelCount)
-    {
-        // copy pixel data, interleave with A
-        for (unsigned int i = 0; i < pixelCount; ++i)
-        {
-            pDst[0] = pSrc[0];
-            pDst[1] = pSrc[1];
-            pDst[2] = pSrc[2];
-            pDst[3] = 0xFF;
-            pDst += 4;
-            pSrc += 3;
-        }
-    }
-
     bool Texture::isCubemap() const
     {
         return m_header.arraySize == 6;
     }
 
-    INT32 Texture::InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES state)
+    INT32 Texture::Init(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue)
+    {
+        HRESULT hr = pDevice->GetDevice()->CreateCommittedResource(
+            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            D3D12_HEAP_FLAG_NONE,
+            pDesc,
+            initialState,
+            pClearValue,
+            IID_PPV_ARGS(&m_pResource));
+        assert(hr == S_OK);
+
+        m_header.format = pDesc->Format;
+        m_header.width = (UINT32)pDesc->Width;
+        m_header.height = (UINT32)pDesc->Height;
+        m_header.mipMapCount = pDesc->MipLevels;
+        m_header.depth = (UINT32)pDesc->Depth();
+        m_header.arraySize = (UINT32)pDesc->ArraySize();
+
+        SetName(m_pResource, pDebugName);
+
+
+        return hr;
+    }
+
+    INT32 Texture::InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState)
     {
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
@@ -162,19 +98,7 @@ namespace CAULDRON_DX12
 
         bool isRenderTarget = pDesc->Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ? 1 : 0;
 
-        pDevice->GetDevice()->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-            D3D12_HEAP_FLAG_NONE,
-            pDesc,
-            state,
-            isRenderTarget ? &clearValue : 0,
-            IID_PPV_ARGS(&m_pResource));
-
-        m_header.width = (UINT32)pDesc->Width;
-        m_header.height = pDesc->Height;
-        m_header.mipMapCount = pDesc->MipLevels;
-
-        SetName(m_pResource, pDebugName);
+        Init(pDevice, pDebugName, pDesc, initialState, isRenderTarget ? &clearValue : nullptr);
 
         return 0;
     }
@@ -191,23 +115,26 @@ namespace CAULDRON_DX12
             // Formatted buffer
             assert(structureSize == 0);
             m_structuredBufferStride = 0;
-            m_header.width = (UINT32)pDesc->Width;
             m_header.format = pDesc->Format;
+            m_header.width = (UINT32)pDesc->Width;
 
             // Fix up the D3D12_RESOURCE_DESC to be a typeless buffer.  The type/format will be associated with the UAV/SRV
             desc.Format = DXGI_FORMAT_UNKNOWN;
-            desc.Width = GetPixelSize(m_header.format) * pDesc->Width;
+            desc.Width = GetPixelByteSize(m_header.format) * pDesc->Width;
         }
         else
         {
             // Structured buffer
             m_structuredBufferStride = structureSize;
-            m_header.width = (UINT32)pDesc->Width / m_structuredBufferStride;
             m_header.format = DXGI_FORMAT_UNKNOWN;
+            m_header.width = (UINT32)pDesc->Width / m_structuredBufferStride;
         }
 
         m_header.height = 1;
         m_header.mipMapCount = 1;
+        m_header.mipMapCount = pDesc->MipLevels;
+        m_header.depth = (UINT32)pDesc->Depth();
+        m_header.arraySize = (UINT32)pDesc->ArraySize();
 
         HRESULT hr = pDevice->GetDevice()->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -227,33 +154,66 @@ namespace CAULDRON_DX12
         return InitBuffer(pDevice, pDebugName, pCounterDesc, counterSize, state);
     }
 
-    void Texture::CreateRTV(uint32_t index, RTV *pRV, int mipLevel)
+    void Texture::CreateRTV(uint32_t index, RTV *pRV, D3D12_RENDER_TARGET_VIEW_DESC *pRtvDesc)
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
-        D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
 
-        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-        rtvDesc.Format = texDesc.Format;
-        if (texDesc.SampleDesc.Count == 1)
-            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-        else
-            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
-
-        if (mipLevel == -1)
-        {
-            rtvDesc.Texture2D.MipSlice = 0;
-        }
-        else
-        {
-            rtvDesc.Texture2D.MipSlice = mipLevel;
-        }
-
-        pDevice->CreateRenderTargetView(m_pResource, &rtvDesc, pRV->GetCPU(index));
+        pDevice->CreateRenderTargetView(m_pResource, pRtvDesc, pRV->GetCPU(index));
 
         pDevice->Release();
     }
 
+    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, D3D12_SHADER_RESOURCE_VIEW_DESC *pSrvDesc)
+    {
+        ID3D12Device* pDevice;
+        m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
+
+        pDevice->CreateShaderResourceView(m_pResource, pSrvDesc, pRV->GetCPU(index));
+
+        pDevice->Release();
+    }
+
+    void Texture::CreateUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC *pUavDesc)
+    {
+        ID3D12Device* pDevice;
+        m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
+
+        pDevice->CreateUnorderedAccessView(m_pResource, pCounterTex ? pCounterTex->GetResource() : NULL, pUavDesc, pRV->GetCPU(index));
+
+        pDevice->Release();
+    }
+
+    void Texture::CreateRTV(uint32_t index, RTV *pRV, int mipLevel, int arraySize, int firstArraySlice)
+    {
+        D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+        rtvDesc.Format = texDesc.Format;
+        if (texDesc.DepthOrArraySize == 1)
+        {
+            assert(arraySize == -1);
+            assert(firstArraySlice == -1);
+            if (texDesc.SampleDesc.Count == 1)
+            {
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+                rtvDesc.Texture2D.MipSlice = (mipLevel == -1) ? 0 : mipLevel;
+            }
+            else
+            {
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+                assert(mipLevel == -1);
+            }
+        }
+        else
+        {
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+            rtvDesc.Texture2DArray.ArraySize = arraySize;
+            rtvDesc.Texture2DArray.FirstArraySlice = firstArraySlice;
+            rtvDesc.Texture2DArray.MipSlice = (mipLevel == -1) ? 0 : mipLevel;
+        }
+
+        CreateRTV(index, pRV, &rtvDesc);
+    }
 
     bool Texture::InitFromData(Device* pDevice, const char *pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data)
     {
@@ -294,13 +254,12 @@ namespace CAULDRON_DX12
         //
         for (uint32_t y = 0; y < num_rows; y++)
         {
-            memcpy(pixels + y*placedTex2D.Footprint.RowPitch, (UINT8*)data + y*placedTex2D.Footprint.RowPitch, row_sizes_in_bytes);
+            memcpy(pixels + y * placedTex2D.Footprint.RowPitch, (UINT8*)data + y * placedTex2D.Footprint.RowPitch, row_sizes_in_bytes);
         }
 
         CD3DX12_TEXTURE_COPY_LOCATION Dst(m_pResource, 0);
         CD3DX12_TEXTURE_COPY_LOCATION Src(uploadHeap.GetResource(), placedTex2D);
         uploadHeap.GetCommandList()->CopyTextureRegion(&Dst, 0, 0, 0, &Src, NULL);
-
 
         // prepare to shader read
         //
@@ -316,24 +275,20 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    void Texture::CreateUAV(uint32_t index, CBV_SRV_UAV *pRV)
+    void Texture::CreateUAV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel)
     {
-        ID3D12Device* pDevice;
-        m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
 
-        D3D12_UNORDERED_ACCESS_VIEW_DESC UAViewDesc = {};
-        UAViewDesc.Format = texDesc.Format;
-        UAViewDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-        pDevice->CreateUnorderedAccessView(m_pResource, NULL, &UAViewDesc, pRV->GetCPU(index));
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.Format = texDesc.Format;
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+        uavDesc.Texture2D.MipSlice = (mipLevel == -1) ? 0 : mipLevel;
 
-        pDevice->Release();
+        CreateUAV(index, NULL, pRV, &uavDesc);
     }
 
     void Texture::CreateBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV)
     {
-        ID3D12Device* pDevice;
-        m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
         D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
@@ -344,15 +299,12 @@ namespace CAULDRON_DX12
         uavDesc.Buffer.StructureByteStride = m_structuredBufferStride;
         uavDesc.Buffer.CounterOffsetInBytes = 0;
         uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
-        pDevice->CreateUnorderedAccessView(m_pResource, pCounterTex ? pCounterTex->GetResource() : nullptr, &uavDesc, pRV->GetCPU(index));
 
-        pDevice->Release();
+        CreateUAV(index, pCounterTex, pRV, &uavDesc);
     }
 
-    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel)
+    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel, int arraySize, int firstArraySlice)
     {
-        ID3D12Device* pDevice;
-        m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
         D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -383,32 +335,22 @@ namespace CAULDRON_DX12
                 if (resourceDesc.DepthOrArraySize == 1)
                 {
                     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-                    if (mipLevel == -1)
-                    {
-                        srvDesc.Texture2D.MostDetailedMip = 0;
-                        srvDesc.Texture2D.MipLevels = m_header.mipMapCount;
-                    }
-                    else
-                    {
-                        srvDesc.Texture2D.MostDetailedMip = mipLevel;
-                        srvDesc.Texture2D.MipLevels = 1;
-                    }
+
+                    srvDesc.Texture2D.MostDetailedMip = (mipLevel == -1) ? 0 : mipLevel;
+                    srvDesc.Texture2D.MipLevels = (mipLevel == -1) ? m_header.mipMapCount : 1;
+
+                    assert(arraySize == -1);
+                    assert(firstArraySlice == -1);
                 }
                 else
                 {
                     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-                    if (mipLevel == -1)
-                    {
-                        srvDesc.Texture2DArray.MostDetailedMip = 0;
-                        srvDesc.Texture2DArray.MipLevels = m_header.mipMapCount;
-                        srvDesc.Texture2DArray.ArraySize = resourceDesc.DepthOrArraySize;
-                    }
-                    else
-                    {
-                        srvDesc.Texture2DArray.MostDetailedMip = mipLevel;
-                        srvDesc.Texture2DArray.MipLevels = 1;
-                        srvDesc.Texture2DArray.ArraySize = resourceDesc.DepthOrArraySize;
-                    }
+
+                    srvDesc.Texture2DArray.MostDetailedMip = (mipLevel == -1) ? 0 : mipLevel;
+                    srvDesc.Texture2DArray.MipLevels = (mipLevel == -1) ? m_header.mipMapCount : 1;
+
+                    srvDesc.Texture2DArray.FirstArraySlice = (firstArraySlice == -1) ? 0 : firstArraySlice;
+                    srvDesc.Texture2DArray.ArraySize = (arraySize == -1) ? resourceDesc.DepthOrArraySize : arraySize;
                 }
             }
             else
@@ -416,35 +358,26 @@ namespace CAULDRON_DX12
                 if (resourceDesc.DepthOrArraySize == 1)
                 {
                     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+                    assert(mipLevel == -1);
+                    assert(arraySize == -1);
+                    assert(firstArraySlice == -1);
                 }
                 else
                 {
                     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
-                    if (mipLevel == -1)
-                    {
-                        srvDesc.Texture2DMSArray.FirstArraySlice = 0;
-                        srvDesc.Texture2DMSArray.ArraySize = resourceDesc.DepthOrArraySize;
-                    }
-                    else
-                    {
-                        srvDesc.Texture2DMSArray.FirstArraySlice = 0;
-                        srvDesc.Texture2DMSArray.ArraySize = resourceDesc.DepthOrArraySize;
-                    }
+                    srvDesc.Texture2DMSArray.FirstArraySlice = (firstArraySlice == -1) ? 0 : firstArraySlice;
+                    srvDesc.Texture2DMSArray.ArraySize = (arraySize == -1) ? resourceDesc.DepthOrArraySize : arraySize;
+                    assert(mipLevel == -1);
                 }
             }
         }
 
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-        pDevice->CreateShaderResourceView(m_pResource, &srvDesc, pRV->GetCPU(index));
-
-        pDevice->Release();
+        CreateSRV(index, pRV, &srvDesc);
     }
 
     void Texture::CreateCubeSRV(uint32_t index, CBV_SRV_UAV *pRV)
     {
-        ID3D12Device* pDevice;
-        m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
-
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
         D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -455,9 +388,7 @@ namespace CAULDRON_DX12
         srvDesc.TextureCube.MipLevels = m_header.mipMapCount;
         srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-        pDevice->CreateShaderResourceView(m_pResource, &srvDesc, pRV->GetCPU(index));
-
-        pDevice->Release();
+        CreateSRV(index, pRV, &srvDesc);
     }
 
     void Texture::CreateDSV(uint32_t index, DSV *pRV, int arraySlice)
@@ -498,7 +429,7 @@ namespace CAULDRON_DX12
     {
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
-        clearValue.Format = DXGI_FORMAT_D32_FLOAT;
+        clearValue.Format = (pDesc->Format == DXGI_FORMAT_R32_TYPELESS)? DXGI_FORMAT_D32_FLOAT: pDesc->Format;
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
 
@@ -515,10 +446,12 @@ namespace CAULDRON_DX12
             &clearValue,
             IID_PPV_ARGS(&m_pResource));
 
+        m_header.format = pDesc->Format;
         m_header.width = (UINT32)pDesc->Width;
-        m_header.height = pDesc->Height;
-        m_header.depth = pDesc->Depth();
+        m_header.height = (UINT32)pDesc->Height;
         m_header.mipMapCount = pDesc->MipLevels;
+        m_header.depth = (UINT32)pDesc->Depth();
+        m_header.arraySize = (UINT32)pDesc->ArraySize();
 
         SetName(m_pResource, pDebugName);
 
@@ -530,7 +463,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void Texture::CreateTextureCommitted(Device *pDevice, const char *pDebugName, bool useSRGB)
     {
-        m_header.format = Translate((DXGI_FORMAT)m_header.format, useSRGB);
+        m_header.format = SetFormatGamma((DXGI_FORMAT)m_header.format, useSRGB);
 
         CD3DX12_RESOURCE_DESC RDescs;
         RDescs = CD3DX12_RESOURCE_DESC::Tex2D((DXGI_FORMAT)m_header.format, m_header.width, m_header.height, m_header.arraySize, m_header.mipMapCount);
@@ -563,7 +496,7 @@ namespace CAULDRON_DX12
         UINT32 bytePP = m_header.bitCount / 8;
         if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
         {
-            bytePP = GetPixelSize((DXGI_FORMAT)m_header.format);
+            bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format);
         }
 
         for (uint32_t a = 0; a < m_header.arraySize; a++)
@@ -624,24 +557,5 @@ namespace CAULDRON_DX12
         delete(img);
 
         return result;
-    }
-
-    DXGI_FORMAT Translate(DXGI_FORMAT format, bool useSRGB)
-    {
-        if (useSRGB)
-        {
-            switch (format)
-            {
-            case DXGI_FORMAT_B8G8R8A8_UNORM: return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-            case DXGI_FORMAT_R8G8B8A8_UNORM: return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-            case DXGI_FORMAT_BC1_UNORM: return DXGI_FORMAT_BC1_UNORM_SRGB;
-            case DXGI_FORMAT_BC2_UNORM: return DXGI_FORMAT_BC2_UNORM_SRGB;
-            case DXGI_FORMAT_BC3_UNORM: return DXGI_FORMAT_BC3_UNORM_SRGB;
-            case DXGI_FORMAT_BC7_UNORM: return DXGI_FORMAT_BC7_UNORM_SRGB;
-            default: assert(false);  return DXGI_FORMAT_UNKNOWN;
-            }
-        }
-
-        return format;
     }
 }

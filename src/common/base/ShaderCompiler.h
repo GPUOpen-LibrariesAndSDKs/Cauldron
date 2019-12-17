@@ -18,7 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "..\Misc\Misc.h"
+#include "../Misc/Misc.h"
+
+#include <map>
 
 //
 // Hash a string of source code and recurse over its #include files

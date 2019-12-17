@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "Wireframe.h"
-#include "..\base\ShaderCompilerHelper.h"
+#include "../Base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_DX12
 {
@@ -36,18 +36,12 @@ namespace CAULDRON_DX12
         ResourceViewHeaps *pHeaps,
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
-        std::vector<float> *pVertices,
-        std::vector<short> *pIndices,
         DXGI_FORMAT outFormat,
         uint32_t sampleDescCount)
     {
         m_pResourceViewHeaps = pHeaps;
         m_pDynamicBufferRing = pDynamicBufferRing;
 
-        // set indices
-        m_NumIndices = (uint32_t)pIndices->size();
-        pStaticBufferPool->AllocIndexBuffer(m_NumIndices, sizeof(short), pIndices->data(), &m_IBV);
-        pStaticBufferPool->AllocVertexBuffer((uint32_t)(pVertices->size() / 3), 3 * sizeof(float), pVertices->data(), &m_VBV);
 
         D3D12_INPUT_ELEMENT_DESC layout[] =
         {
@@ -136,7 +130,7 @@ namespace CAULDRON_DX12
                     pOutBlob->GetBufferSize(),
                     IID_PPV_ARGS(&m_RootSignature))
             );
-            m_RootSignature->SetName(L"Wireframe");
+            SetName(m_RootSignature, "Wireframe");
 
             pOutBlob->Release();
             if (pErrorBlob)
@@ -165,24 +159,25 @@ namespace CAULDRON_DX12
         descPso.SampleDesc.Count = sampleDescCount;
         descPso.NodeMask = 0;
         ThrowIfFailed(
-            pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_Pipeline))
+            pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline))
         );
+        SetName(m_pPipeline, "Wireframe::m_pPipeline");
     }
 
     void Wireframe::OnDestroy()
     {
-        m_Pipeline->Release();
+        m_pPipeline->Release();
         m_RootSignature->Release();
     }
 
-    void Wireframe::Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
+    void Wireframe::Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, XMMATRIX WorldViewProj, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
     {
         ID3D12DescriptorHeap *pDescriptorHeaps[] = { m_pResourceViewHeaps->GetCBV_SRV_UAVHeap() };
 
-        pCommandList->IASetIndexBuffer(&m_IBV);
-        pCommandList->IASetVertexBuffers(0, 1, &m_VBV);
+        pCommandList->IASetIndexBuffer(&IBV);
+        pCommandList->IASetVertexBuffers(0, 1, &VBV);
         pCommandList->SetDescriptorHeaps(1, pDescriptorHeaps);
-        pCommandList->SetPipelineState(m_Pipeline);
+        pCommandList->SetPipelineState(m_pPipeline);
         pCommandList->SetGraphicsRootSignature(m_RootSignature);
         pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 
@@ -191,13 +186,13 @@ namespace CAULDRON_DX12
         per_object *cbPerObject;
         D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc;
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), (void **)&cbPerObject, &perObjectDesc);
-        cbPerObject->m_mWorldViewProj = worldMatrix;
+        cbPerObject->m_mWorldViewProj = WorldViewProj;
         cbPerObject->m_vCenter = vCenter;
         cbPerObject->m_vRadius = vRadius;
         cbPerObject->m_vColor = vColor;
 
         pCommandList->SetGraphicsRootConstantBufferView(0, perObjectDesc);
 
-        pCommandList->DrawIndexedInstanced(m_NumIndices, 1, 0, 0, 0);
+        pCommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
     }
 }

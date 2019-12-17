@@ -49,6 +49,8 @@ namespace CAULDRON_DX12
 
         void UploadData(ID3D12GraphicsCommandList *pCmdList);
         void FreeUploadHeap();
+        
+        ID3D12Resource *GetResource();
 
     private:
         Device          *m_pDevice = nullptr;

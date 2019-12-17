@@ -46,8 +46,8 @@ namespace CAULDRON_VK
         Device* m_pDevice;
 
         const uint32_t MaxValuesPerFrame = 128;
-
-        VkQueryPool        m_QueryPool;
+        bool m_queryNeedsInitialReset = true;
+        VkQueryPool m_QueryPool;
 
         uint32_t m_frame = 0;
         uint32_t m_NumberOfBackBuffers = 0;

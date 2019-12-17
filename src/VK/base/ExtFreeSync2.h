@@ -20,10 +20,21 @@
 
 #include "DeviceProperties.h"
 #include "InstanceProperties.h"
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_win32.h>
 
 namespace CAULDRON_VK
 {
-    bool ExtFreeSync2CheckExtensions(DeviceProperties *pDP);
-    void ExtFreeSync2Init(VkInstance instance);
-    void ExtFreeSync2Init(VkDevice device);
+    extern PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR g_vkGetPhysicalDeviceSurfaceCapabilities2KHR;
+    extern PFN_vkGetDeviceProcAddr                        g_vkGetDeviceProcAddr;
+    extern PFN_vkSetHdrMetadataEXT                        g_vkSetHdrMetadataEXT;
+    extern PFN_vkAcquireFullScreenExclusiveModeEXT        g_vkAcquireFullScreenExclusiveModeEXT;
+    extern PFN_vkReleaseFullScreenExclusiveModeEXT        g_vkReleaseFullScreenExclusiveModeEXT;
+    extern PFN_vkGetPhysicalDeviceSurfaceFormats2KHR      g_vkGetPhysicalDeviceSurfaceFormats2KHR;
+    extern PFN_vkSetLocalDimmingAMD                       g_vkSetLocalDimmingAMD;
+
+    void ExtFreeSync2CheckDeviceExtensions(DeviceProperties *pDP);
+    void ExtFreeSync2CheckInstanceExtensions(InstanceProperties *pIP);
+    void ExtFreeSync2GetProcAddresses(VkInstance instance, VkDevice device);
+    bool ExtFreeSync2AreAllExtensionsPresent();
 }

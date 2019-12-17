@@ -19,7 +19,7 @@
 #pragma once
 
 #include "PostProcPS.h"
-#include "Base\ResourceViewHeaps.h"
+#include "Base/ResourceViewHeaps.h"
 
 namespace CAULDRON_VK
 {
@@ -29,10 +29,9 @@ namespace CAULDRON_VK
         void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
         void OnDestroy();
 
-        void OnCreateWindowSizeDependentResources(VkImageView HDRSRV);
-        void OnDestroyWindowSizeDependentResources();
+        void UpdatePipelines(VkRenderPass renderPass);
 
-        void Draw(VkCommandBuffer cmd_buf, float exposure, int toneMapper);
+        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper, bool applyGamma = true);
 
     private:
         Device* m_pDevice;
@@ -43,9 +42,12 @@ namespace CAULDRON_VK
 
         VkSampler m_sampler;
 
-        VkDescriptorSet       m_descriptorSet;
+        uint32_t              m_descriptorIndex;
+        static const uint32_t s_descriptorBuffers = 10;
+
+        VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
         VkDescriptorSetLayout m_descriptorSetLayout;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        struct ToneMappingConsts { float exposure; int toneMapper; int applyGamma; };
     };
 }

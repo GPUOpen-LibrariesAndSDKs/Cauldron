@@ -85,5 +85,10 @@ struct VS_OUTPUT_SCENE
 #ifdef HAS_TEXCOORD_1
     float2 UV1       :    TEXCOORD1;    // vertex texture coords
 #endif
+
+#ifdef HAS_MOTION_VECTORS
+    float4 svCurrPosition : TEXCOORD2; // current's frame vertex position 
+    float4 svPrevPosition : TEXCOORD3; // previous' frame vertex position
+#endif
 };
 

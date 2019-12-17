@@ -18,12 +18,12 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "..\Base\Device.h"
-#include "..\base\DynamicBufferRing.h"
-#include "..\base\StaticBufferPool.h"
-#include "..\base\ResourceViewHeaps.h"
-#include "..\base\UploadHeap.h"
-#include "..\..\common\Misc\Camera.h"
+#include "../Base/Device.h"
+#include "../Base/DynamicBufferRing.h"
+#include "../Base/StaticBufferPool.h"
+#include "../Base/ResourceViewHeaps.h"
+#include "../Base/UploadHeap.h"
+#include "../../common/Misc/Camera.h"
 
 namespace CAULDRON_DX12
 {
@@ -39,24 +39,17 @@ namespace CAULDRON_DX12
             ResourceViewHeaps *pHeaps,
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
-            std::vector<float> *pVertices,
-            std::vector<short> *pIndices,
             DXGI_FORMAT outFormat,
             uint32_t sampleDescCount);
 
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, XMMATRIX WorldViewProj, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
     private:
 
         DynamicBufferRing *m_pDynamicBufferRing;
         ResourceViewHeaps *m_pResourceViewHeaps;
 
-        // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
-        uint32_t m_NumIndices;
-        D3D12_INDEX_BUFFER_VIEW m_IBV;
-        D3D12_VERTEX_BUFFER_VIEW m_VBV;
-
-        ID3D12PipelineState*	m_Pipeline;
+        ID3D12PipelineState*	m_pPipeline;
         ID3D12RootSignature*	m_RootSignature;
 
         struct per_object

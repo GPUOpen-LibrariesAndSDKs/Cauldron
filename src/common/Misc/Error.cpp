@@ -27,3 +27,8 @@ void ShowErrorMessageBox(HRESULT hr)
     FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL);
     int msgboxID = MessageBoxW(NULL, err, (LPCWSTR)L"Error", MB_OK);
 }
+
+void ShowCustomErrorMessageBox(_In_opt_ LPCWSTR lpErrorString)
+{
+	int msgboxID = MessageBoxW(NULL, lpErrorString, (LPCWSTR)L"Error", MB_OK | MB_TOPMOST);
+}

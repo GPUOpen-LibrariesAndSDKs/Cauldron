@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "GLTF\GltfHelpers.h"
-#include "Base\Texture.h"
-#include "Base\UploadHeap.h"
+#include "GLTF/GltfHelpers.h"
+#include "Base/Texture.h"
+#include "Base/UploadHeap.h"
 #include "GLTFTexturesAndBuffers.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_DX12
 {
@@ -110,13 +110,13 @@ namespace CAULDRON_DX12
         return &m_textures[tex];
     }
 
-    // Creates Vertex Buffers from accessors and sets them in the Primitive struct.
+    // Creates a Index Buffer from the accessor
     //
     //
-    void GLTFTexturesAndBuffers::CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry)
+    void GLTFTexturesAndBuffers::CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, DXGI_FORMAT *pIndexType, D3D12_INDEX_BUFFER_VIEW *pIBV)
     {
-        pGeometry->m_NumIndices = indexBuffer.m_count;
-        pGeometry->m_indexType = (indexBuffer.m_stride == 4) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+        *pNumIndices = indexBuffer.m_count;
+        *pIndexType = (indexBuffer.m_stride == 4) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
         // Some exporters use 1-byte indices, need to convert them to shorts
         if (indexBuffer.m_stride == 1)
@@ -124,13 +124,21 @@ namespace CAULDRON_DX12
             unsigned short *pIndices = (unsigned short *)malloc(indexBuffer.m_count * (2 * indexBuffer.m_stride));
             for (int i = 0; i < indexBuffer.m_count; i++)
                 pIndices[i] = ((unsigned char *)indexBuffer.m_data)[i];
-            m_pStaticBufferPool->AllocIndexBuffer(indexBuffer.m_count, 2 * indexBuffer.m_stride, pIndices, &pGeometry->m_IBV);
+            m_pStaticBufferPool->AllocIndexBuffer(indexBuffer.m_count, 2 * indexBuffer.m_stride, pIndices, pIBV);
             free(pIndices);
         }
         else
         {
-            m_pStaticBufferPool->AllocIndexBuffer(indexBuffer.m_count, indexBuffer.m_stride, indexBuffer.m_data, &pGeometry->m_IBV);
+            m_pStaticBufferPool->AllocIndexBuffer(indexBuffer.m_count, indexBuffer.m_stride, indexBuffer.m_data, pIBV);
         }
+    }
+
+    // Creates Vertex Buffers from accessors and sets them in the Primitive struct.
+    //
+    //
+    void GLTFTexturesAndBuffers::CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry)
+    {        
+        CreateIndexBuffer(indexBuffer, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
 
         // load the rest of the buffers onto the GPU
         pGeometry->m_VBV.resize(vertexBuffers.size());
@@ -150,7 +158,7 @@ namespace CAULDRON_DX12
 
     void GLTFTexturesAndBuffers::SetSkinningMatricesForSkeletons()
     {
-        for (auto &t : m_pGLTFCommon->m_transformedData.m_worldSpaceSkeletonMats)
+        for (auto &t : m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceSkeletonMats)
         {
             std::vector<XMMATRIX> *matrices = &t.second;
 

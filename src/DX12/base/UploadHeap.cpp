@@ -19,8 +19,8 @@
 
 #include "stdafx.h"
 #include "UploadHeap.h"
-#include "Misc\Misc.h"
-#include "Base\Helper.h"
+#include "Misc/Misc.h"
+#include "Base/Helper.h"
 
 namespace CAULDRON_DX12
 {

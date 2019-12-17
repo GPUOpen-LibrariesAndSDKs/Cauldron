@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "GltfCommon.h"
 #include "GltfHelpers.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 {
@@ -103,8 +103,9 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                     json::object_t light = lights[i];
                     m_lights[i].m_color = GetElementVector(light, "color", XMVectorSet(1, 1, 1, 0));
                     m_lights[i].m_range = GetElementFloat(light, "range", 105);
+                    m_lights[i].m_intensity = GetElementFloat(light, "intensity", 1);
                     m_lights[i].m_innerConeAngle = GetElementFloat(light, "spot/innerConeAngle", 0);
-                    m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/m_outerConeAngle", XM_PIDIV4);
+                    m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/m_outerConeAngle", XM_PIDIV4);                    
                     
                     std::string name = GetElementString(light, "type", "");
                     if (name == "spot")
@@ -170,6 +171,9 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 
             tfnode->m_tranform.m_translation = GetElementVector(node, "translation", XMVectorSet(0, 0, 0, 0));
             tfnode->m_tranform.m_scale = GetElementVector(node, "scale", XMVectorSet(1, 1, 1, 0));
+
+            if (node.find("name") != node.end())
+                tfnode->m_name = GetElementString(node, "name", "unnamed");
 
             if (node.find("rotation") != node.end())
                 tfnode->m_tranform.m_rotation = XMMatrixRotationQuaternion(GetVector(node["rotation"].get<json::array_t>()));
@@ -362,7 +366,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
                 animated.m_scale = pSourceTrans->m_scale;
             }
 
-            m_transformedData.m_animatedMats[it->first] = animated.GetWorldMat();
+            m_animatedMats[it->first] = animated.GetWorldMat();
         }
     }
 }
@@ -392,6 +396,21 @@ void GLTFCommon::GetBufferDetails(int accessor, tfAccessor *pAccessor)
     pAccessor->m_type = GetFormatSize(pInAccessor->at("componentType"));
     pAccessor->m_stride = pAccessor->m_dimension * pAccessor->m_type;
     pAccessor->m_count = pInAccessor->at("count").get<uint32_t>();
+}
+
+void GLTFCommon::GetAttributesAccessors(const json::object_t &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors)
+{
+    int streamIndex = 0;
+    for (int s = 0; s < pStreamNames->size(); s++)
+    {
+        auto attr = gltfAttributes.find(pStreamNames->at(s));
+        if (attr != gltfAttributes.end())
+        {
+            tfAccessor accessor;
+            GetBufferDetails(attr->second, &accessor);
+            pAccessors->push_back(accessor);
+        }
+    }
 }
 
 //
@@ -424,7 +443,7 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id)
 //
 // Transforms a node hierarchy recursively 
 //
-void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pNodes, GLTFCommonTransformed *pTransformed)
+void GLTFCommon::TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pNodes, GLTFCommonTransformed *pTransformed)
 {
     for (uint32_t n = 0; n < pNodes->size(); n++)
     {
@@ -432,7 +451,7 @@ void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pN
 
         uint32_t nodeIdx = (uint32_t)(pNode - pRootNode);
 
-        XMMATRIX m = pTransformed->m_animatedMats[nodeIdx] * world;
+        XMMATRIX m = m_animatedMats[nodeIdx] * world;
         pTransformed->m_worldSpaceMats[nodeIdx] = m;
 
         TransformNodes(pRootNode, m, &pNode->m_children, pTransformed);
@@ -444,21 +463,28 @@ void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pN
 //
 void GLTFCommon::InitTransformedData()
 {
-    // initializes matrix buffers to have the same dimension as the nodes
-    m_transformedData.m_animatedMats.resize(m_nodes.size());
-    m_transformedData.m_worldSpaceMats.resize(m_nodes.size());
-
-    // same thing for the skinning matrices but using the size of the InverseBindMatrices
-    for (uint32_t i = 0; i < m_skins.size(); i++)
+    // we need to init 2 frames, the current and the previous one, this is needed for the MVs
+    for (int frames = 0; frames < 2; frames++)
     {
-        m_transformedData.m_worldSpaceSkeletonMats[i].resize(m_skins[i].m_InverseBindMatrices.m_count);
+        // initializes matrix buffers to have the same dimension as the nodes
+        m_transformedData[frames].m_worldSpaceMats.resize(m_nodes.size());
+
+        // same thing for the skinning matrices but using the size of the InverseBindMatrices
+        for (uint32_t i = 0; i < m_skins.size(); i++)
+        {
+            m_transformedData[frames].m_worldSpaceSkeletonMats[i].resize(m_skins[i].m_InverseBindMatrices.m_count);
+        }
     }
+
+    m_pCurrentFrameTransformedData = &m_transformedData[0];
+    m_pPreviousFrameTransformedData = &m_transformedData[1];
 
     // sets the animated data to the default values of the nodes
     // later on these values can be updated by the SetAnimationTime function
+    m_animatedMats.resize(m_nodes.size());
     for (uint32_t i = 0; i < m_nodes.size(); i++)
     {
-        m_transformedData.m_animatedMats[i] = m_nodes[i].m_tranform.GetWorldMat();
+        m_animatedMats[i] = m_nodes[i].m_tranform.GetWorldMat();
     }  
 }
 
@@ -467,34 +493,39 @@ void GLTFCommon::InitTransformedData()
 //
 void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
 {
+    //swap transformation buffers, we need to keep the last frame data around so we can compute the motion vectors
+    GLTFCommonTransformed *pTmp = m_pCurrentFrameTransformedData;
+    m_pCurrentFrameTransformedData = m_pPreviousFrameTransformedData;
+    m_pPreviousFrameTransformedData = pTmp;    
+
     // transform all the nodes of the scene
     //           
     std::vector<tfNode *> sceneNodes = { m_scenes[sceneIndex].m_nodes };
-    TransformNodes(m_nodes.data(), world, &sceneNodes, &m_transformedData);
+    TransformNodes(m_nodes.data(), world, &sceneNodes, m_pCurrentFrameTransformedData);
 
     //process skeletons, takes the skinning matrices from the scene and puts them into a buffer that the vertex shader will consume
     //
     for (uint32_t i = 0; i<m_skins.size(); i++)
     {
         tfSkins &skin = m_skins[i];
-        
+
         //pick the matrices that affect the skin and multiply by the inverse of the bind         
         XMMATRIX *pM = (XMMATRIX *)skin.m_InverseBindMatrices.m_data;
-        std::vector<XMMATRIX> &skinningMats = m_transformedData.m_worldSpaceSkeletonMats[i];
+        std::vector<XMMATRIX> &skinningMats = m_pCurrentFrameTransformedData->m_worldSpaceSkeletonMats[i];
         for (int j = 0; j < skin.m_InverseBindMatrices.m_count; j++)
-        {                
-            skinningMats[j] = pM[j] * m_transformedData.m_worldSpaceMats[skin.m_jointsNodeIdx[j]];
+        {
+            skinningMats[j] = XMMatrixMultiply(pM[j], m_pCurrentFrameTransformedData->m_worldSpaceMats[skin.m_jointsNodeIdx[j]]);
         }
-    }    
+    }
 }
 
 //
 // Sets the per frame data from the GLTF, returns a pointer to it in case the user wants to override some values
 // The scene needs to be animated and transformed before we can set the per_frame data. We need those final matrices for the lights and the camera.
 //
-per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx)
+per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx, float cameraAspect)
 {
-    XMMATRIX *pMats = m_transformedData.m_worldSpaceMats.data();
+    XMMATRIX *pMats = m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
 
     //Sets the camera
     if (m_cameras.size() > 0)
@@ -503,7 +534,7 @@ per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx)
 
         XMMATRIX cameraMat = pMats[m_cameras[cameraIdx].m_nodeIndex];
         XMMATRIX cameraView = XMMatrixInverse(nullptr, cameraMat);
-        m_perFrameData.mCameraViewProj = XMMatrixInverse(nullptr, cameraMat) * XMMatrixPerspectiveFovRH(m_cameras[0].yfov, 1280.0f / 720.0f, 0.1f, 100.0f);
+        m_perFrameData.mCameraViewProj = cameraView * XMMatrixPerspectiveFovRH(m_cameras[0].yfov, cameraAspect, m_cameras[0].znear, m_cameras[0].zfar);
         m_perFrameData.cameraPos = cameraMat.r[3];
     }
     
@@ -514,18 +545,18 @@ per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx)
         XMMATRIX lightMat = pMats[m_lights[i].m_nodeIndex];
         XMMATRIX lightView = XMMatrixInverse(nullptr, lightMat);
 
-        Light *pSL = &m_perFrameData.lights[i];
-        pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle, 1, .1f, 100.0f);
-            
+        Light* pSL = &m_perFrameData.lights[i];
+        pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle * 2.0f, 1, .1f, 100.0f);
+
         GetXYZ(pSL->direction, XMVector4Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMMatrixTranspose(lightView)));
-        pSL->range = m_lights[i].m_range;
         GetXYZ(pSL->color, m_lights[i].m_color);
-        pSL->intensity = 10.0f;
+        pSL->range = m_lights[i].m_range;
+        pSL->intensity = m_lights[i].m_intensity;
         GetXYZ(pSL->position, lightMat.r[3]);
-        pSL->outerConeCos = cosf(m_lights[i].m_outerConeAngle / 2.0f);
-        pSL->innerConeCos = cosf(m_lights[i].m_innerConeAngle / 2.0f);
+        pSL->outerConeCos = cosf(m_lights[i].m_outerConeAngle);
+        pSL->innerConeCos = cosf(m_lights[i].m_innerConeAngle);
         pSL->type = m_lights[i].m_type;
-        pSL->depthBias = 0.0001f;
+        pSL->depthBias = 0.001f;
     }
     return &m_perFrameData;
 }

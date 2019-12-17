@@ -18,12 +18,12 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base\Device.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\ResourceViewHeaps.h"
-#include "Base\DynamicBufferRing.h"
+#include "Base/Device.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/ResourceViewHeaps.h"
+#include "Base/DynamicBufferRing.h"
 #include "GLTFTexturesAndBuffers.h"
-#include "Widgets\WireframeBox.h"
+#include "Widgets/WireframeBox.h"
 
 namespace CAULDRON_VK
 {

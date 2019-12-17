@@ -20,12 +20,13 @@
 #pragma once
 
 void ShowErrorMessageBox(HRESULT hr);
+void ShowCustomErrorMessageBox(_In_opt_ LPCWSTR lpErrorString);
 
 inline void ThrowIfFailed(HRESULT hr)
 {
     if (FAILED(hr))
     {
-#ifdef RELEASE
+#ifdef _DEBUG
         ShowErrorMessageBox(hr);
 #endif
         throw 1;

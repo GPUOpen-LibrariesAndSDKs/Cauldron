@@ -19,9 +19,9 @@
 
 #include "stdafx.h"
 #include "GltfPbrPass.h"
-#include "Misc\ThreadPool.h"
+#include "Misc/ThreadPool.h"
 #include "GltfHelpers.h"
-#include "Base\ShaderCompilerHelper.h"
+#include "Base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_DX12
 {
@@ -38,7 +38,7 @@ namespace CAULDRON_DX12
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
         SkyDome *pSkyDome,
-        Texture *pShadowMap,
+        bool bUseShadowMask,
         DXGI_FORMAT outFormat,
         uint32_t sampleCount)
     {
@@ -67,11 +67,10 @@ namespace CAULDRON_DX12
             m_defaultMaterial.m_pbrMaterialParameters.m_params.m_baseColorFactor = XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f);
             m_defaultMaterial.m_pbrMaterialParameters.m_params.m_metallicRoughnessValues = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
             m_defaultMaterial.m_pbrMaterialParameters.m_params.m_specularGlossinessFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-            
-            std::map<std::string, Texture *> texturesBase;
-            CreateGPUMaterialData(&m_defaultMaterial, texturesBase, pSkyDome, pShadowMap);
-        }
 
+            std::map<std::string, Texture *> texturesBase;
+            CreateGPUMaterialData(&m_defaultMaterial, texturesBase, pSkyDome);
+        }
 
         // Load PBR 2.0 Materials
         //
@@ -92,7 +91,7 @@ namespace CAULDRON_DX12
             for (auto const& value : textureIds)
                 texturesBase[value.first] = m_pGLTFTexturesAndBuffers->GetTextureViewByID(value.second);
 
-            CreateGPUMaterialData(tfmat, texturesBase, pSkyDome, pShadowMap);
+            CreateGPUMaterialData(tfmat, texturesBase, pSkyDome);
         }
 
         // Load Meshes
@@ -169,7 +168,7 @@ namespace CAULDRON_DX12
 
                     // Create the descriptors, the root signature and the pipeline
                     //
-                    {                
+                    {
                         bool bUsingSkinning = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i) != -1;
                         CreateDescriptors(pDevice->GetDevice(), bUsingSkinning, &attributeDefines, pPrimitive);
                         CreatePipeline(pDevice->GetDevice(), semanticNames, layout, &attributeDefines, pPrimitive);
@@ -184,28 +183,25 @@ namespace CAULDRON_DX12
     // CreateGPUMaterialData
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::CreateGPUMaterialData(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, Texture *pShadowMap)
+    void GltfPbrPass::CreateGPUMaterialData(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome)
     {
+        uint32_t cnt = 0;
+
         // count the number of textures to init bindings and descriptor
         {
             tfmat->m_textureCount = (int)texturesBase.size();
 
-            tfmat->m_textureCount += 1;   // This is for the BRDF LUT texture
+            tfmat->m_textureCount += 1;       // This is for the BRDF LUT texture
 
             if (pSkyDome)
                 tfmat->m_textureCount += 2;   // +2 because the skydome has a specular, diffusse and BDRF maps
-
-            if (pShadowMap != NULL)           // will use a shadowmap texture if present
-                tfmat->m_textureCount += 1;
         }
 
         // Alloc descriptor layout and init the descriptor set 
         if (tfmat->m_textureCount >= 0)
         {
-            // allocate descriptor table for the textures                  
+            // allocate descriptor table for the textures
             m_pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(tfmat->m_textureCount, &tfmat->m_texturesTable);
-
-            uint32_t cnt = 0;
 
             //create SRVs and #defines for the BRDF LUT resources
             tfmat->m_pbrMaterialParameters.m_defines["ID_brdfTexture"] = std::to_string(cnt);
@@ -227,16 +223,7 @@ namespace CAULDRON_DX12
                 tfmat->m_pbrMaterialParameters.m_defines["USE_IBL"] = "1";
             }
 
-            // Create SRV for the shadowmap
-            if (pShadowMap != NULL)
-            {
-                tfmat->m_pbrMaterialParameters.m_defines["ID_shadowMap"] = std::to_string(cnt);
-                pShadowMap->CreateSRV(cnt, &tfmat->m_texturesTable);
-                CreateSamplerForShadowMap(cnt, &tfmat->m_samplers[cnt]);
-                cnt++;
-            }
-
-            //create SRVs and #defines so the shader compiler knows what the index of each texture is           
+            // Create SRVs and #defines so the shader compiler knows what the index of each texture is
             for (auto it = texturesBase.begin(); it != texturesBase.end(); it++)
             {
                 tfmat->m_pbrMaterialParameters.m_defines[std::string("ID_") + it->first] = std::to_string(cnt);
@@ -245,6 +232,12 @@ namespace CAULDRON_DX12
                 cnt++;
             }
         }
+
+        // Allocate the slot for looking up the shadow buffer
+        //
+        assert(cnt <= 9);   // 10th slot is reserved for shadow buffer
+        tfmat->m_pbrMaterialParameters.m_defines["ID_shadowMap"] = std::to_string(9);
+        CreateSamplerForShadowMap(9, &tfmat->m_samplers[cnt]);
     }
 
     //--------------------------------------------------------------------------------------
@@ -275,24 +268,28 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void GltfPbrPass::CreateDescriptors(ID3D12Device* pDevice, bool bUsingSkinning, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive)
     {
-        CD3DX12_DESCRIPTOR_RANGE DescRange[1];
-        DescRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, pPrimitive->m_pMaterial->m_textureCount, 0);		// texture table
+        CD3DX12_DESCRIPTOR_RANGE DescRange[2];
+        DescRange[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, pPrimitive->m_pMaterial->m_textureCount, 0); // texture table
+        DescRange[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);                                       // shadow buffer
 
         int params = 0;
-        CD3DX12_ROOT_PARAMETER RTSlot[4];
-        
+        CD3DX12_ROOT_PARAMETER RTSlot[5];
+
         // b0 <- Constant buffer 'per frame'
-        RTSlot[params++].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL);                 
-        
+        RTSlot[params++].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL);
+
         // textures table
         if (pPrimitive->m_pMaterial->m_textureCount > 0)
         {
-            RTSlot[params++].InitAsDescriptorTable(1, &DescRange[0], D3D12_SHADER_VISIBILITY_PIXEL);  
+            RTSlot[params++].InitAsDescriptorTable(1, &DescRange[0], D3D12_SHADER_VISIBILITY_PIXEL);
         }
 
-        // b1 <- Constant buffer 'per object', these are mainly the material data 
-        RTSlot[params++].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);                 
-        
+        // shadow buffer
+        RTSlot[params++].InitAsDescriptorTable(1, &DescRange[1], D3D12_SHADER_VISIBILITY_PIXEL);
+
+        // b1 <- Constant buffer 'per object', these are mainly the material data
+        RTSlot[params++].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);
+
         // b2 <- Constant buffer holding the skinning matrices
         if (bUsingSkinning)
         {
@@ -300,14 +297,14 @@ namespace CAULDRON_DX12
             (*pAttributeDefines)["ID_SKINNING_MATRICES"] = std::to_string(2);
         }
 
-        // the root signature contains 3 slots to be used
+        // the root signature contains up to 5 slots to be used
         CD3DX12_ROOT_SIGNATURE_DESC descRootSignature = CD3DX12_ROOT_SIGNATURE_DESC();
         descRootSignature.pParameters = RTSlot;
         descRootSignature.NumParameters = params;
         descRootSignature.pStaticSamplers = pPrimitive->m_pMaterial->m_samplers;
-        descRootSignature.NumStaticSamplers = pPrimitive->m_pMaterial->m_textureCount;
+        descRootSignature.NumStaticSamplers = pPrimitive->m_pMaterial->m_textureCount + 1;  // account for shadow sampler
 
-        // deny uneccessary access to certain pipeline stages   
+        // deny uneccessary access to certain pipeline stages
         descRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE
             | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
             | D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS
@@ -317,7 +314,7 @@ namespace CAULDRON_DX12
         ID3DBlob *pOutBlob, *pErrorBlob = NULL;
         ThrowIfFailed(D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &pOutBlob, &pErrorBlob));
         ThrowIfFailed(pDevice->CreateRootSignature(0, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&pPrimitive->m_RootSignature)));
-        pPrimitive->m_RootSignature->SetName(L"GltfPbr::D3D12SerializeRootSignature");
+        SetName(pPrimitive->m_RootSignature, "GltfPbr::m_RootSignature");
 
         pOutBlob->Release();
         if (pErrorBlob)
@@ -380,6 +377,7 @@ namespace CAULDRON_DX12
         ThrowIfFailed(
             pDevice->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_PipelineRender))
         );
+        SetName(pPrimitive->m_PipelineRender, "GltfPbrPass::m_PipelineRender");
     }
 
     //--------------------------------------------------------------------------------------
@@ -387,7 +385,7 @@ namespace CAULDRON_DX12
     // Draw
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::Draw(ID3D12GraphicsCommandList* pCommandList)
+    void GltfPbrPass::Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV)
     {
         UserMarker marker(pCommandList, "gltfPBR");
 
@@ -411,7 +409,7 @@ namespace CAULDRON_DX12
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_transformedData.m_worldSpaceMats.data();
+        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
@@ -445,9 +443,9 @@ namespace CAULDRON_DX12
                 //
                 if (pPbrParams->m_blending == false)
                 {
-                    // If solid draw it 
+                    // If solid draw it
                     //
-                    pPrimitive->DrawPrimitive(pCommandList, m_pGLTFTexturesAndBuffers->m_perFrameConstants, perObjectDesc, pPerSkeleton);
+                    pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, m_pGLTFTexturesAndBuffers->GetPerFrameConstants(), perObjectDesc, pPerSkeleton);
                 }
                 else
                 {
@@ -459,7 +457,7 @@ namespace CAULDRON_DX12
                     Transparent t;
                     t.m_depth = XMVectorGetW(XMVector4Transform(v, mat));
                     t.m_pPrimitive = pPrimitive;
-                    t.m_perFrameDesc = m_pGLTFTexturesAndBuffers->m_perFrameConstants;
+                    t.m_perFrameDesc = m_pGLTFTexturesAndBuffers->GetPerFrameConstants();
                     t.m_perObjectDesc = perObjectDesc;
                     t.m_pPerSkeleton = pPerSkeleton;
 
@@ -477,12 +475,11 @@ namespace CAULDRON_DX12
         int tt = 0;
         for (auto &t : m_transparent)
         {
-            t.m_pPrimitive->DrawPrimitive(pCommandList, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
+            t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
         }
     }
 
-
-    void PBRPrimitives::DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, D3D12_GPU_VIRTUAL_ADDRESS perFrameDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton)
+    void PBRPrimitives::DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perFrameDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton)
     {
         // Bind indices and vertices using the right offsets into the buffer
         //
@@ -490,7 +487,7 @@ namespace CAULDRON_DX12
         pCommandList->IASetVertexBuffers(0, (UINT)m_geometry.m_VBV.size(), m_geometry.m_VBV.data());
 
         // Bind Descriptor sets
-        //        
+        //
         pCommandList->SetGraphicsRootSignature(m_RootSignature);
         int paramIndex = 0;
 
@@ -502,6 +499,9 @@ namespace CAULDRON_DX12
         {
             pCommandList->SetGraphicsRootDescriptorTable(paramIndex++, m_pMaterial->m_texturesTable.GetGPU());
         }
+
+        // bind the shadow buffer
+        pCommandList->SetGraphicsRootDescriptorTable(paramIndex++, pShadowBufferSRV->GetGPU());
 
         // bind the per object constant buffer descriptor
         pCommandList->SetGraphicsRootConstantBufferView(paramIndex++, perObjectDesc);

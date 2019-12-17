@@ -36,6 +36,9 @@ void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane
 {
     m_aspectRatio = width *1.f / height;
 
+    m_near = nearPlane;
+    m_far = farPlane;
+
     m_fovV = fovV;
     m_fovH = std::min<float>((m_fovV * width) / height, XM_PI / 2.0f);
     m_fovV = m_fovH * height / width;
@@ -52,6 +55,12 @@ void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane
         m_Proj = XMMatrixOrthographicRH(height/40.0f, height/40.0f, nearPlane, farPlane);
     else
         m_Proj = XMMatrixPerspectiveFovRH(fovV, m_aspectRatio, nearPlane, farPlane);
+}
+
+void Camera::SetMatrix(XMMATRIX cameraMatrix)
+{
+    m_eyePos = cameraMatrix.r[3];
+    m_View = XMMatrixInverse(nullptr, cameraMatrix);
 }
 
 //--------------------------------------------------------------------------------------
@@ -104,6 +113,30 @@ void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float d
     XMVECTOR m_eyePos = at + pol * distance;
 
     LookAt(m_eyePos, at);
+}
+
+//--------------------------------------------------------------------------------------
+//
+// SetProjectionJitter
+//
+//--------------------------------------------------------------------------------------
+void Camera::SetProjectionJitter(float jitterX, float jitterY)
+{
+    XMFLOAT4X4 Proj;
+    XMStoreFloat4x4(&Proj, m_Proj);
+    Proj.m[2][0] = jitterX;
+    Proj.m[2][1] = jitterY;
+    m_Proj = XMLoadFloat4x4(&Proj);
+}
+
+//--------------------------------------------------------------------------------------
+//
+// UpdatePreviousMatrices
+//
+//--------------------------------------------------------------------------------------
+void Camera::UpdatePreviousMatrices()
+{
+    m_PrevView = m_View;
 }
 
 //--------------------------------------------------------------------------------------

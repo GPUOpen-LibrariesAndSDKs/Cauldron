@@ -20,9 +20,9 @@
 
 // This class takes a GltfCommon class (that holds all the non-GPU specific data) as an input and loads all the GPU specific data
 //
-#include "Base\ResourceViewHeaps.h"
-#include "Base\DynamicBufferRing.h"
-#include "Base\StaticBufferPool.h"
+#include "Base/ResourceViewHeaps.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
 
 namespace CAULDRON_VK
 {

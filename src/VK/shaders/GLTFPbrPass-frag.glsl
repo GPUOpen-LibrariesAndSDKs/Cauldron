@@ -14,7 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
  
-// This shader code was ported from https://github.com/KhronosGroup/glTF-Sample-Viewer/
+// This shader code was ported from https://github.com/KhronosGroup/glTF-WebGL-PBR
 // All credits should go to his original author.
 
 //
@@ -67,10 +67,12 @@ precision highp float;
 
 #ifdef ID_4PS_TANGENT
     layout (location = ID_4PS_TANGENT) in vec3 v_Tangent;
-    layout (location = ID_4PS_LASTID+2) in vec3 v_Binormal;
+    layout (location = ID_4PS_LASTID+1) in vec3 v_Binormal;
 #endif
 
-layout (location = ID_4PS_LASTID+1) in vec3 v_Position;
+#ifdef ID_4PS_WORLDPOS
+layout (location = ID_4PS_WORLDPOS) in vec3 v_WorldPos;
+#endif
 
 //  For OM layout
 
@@ -156,6 +158,7 @@ const int LightType_Spot = 2;
 layout (scalar, set=0, binding = 0) uniform perFrame 
 {
     mat4          u_CameraViewProj;
+	mat4          u_mCameraViewProjInverse;
     vec4          u_CameraPos;
     float         u_iblFactor;
     float         u_EmissiveFactor;
@@ -339,7 +342,7 @@ vec3 applyDirectionalLight(Light light, MaterialInfo materialInfo, vec3 normal, 
 
 vec3 applyPointLight(Light light, MaterialInfo materialInfo, vec3 normal, vec3 view)
 {
-    vec3 pointToLight = light.position - v_Position;
+    vec3 pointToLight = light.position - v_WorldPos;
     float distance = length(pointToLight);
     float attenuation = getRangeAttenuation(light.range, distance);
     vec3 shade = getPointShade(pointToLight, materialInfo, normal, view);
@@ -348,7 +351,7 @@ vec3 applyPointLight(Light light, MaterialInfo materialInfo, vec3 normal, vec3 v
 
 vec3 applySpotLight(Light light, MaterialInfo materialInfo, vec3 normal, vec3 view)
 {
-    vec3 pointToLight = light.position - v_Position;
+    vec3 pointToLight = light.position - v_WorldPos;
     float distance = length(pointToLight);
     float rangeAttenuation = getRangeAttenuation(light.range, distance);
     float spotAttenuation = getSpotAttenuation(pointToLight, -light.direction, light.outerConeCos, light.innerConeCos);
@@ -435,17 +438,7 @@ void main()
 
 #endif // ! MATERIAL_METALLICROUGHNESS
 
-#ifdef DEF_alphaMode_MASK
-    if(baseColor.a < DEF_alphaCutoff)
-    {
-        discard;
-    }
-    baseColor.a = 1.0;
-#endif
-
-#ifdef DEF_alphaMode_OPAQUE
-    baseColor.a = 1.0;
-#endif
+	discardPixelIfAlphaCutOff();
 
 #ifdef MATERIAL_UNLIT
     outColor = vec4((baseColor.rgb), baseColor.a);
@@ -479,7 +472,7 @@ void main()
 
     vec3 color = vec3(0.0, 0.0, 0.0);
     vec3 normal = getNormal();
-    vec3 view = normalize(myPerFrame.u_CameraPos.xyz - v_Position);
+    vec3 view = normalize(myPerFrame.u_CameraPos.xyz - v_WorldPos);
 
 #if (DEF_doubleSided == 1)
     if (dot(normal, view) < 0)
@@ -502,7 +495,7 @@ void main()
         }
         else if (light.type == LightType_Spot)
         {            
-            float shadowFactor = DoSpotShadow(v_Position, light);
+            float shadowFactor = DoSpotShadow(v_WorldPos, light);
             color += applySpotLight(light, materialInfo, normal, view) * shadowFactor;
         }
     }

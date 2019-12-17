@@ -18,9 +18,9 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base\ResourceViewHeaps.h"
+#include "Base/ResourceViewHeaps.h"
 #include "GltfBBoxPass.h"
-#include "GLTF\GltfHelpers.h"
+#include "GLTF/GltfHelpers.h"
 
 namespace CAULDRON_DX12
 {
@@ -36,13 +36,12 @@ namespace CAULDRON_DX12
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-        DXGI_FORMAT outFormat,
-        uint32_t sampleDescCount
-    )
+        Wireframe *pWireframe)
     {
+        m_pWireframe = pWireframe;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
 
-        m_wireframeBox.OnCreate(pDevice, pResourceViewHeaps, pDynamicBufferRing, pStaticBufferPool, outFormat, sampleDescCount);
+        m_wireframeBox.OnCreate(pDevice, pResourceViewHeaps, pDynamicBufferRing, pStaticBufferPool);
     }
 
     //--------------------------------------------------------------------------------------
@@ -72,12 +71,12 @@ namespace CAULDRON_DX12
             if (pNode->meshIndex < 0)
                 continue;
 
-            XMMATRIX mWorldViewProj = pC->m_transformedData.m_worldSpaceMats[i] * cameraViewProjMatrix;
+            XMMATRIX mWorldViewProj = pC->m_pCurrentFrameTransformedData->m_worldSpaceMats[i] * cameraViewProjMatrix;
 
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
-                m_wireframeBox.Draw(pCommandList, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
+                m_wireframeBox.Draw(pCommandList, m_pWireframe, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
             }
         }
     }

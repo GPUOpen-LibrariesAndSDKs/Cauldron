@@ -19,8 +19,8 @@
 
 #include "stdafx.h"
 #include "Device.h"
-#include "Misc\Misc.h"
-#include "base\Helper.h"
+#include "Misc/Misc.h"
+#include "Base/Helper.h"
 
 #include <dxgi1_4.h>
 
@@ -28,8 +28,6 @@
 #pragma comment(lib, "dxguid.lib")
 #include <DXGIDebug.h>
 #endif 
-
-#define USE_AGS
 
 namespace CAULDRON_DX12
 {
@@ -43,28 +41,35 @@ namespace CAULDRON_DX12
 
     void Device::OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd)
     {
-#ifdef USE_AGS
-        agsInit(&m_agsContext, nullptr, &m_agsGPUInfo);
-        UserMarker::SetAgsContext(m_agsContext);
-#endif
-
-#ifdef _DEBUG
-        // Enable the D3D12 debug layer.
+        // Enable the D3D12 debug layer
+        //
+        // Note that it turns out the validation and debug layer are know to cause 
+        // deadlocks in certain circumstances, for example when the vsync interval 
+        // is 0 and full screen is used
+        if (bValidationEnabled)
         {
             ID3D12Debug1 *pDebugController;
-            ThrowIfFailed(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController)));
-            pDebugController->EnableDebugLayer();
-            //pDebugController->SetEnableGPUBasedValidation(TRUE);
-            pDebugController->SetEnableSynchronizedCommandQueueValidation(TRUE);
-            pDebugController->Release();
-        }
-#else 
-        Trace("Validation is only available in debug mode");
-#endif
+            if (D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController)) == S_OK)
+            {
+                pDebugController->EnableDebugLayer();               
+                pDebugController->SetEnableGPUBasedValidation(TRUE);
 
-        // Use AGS
+                pDebugController->SetEnableSynchronizedCommandQueueValidation(TRUE);
+                pDebugController->Release();
+            }
+        }
+
+        // Create Device
         //
-#ifdef USE_AGS
+        AGSReturnCode result = agsInit(&m_agsContext, nullptr, &m_agsGPUInfo);
+
+        // if AGS got initialized because the AMD driver is installed but the HW is not AMD then deinit.
+        if ((result == AGS_SUCCESS) && m_agsContext && (m_agsGPUInfo.devices[0].vendorId != 0x1002))
+        {
+            agsDeInit(m_agsContext);
+            m_agsContext = NULL;
+        }
+
         UINT factoryFlags = 0;
 #ifdef _DEBUG
         factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
@@ -72,14 +77,16 @@ namespace CAULDRON_DX12
         IDXGIFactory *pFactory;
         CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&pFactory));
 
-        IDXGIAdapter *pAdapter;
-        pFactory->EnumAdapters(0, &pAdapter);
+        pFactory->EnumAdapters(0, &m_pAdapter);
         pFactory->Release();
 
-        if (m_agsGPUInfo.devices[0].vendorId == 0x1002)
+
+        if (m_agsContext)
         {
+            UserMarker::SetAgsContext(m_agsContext);
+
             AGSDX12DeviceCreationParams creationParams = {};
-            creationParams.pAdapter = pAdapter;
+            creationParams.pAdapter = m_pAdapter;
             creationParams.iid = __uuidof(m_pDevice);
             creationParams.FeatureLevel = D3D_FEATURE_LEVEL_12_0;
 
@@ -92,15 +99,14 @@ namespace CAULDRON_DX12
             if (rc == AGS_SUCCESS)
             {
                 m_pDevice = returnedParams.pDevice;
-                m_agsCreatedDevice = true;
+                SetName(m_pDevice, "device");
             }
         }
-        pAdapter->Release();
-#else 
-        // Create Device
-        //
-        ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pDevice)));
-#endif
+        else
+        {
+            ThrowIfFailed(D3D12CreateDevice(m_pAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pDevice)));
+            SetName(m_pDevice, "device");
+        }
 
         // Check for FP16 support
         //
@@ -110,16 +116,22 @@ namespace CAULDRON_DX12
 
         // create queues
         //
-        D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-        queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-        queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-        queueDesc.NodeMask = 0;
-        m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pDirectQueue));
-        SetName(m_pDirectQueue, "DirectQueue");
-
-        // Init debug marker extension if found
-        //
-
+        {
+            D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+            queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+            queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+            queueDesc.NodeMask = 0;
+            m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pDirectQueue));
+            SetName(m_pDirectQueue, "DirectQueue");
+        }
+        {
+            D3D12_COMMAND_QUEUE_DESC queueDesc = {};
+            queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+            queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+            queueDesc.NodeMask = 0;
+            m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pComputeQueue));
+            SetName(m_pComputeQueue, "ComputeQueue");
+        }
     }
 
     void Device::CreatePipelineCache()
@@ -133,26 +145,19 @@ namespace CAULDRON_DX12
     void Device::OnDestroy()
     {
         m_pDirectQueue->Release();
+        m_pComputeQueue->Release();
+        m_pAdapter->Release();
 
-#ifdef USE_AGS
-        if (m_agsCreatedDevice)
+        if (m_agsContext)
         {
             agsDriverExtensionsDX12_DestroyDevice(m_agsContext, m_pDevice, nullptr);
-            m_agsCreatedDevice = false;
+            agsDeInit(m_agsContext);
+            m_agsContext = nullptr;
         }
         else
         {
             m_pDevice->Release();
         }
-
-        if (m_agsContext)
-        {
-            agsDeInit(m_agsContext);
-            m_agsContext = nullptr;
-        }
-#else
-        m_pDevice->Release();
-#endif
 
 #ifdef _DEBUG
         // Report live objects
@@ -167,23 +172,35 @@ namespace CAULDRON_DX12
 #endif
     }
 
-    AGSContext* Device::GetAgsContext()
-    {
-        return NULL;
-    }
-
     void Device::GPUFlush()
     {
-        ID3D12Fence *pFence;
-        ThrowIfFailed(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
+        // sync direct queue
+        {
+            ID3D12Fence* pFence;
+            ThrowIfFailed(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
 
-        ThrowIfFailed(m_pDirectQueue->Signal(pFence, 1));
+            ThrowIfFailed(m_pDirectQueue->Signal(pFence, 1));
 
-        HANDLE mHandleFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        pFence->SetEventOnCompletion(1, mHandleFenceEvent);
-        WaitForSingleObject(mHandleFenceEvent, INFINITE);
-        CloseHandle(mHandleFenceEvent);
+            HANDLE mHandleFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            pFence->SetEventOnCompletion(1, mHandleFenceEvent);
+            WaitForSingleObject(mHandleFenceEvent, INFINITE);
+            CloseHandle(mHandleFenceEvent);
 
-        pFence->Release();
+            pFence->Release();
+        }
+        // sync compute queue
+        {
+            ID3D12Fence* pFence;
+            ThrowIfFailed(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
+
+            ThrowIfFailed(m_pComputeQueue->Signal(pFence, 1));
+
+            HANDLE mHandleFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+            pFence->SetEventOnCompletion(1, mHandleFenceEvent);
+            WaitForSingleObject(mHandleFenceEvent, INFINITE);
+            CloseHandle(mHandleFenceEvent);
+
+            pFence->Release();
+        }
     }
 }

@@ -140,8 +140,10 @@ json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::
 
 XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default)
 {
-    if (root.find(path) != root.end())
+    if (root.find(path) != root.end() && !root[path].is_null())
+    {
         return GetVector(root[path].get<json::array_t>());
+    }
     else
         return default;
 }

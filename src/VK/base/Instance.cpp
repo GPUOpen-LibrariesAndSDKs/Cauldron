@@ -21,24 +21,38 @@
 #include <algorithm>
 #include "Instance.h"
 #include "InstanceProperties.h"
-#include <vulkan\vulkan_win32.h>
+#include <vulkan/vulkan_win32.h>
+#include "ExtValidation.h"
+#include "ExtFreeSync2.h"
+
 
 namespace CAULDRON_VK
 {
-    VkInstance CreateInstance(VkApplicationInfo app_info, InstanceProperties *pIP)
+    VkInstance CreateInstance(VkApplicationInfo app_info, bool usingValidationLayer)
     {
         VkInstance instance;
 
         //populate list from enabled extensions
         void *pNext = NULL;
+
+        // read layer and instance properties
+        InstanceProperties ip;
+        ip.Init();
+
+        // Check required extensions are present
+        //
+        ip.AddInstanceExtensionName(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+        ip.AddInstanceExtensionName(VK_KHR_SURFACE_EXTENSION_NAME);
+        ExtFreeSync2CheckInstanceExtensions(&ip);
+        if (usingValidationLayer)
+        {
+            usingValidationLayer = ExtDebugReportCheckInstanceExtensions(&ip, &pNext);
+        }
+
+        // prepare existing extensions and layer names into a buffer for vkCreateInstance
         std::vector<const char *> instance_layer_names;
         std::vector<const char *> instance_extension_names;
-        pIP->GetExtensionNamesAndConfigs(&instance_layer_names, &instance_extension_names);
-
-        // Add 2 more thatn should aways be present in windows
-        instance_extension_names.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-        instance_extension_names.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-        instance_extension_names.push_back(VK_KHR_GET_SURFACE_CAPABILITIES_2_EXTENSION_NAME);
+        ip.GetExtensionNamesAndConfigs(&instance_layer_names, &instance_extension_names);
 
         // do create the instance
         VkInstanceCreateInfo inst_info = {};
@@ -53,11 +67,19 @@ namespace CAULDRON_VK
         VkResult res = vkCreateInstance(&inst_info, NULL, &instance);
         assert(res == VK_SUCCESS);
 
+        // Init the extensions (if they have been enabled successfuly)
+        //
+        //
+        ExtDebugReportGetProcAddresses(instance);
+        ExtDebugReportOnCreate(instance);
+
         return instance;
     }
 
     void DestroyInstance(VkInstance instance)
     {
+        ExtDebugReportOnDestroy(instance);
+
         vkDestroyInstance(instance, nullptr);
     }
 }

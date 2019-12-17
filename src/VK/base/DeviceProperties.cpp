@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "DeviceProperties.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {    
@@ -53,6 +54,9 @@ namespace CAULDRON_VK
             m_device_extension_names.push_back(deviceExtensionName);
             return true;
         }
+
+        Trace("Opps!! The device extension '%s' has not been found", deviceExtensionName);
+
         return false;
     }
 

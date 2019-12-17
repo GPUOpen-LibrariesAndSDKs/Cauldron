@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "WICLoader.h"
 #include "wincodec.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 static IWICImagingFactory *m_pWICFactory = NULL;
 

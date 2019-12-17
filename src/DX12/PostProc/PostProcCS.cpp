@@ -18,9 +18,9 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "..\base\Helper.h"
-#include "..\base\DynamicBufferRing.h"
-#include "..\base\ShaderCompilerHelper.h"
+#include "../Base/Helper.h"
+#include "../Base/DynamicBufferRing.h"
+#include "../Base/ShaderCompilerHelper.h"
 #include "PostProcCS.h"
 
 
@@ -54,11 +54,13 @@ namespace CAULDRON_DX12
         // Compile shaders
         //
 		D3D12_SHADER_BYTECODE shaderByteCode = {};
-        DefineList defines = *userDefines;
+        DefineList defines;
+        if (userDefines)
+            defines = *userDefines;
         defines["WIDTH"] = std::to_string(dwWidth);
         defines["HEIGHT"] = std::to_string(dwHeight);
         defines["DEPTH"] = std::to_string(dwDepth);
-        CompileShaderFromFile(shaderFilename.c_str(), &defines, shaderEntryPoint.c_str(), "cs_6_2", 0, &shaderByteCode);
+        CompileShaderFromFile(shaderFilename.c_str(), &defines, shaderEntryPoint.c_str(), "cs_5_0", 0, &shaderByteCode);
 
         // Create root signature
         //
@@ -100,7 +102,7 @@ namespace CAULDRON_DX12
             ThrowIfFailed(
                 pDevice->GetDevice()->CreateRootSignature(0, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature))
             );
-            SetName(m_pRootSignature, std::string("PostProcCS::") + shaderFilename);
+            SetName(m_pRootSignature, std::string("PostProcCS::m_pRootSignature::") + shaderFilename);
 
             pOutBlob->Release();
             if (pErrorBlob)
@@ -114,12 +116,14 @@ namespace CAULDRON_DX12
             descPso.pRootSignature = m_pRootSignature;
             descPso.NodeMask = 0;
 
-			pDevice->GetDevice()->CreateComputePipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline));
+            pDevice->GetDevice()->CreateComputePipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline));
+            SetName(m_pRootSignature, std::string("PostProcCS::m_pPipeline::") + shaderFilename);
         }
     }
 
     void PostProcCS::OnDestroy()
     {
+        m_pPipeline->Release();
         m_pRootSignature->Release();
     }
 

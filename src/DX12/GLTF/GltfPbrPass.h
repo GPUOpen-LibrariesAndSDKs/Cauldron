@@ -19,8 +19,8 @@
 #pragma once
 
 #include "GLTFTexturesAndBuffers.h"
-#include "PostProc\SkyDome.h"
-#include "..\Common\GLTF\GltfPbrMaterial.h"
+#include "PostProc/SkyDome.h"
+#include "../Common/GLTF/GltfPbrMaterial.h"
 
 namespace CAULDRON_DX12
 {
@@ -43,7 +43,7 @@ namespace CAULDRON_DX12
         ID3D12RootSignature	*m_RootSignature;
         ID3D12PipelineState	*m_PipelineRender;
 
-        void DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, D3D12_GPU_VIRTUAL_ADDRESS perSceneDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton);
+        void DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perSceneDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton);
     };
 
     struct PBRMesh
@@ -69,12 +69,12 @@ namespace CAULDRON_DX12
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
-            Texture *pShadowMap,
+            bool bUseShadowMask,
             DXGI_FORMAT outFormat,
             uint32_t sampleDescCount);
 
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList);
+        void Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
 
@@ -94,7 +94,7 @@ namespace CAULDRON_DX12
         DXGI_FORMAT m_outFormat;
         uint32_t m_sampleCount;
 
-        void CreateGPUMaterialData(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, Texture *ShadowMapView);
+        void CreateGPUMaterialData(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome);
         void CreateDescriptors(ID3D12Device* pDevice, bool bUsingSkinning, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
         void CreatePipeline(ID3D12Device* pDevice, std::vector<std::string> semanticName, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
     };

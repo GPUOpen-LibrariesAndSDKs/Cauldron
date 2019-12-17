@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "base\StaticBufferPool.h"
-#include "base\ResourceViewHeaps.h"
-#include "base\DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/ResourceViewHeaps.h"
+#include "Base/DynamicBufferRing.h"
 #include "GLTFTexturesAndBuffers.h"
-#include "widgets\WireframeBox.h"
+#include "widgets/WireframeBox.h"
 
 namespace CAULDRON_DX12
 {
@@ -36,13 +36,14 @@ namespace CAULDRON_DX12
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-            DXGI_FORMAT outFormat,
-            uint32_t sampleDescCount);
+            Wireframe *pWireframe);
 
         void OnDestroy();
         void Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX cameraViewProjMatrix);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
+        
+        Wireframe *m_pWireframe;
         WireframeBox m_wireframeBox;
     };
 }

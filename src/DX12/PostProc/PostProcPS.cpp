@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "..\base\Helper.h"
-#include "base\DynamicBufferRing.h"
-#include "base\StaticBufferPool.h"
-#include "base\ShaderCompilerHelper.h"
-#include "Misc\ThreadPool.h"
+#include "../Base/Helper.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/ShaderCompilerHelper.h"
+#include "Misc/ThreadPool.h"
 
 #include "PostProcPS.h"
 
@@ -34,20 +34,17 @@ namespace CAULDRON_DX12
         ResourceViewHeaps *pResourceViewHeaps,
         StaticBufferPool *pStaticBufferPool,
         uint32_t dwSRVTableSize,
+        uint32_t dwStaticSamplersCount,
         D3D12_STATIC_SAMPLER_DESC *pStaticSamplers,
         DXGI_FORMAT outFormat,
-        uint32_t sampleDescCount,
+        uint32_t psoSampleDescCount,
         D3D12_BLEND_DESC *pBlendDesc,
-        D3D12_DEPTH_STENCIL_DESC *pDepthStencilDesc
+        D3D12_DEPTH_STENCIL_DESC *pDepthStencilDesc,
+        uint32_t numRenderTargets
     )
     {
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pResourceViewHeaps;
-
-        //we need to cache the refrenced data so the lambda function can get a copy
-        D3D12_BLEND_DESC blendDesc = pBlendDesc ? *pBlendDesc : CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-        D3D12_DEPTH_STENCIL_DESC depthStencilBlankDesc = {};
-        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = pDepthStencilDesc ? *pDepthStencilDesc : depthStencilBlankDesc;
 
         float vertices[] = {
             -1,  1,  1,   0, 0,
@@ -76,19 +73,12 @@ namespace CAULDRON_DX12
                     return Output;\
                 }";
 
-        D3D12_INPUT_ELEMENT_DESC layout[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT   , 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-        };
-
         // Compile shaders
         //
-        D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
         {
             DefineList defines;
-            CompileShaderFromString(vertexShader, &defines, "mainVS", "vs_5_0", 0, 0, &shaderVert);
-            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", "ps_5_0", 0, &shaderPixel);
+            CompileShaderFromString(vertexShader, &defines, "mainVS", "vs_5_0", 0, 0, &m_shaderVert);
+            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", "ps_5_0", 0, &m_shaderPixel);
         }
 
         // Create root signature
@@ -112,7 +102,7 @@ namespace CAULDRON_DX12
             CD3DX12_ROOT_SIGNATURE_DESC descRootSignature = CD3DX12_ROOT_SIGNATURE_DESC();
             descRootSignature.NumParameters = numParams;
             descRootSignature.pParameters = RTSlot;
-            descRootSignature.NumStaticSamplers = dwSRVTableSize;
+            descRootSignature.NumStaticSamplers = dwStaticSamplersCount;
             descRootSignature.pStaticSamplers = pStaticSamplers;
 
             // deny uneccessary access to certain pipeline stages   
@@ -125,46 +115,76 @@ namespace CAULDRON_DX12
             );
             SetName(m_pRootSignature, std::string("PostProcPS::") + shaderFilename);
 
-
             pOutBlob->Release();
             if (pErrorBlob)
                 pErrorBlob->Release();
         }
 
-        {
-            // Create pipeline
-            //
+        UpdatePipeline(outFormat, pBlendDesc, pDepthStencilDesc, psoSampleDescCount, numRenderTargets);
+    }
 
-            D3D12_GRAPHICS_PIPELINE_STATE_DESC descPso = {};
-            descPso.InputLayout = { layout, 2 };
-            descPso.pRootSignature = m_pRootSignature;
-            descPso.VS = shaderVert;
-            descPso.PS = shaderPixel;
-            descPso.DepthStencilState = depthStencilDesc;
-            if (depthStencilDesc.DepthEnable == TRUE)
-            {
-                descPso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-            }
-            descPso.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-            descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-            descPso.BlendState = blendDesc;
-            descPso.SampleMask = UINT_MAX;
-            descPso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-            descPso.NumRenderTargets = 1;
-            descPso.RTVFormats[0] = outFormat;
-            descPso.SampleDesc.Count = sampleDescCount;
-            descPso.NodeMask = 0;
-            ThrowIfFailed(
-                pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline))
-            );
+    void PostProcPS::UpdatePipeline(DXGI_FORMAT outFormat, D3D12_BLEND_DESC *pBlendDesc, D3D12_DEPTH_STENCIL_DESC *pDepthStencilDesc, uint32_t psoSampleDescCount, uint32_t numRenderTargets)
+    {
+        if (outFormat == DXGI_FORMAT_UNKNOWN)
+            return;
+
+        if (m_pPipeline != NULL)
+        {
+            m_pPipeline->Release();
+            m_pPipeline = NULL;
         }
+
+        //we need to cache the refrenced data so the lambda function can get a copy
+        D3D12_BLEND_DESC blendDesc = pBlendDesc ? *pBlendDesc : CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        D3D12_DEPTH_STENCIL_DESC depthStencilBlankDesc = {};
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = pDepthStencilDesc ? *pDepthStencilDesc : depthStencilBlankDesc;
+
+        // layout
+        D3D12_INPUT_ELEMENT_DESC layout[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT   , 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+        };
+
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC descPso = {};
+        descPso.InputLayout = { layout, 2 };
+        descPso.pRootSignature = m_pRootSignature;
+        descPso.VS = m_shaderVert;
+        descPso.PS = m_shaderPixel;
+        descPso.DepthStencilState = depthStencilDesc;
+        if (depthStencilDesc.DepthEnable == TRUE)
+        {
+            descPso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+        }
+        descPso.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+        descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        descPso.BlendState = blendDesc;
+        descPso.SampleMask = UINT_MAX;
+        descPso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+        descPso.NumRenderTargets = numRenderTargets;
+        for (uint32_t i = 0; i < numRenderTargets; ++i)
+            descPso.RTVFormats[i] = outFormat;
+        descPso.SampleDesc.Count = psoSampleDescCount;
+        descPso.NodeMask = 0;
+        ThrowIfFailed(
+            m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline))
+        );
+        SetName(m_pPipeline, "PostProcPS::m_pPipeline");
     }
 
     void PostProcPS::OnDestroy()
     {
-        m_pPipeline->Release();
-        m_pRootSignature->Release();
-        m_pPipeline = NULL;
+        if (m_pPipeline != NULL)
+        {
+            m_pPipeline->Release();
+            m_pPipeline = NULL;
+        }
+
+        if (m_pRootSignature != NULL)
+        {
+            m_pRootSignature->Release();
+            m_pRootSignature = NULL;
+        }
     }
 
     void PostProcPS::Draw(ID3D12GraphicsCommandList* pCommandList, uint32_t dwSRVTableSize, CBV_SRV_UAV *pSRVTable, D3D12_GPU_VIRTUAL_ADDRESS constantBuffer)

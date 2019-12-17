@@ -2,6 +2,8 @@ project (Framework_DX12)
 
 add_compile_options(/MP)
 
+include(common)
+
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
     GLTF/GltfBBoxPass.h
@@ -12,13 +14,16 @@ set(GLTF_src
     GLTF/GltfPbrPass.cpp
     GLTF/GltfPbrPass.h
     GLTF/GLTFTexturesAndBuffers.cpp
-    GLTF/GLTFTexturesAndBuffers.h)
+    GLTF/GLTFTexturesAndBuffers.h
+)
 
 set(PostProc_src
     PostProc/Bloom.cpp
     PostProc/Bloom.h
     PostProc/BlurPS.cpp
     PostProc/BlurPS.h
+    PostProc/Debug.cpp
+    PostProc/Debug.h
     PostProc/DownSamplePS.cpp
     PostProc/DownSamplePS.h
     PostProc/PostProcCS.cpp
@@ -42,6 +47,8 @@ set(Base_src
     base/DynamicBufferRing.h
     base/Fence.cpp
     base/Fence.h
+    base/FreeSync2.cpp
+    base/FreeSync2.h
     base/GPUTimestamps.cpp
     base/GPUTimestamps.h
     base/Helper.cpp
@@ -74,8 +81,10 @@ set(Widgets_src
 )
 
 set(Shaders_src
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/common.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blend.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blur.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Debug.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/DownSamplePS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-PS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-VS.hlsl
@@ -87,31 +96,20 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/functions.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textures.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
-    )
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/PixelParams.hlsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
+)
 
 set(media_src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
-)    
-
-function(copyCommand list dest)
-	foreach(fullFileName ${list})    
-		get_filename_component(file ${fullFileName} NAME)
-		message("Generating custom command for ${fullFileName}")
-		add_custom_command(
-			OUTPUT   ${dest}/${file}
-			PRE_BUILD
-			COMMAND cmake -E make_directory ${dest}
-			COMMAND cmake -E copy ${fullFileName}  ${dest}
-			MAIN_DEPENDENCY  ${fullFileName}
-			COMMENT "Updating ${file} into ${dest}" 
-		)
-	endforeach()    
-endfunction()
+)
 
 copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
 copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX)
 
-add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src}  ${Shaders_src} ${media_src})
+add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src})
 
 target_link_libraries (${PROJECT_NAME} Framework_Common NJSON D3D12X)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

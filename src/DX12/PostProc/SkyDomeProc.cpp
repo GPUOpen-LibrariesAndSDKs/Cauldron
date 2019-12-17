@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "..\base\DynamicBufferRing.h"
-#include "..\base\StaticBufferPool.h"
-#include "..\base\UploadHeap.h"
-#include "..\base\Texture.h"
-#include "..\base\Helper.h"
+#include "../Base/DynamicBufferRing.h"
+#include "../Base/StaticBufferPool.h"
+#include "../Base/UploadHeap.h"
+#include "../Base/Texture.h"
+#include "../Base/Helper.h"
 #include "PostProcPS.h"
 #include "SkyDomeProc.h"
 
@@ -40,7 +40,7 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pResourceViewHeaps = pResourceViewHeaps;
 
-        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, NULL, outFormat, sampleDescCount);
+        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, 0, NULL, outFormat, sampleDescCount);
     }
 
     void SkyDomeProc::OnDestroy()

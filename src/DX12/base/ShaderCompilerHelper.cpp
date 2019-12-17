@@ -20,8 +20,8 @@
 #include "stdafx.h"
 #include <D3DCompiler.h>
 #include "ShaderCompilerHelper.h"
-#include "Misc\Misc.h"
-#include "Misc\Cache.h"
+#include "Misc/Misc.h"
+#include "Misc/Cache.h"
 #include <dxcapi.h>
 
 namespace CAULDRON_DX12
@@ -106,32 +106,57 @@ namespace CAULDRON_DX12
 
         // Choose compiler depending on the shader model
         //
-        assert(isdigit(pTarget[3]));
-        if (pTarget[3] - '0' < 6)
+        if (isdigit(pTarget[3]) && pTarget[3] - '0' < 6)
         {
+            std::string filenamePdb = format(SHADER_CACHE_DIR"\\%p.pdb", hash);
             std::vector<D3D_SHADER_MACRO> macros;
             CompileMacros(pDefines, &macros);
             macros.push_back(D3D_SHADER_MACRO{ NULL, NULL });
 
             Includer Include;
-            ID3DBlob *pError1, *pCode1;
-            HRESULT res1 = D3DPreprocess(pSrcCode, strlen(pSrcCode), NULL, macros.data(), &Include, &pCode1, &pError1);
+            Microsoft::WRL::ComPtr<ID3DBlob> pError1, pCode1; // ComPtr auto-releases
+            HRESULT res1 = D3DPreprocess(pSrcCode, strlen(pSrcCode), NULL, macros.data(), &Include, pCode1.GetAddressOf(), pError1.GetAddressOf());
             if (res1 == S_OK)
             {
                 SaveFile(filenameHlsl.c_str(), pCode1->GetBufferPointer(), pCode1->GetBufferSize(), false);
 
-                ID3DBlob *pError, *pCode;
-                HRESULT res = D3DCompile(pCode1->GetBufferPointer(), pCode1->GetBufferSize(), NULL, NULL, NULL, pEntryPoint, pTarget, Flags1, Flags2, &pCode, &pError);
+                Microsoft::WRL::ComPtr<ID3DBlob> pError, pCode; // ComPtr auto-releases
+                HRESULT res = D3DCompile(pCode1->GetBufferPointer(), pCode1->GetBufferSize(), NULL, NULL, NULL, pEntryPoint, pTarget, Flags1, Flags2, pCode.GetAddressOf(), pError.GetAddressOf());
                 if (res == S_OK)
                 {
-                    pCode1->Release();
-
                     *outSpvSize = pCode->GetBufferSize();
                     *outSpvData = (char *)malloc(*outSpvSize);
 
                     memcpy(*outSpvData, pCode->GetBufferPointer(), *outSpvSize);
 
-                    pCode->Release();
+                    // Check if we have debug information
+                    Microsoft::WRL::ComPtr<ID3DBlob> pPDB;
+                    if (D3DGetBlobPart(pCode->GetBufferPointer(), pCode->GetBufferSize(), D3D_BLOB_PDB, 0, pPDB.GetAddressOf()) == S_OK)
+                    {
+                        // Now retrieve the suggested name for the debug data file if we have one (Requires D3DCOMPILE_DEBUG_NAME_FOR_SOURCE or D3DCOMPILE_DEBUG_NAME_FOR_BINARY be passed in as flags)
+                        Microsoft::WRL::ComPtr<ID3DBlob> pPDBName;
+                        if (D3DGetBlobPart(pCode->GetBufferPointer(), pCode->GetBufferSize(), D3D_BLOB_DEBUG_NAME, 0, pPDBName.GetAddressOf()) == S_OK)
+                        {
+                            // This struct represents the first four bytes of the name blob:
+                            struct ShaderDebugName
+                            {
+                                uint16_t Flags;       // Reserved, must be set to zero.
+                                uint16_t NameLength;  // Length of the debug name, without null terminator.
+                                                      // Followed by NameLength bytes of the UTF-8-encoded name.
+                                                      // Followed by a null terminator.
+                                                      // Followed by [0-3] zero bytes to align to a 4-byte boundary.
+                            };
+
+                            auto pDebugNameData = reinterpret_cast<const ShaderDebugName*>(pPDBName->GetBufferPointer());
+                            auto pName = reinterpret_cast<const char*>(pDebugNameData + 1);
+
+                            // Now write the contents of the blob pPDB to a file named the value of pName
+                            filenamePdb = format(SHADER_CACHE_DIR"\\%s", pName);
+                        }
+
+                        // Save the pdb with the proper filename
+                        SaveFile(filenamePdb.c_str(), pPDB->GetBufferPointer(), pPDB->GetBufferSize(), true);
+                    }
 
                     SaveFile(filenameSpv.c_str(), *outSpvData, *outSpvSize, true);
                     return true;
@@ -143,7 +168,6 @@ namespace CAULDRON_DX12
                     Trace(err);
 
                     MessageBoxA(0, err.c_str(), "Error", 0);
-                    pError->Release();
                 }
             }
             else
@@ -152,11 +176,11 @@ namespace CAULDRON_DX12
                 std::string err = format("*** Error preprocessing %p.hlsl ***\n%s\n", hash, msg);
 
                 MessageBoxA(0, err.c_str(), "Error", 0);
-                pError1->Release();
             }
         }
         else
         {       
+            std::string filenamePdb = format(SHADER_CACHE_DIR"\\%p.lld", hash);
             wchar_t names[50][128];
             wchar_t values[50][128];
             DxcDefine defines[50];
@@ -176,12 +200,33 @@ namespace CAULDRON_DX12
             IDxcBlobEncoding *pSource;
             ThrowIfFailed(pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)pSrcCode, (UINT32)strlen(pSrcCode), CP_UTF8, &pSource));
 
-            IDxcCompiler *pCompiler;
+            IDxcCompiler2* pCompiler;
             ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
 
             IncluderDxc Includer(pLibrary);
 
-            LPCWSTR ppArgs[] = { L"", L"" }; // debug info
+            wchar_t debugArg[] = L"/Zi";
+            wchar_t debugLevel0[] = L"/O0";
+            wchar_t debugSkipOptimization[] = L"/0d";
+            wchar_t debugSource[] = L"/Zss";
+            wchar_t debugBinary[] = L"/Zsb";
+
+            std::vector<LPCWSTR> ppArgs;
+
+            if (Flags1 & D3DCOMPILE_DEBUG)
+                ppArgs.push_back(debugArg);
+
+            if (Flags1 & D3DCOMPILE_OPTIMIZATION_LEVEL0)
+                ppArgs.push_back(debugLevel0);
+
+            if (Flags1 & D3DCOMPILE_SKIP_OPTIMIZATION)
+                ppArgs.push_back(debugSkipOptimization);
+
+            // These are mutually exclusive ...
+            if (Flags1 & D3DCOMPILE_DEBUG_NAME_FOR_SOURCE)
+                ppArgs.push_back(debugSource);
+            else if (Flags1 & D3DCOMPILE_DEBUG_NAME_FOR_BINARY)
+                ppArgs.push_back(debugBinary);
 
             wchar_t  pEntryPointW[256];
             swprintf_s<256>(pEntryPointW, L"%S", pEntryPoint);
@@ -193,13 +238,34 @@ namespace CAULDRON_DX12
             HRESULT res1 = pCompiler->Preprocess(pSource, L"", NULL, 0, defines, defineCount, &Includer, &pResultPre);
             if (res1 == S_OK)
             {
-                IDxcBlob *pCode1;
-                pResultPre->GetResult(&pCode1);
+                Microsoft::WRL::ComPtr<IDxcBlob> pCode1;
+                pResultPre->GetResult(pCode1.GetAddressOf());
                 SaveFile(filenameHlsl.c_str(), pCode1->GetBufferPointer(), pCode1->GetBufferSize(), false);
-                pCode1->Release();
 
-                IDxcOperationResult *pOpRes;
-                HRESULT res = pCompiler->Compile(pSource, NULL, pEntryPointW, pTargetW, ppArgs, _countof(ppArgs), defines, defineCount, &Includer, &pOpRes);
+                Microsoft::WRL::ComPtr<IDxcBlob> pPDB;
+                IDxcOperationResult* pOpRes;
+                wchar_t* pPDBNameW;
+                HRESULT res;
+
+                if (Flags1 & D3DCOMPILE_DEBUG)
+                    res = pCompiler->CompileWithDebug(pSource, NULL, pEntryPointW, pTargetW, ppArgs.data(), (UINT32)ppArgs.size(), defines, defineCount, &Includer, &pOpRes, &pPDBNameW, pPDB.GetAddressOf());
+                else
+                    res = pCompiler->Compile(pSource, NULL, pEntryPointW, pTargetW, ppArgs.data(), (UINT32)ppArgs.size(), defines, defineCount, &Includer, &pOpRes);
+
+                if (pPDB)
+                {
+                    if (pPDBNameW)
+                    {
+                        // Setup the correct name for the PDB
+                        char pPDBName[512];
+                        size_t nameSize;
+                        wcstombs_s(&nameSize, pPDBName, 512 * sizeof(byte), pPDBNameW, wcslen(pPDBNameW));
+                        filenamePdb = format(SHADER_CACHE_DIR"\\%s", pPDBName);
+                    }
+
+                    // Now write the contents of the blob pPDB to a file named the value of pName
+                    SaveFile(filenamePdb.c_str(), pPDB->GetBufferPointer(), pPDB->GetBufferSize(), true);
+                }
 
                 pSource->Release();
                 pLibrary->Release();
@@ -232,11 +298,13 @@ namespace CAULDRON_DX12
                     IDxcBlobEncoding *pErrorUtf8;
                     pLibrary->GetBlobAsUtf8(pError, &pErrorUtf8);
 
-                    std::string err = format("*** Error compiling %p.hlsl ***\n", hash);
-                    Trace(err);
+                    Trace("*** Error compiling %p.hlsl ***\n", hash);
 
                     std::string filenameErr = format(SHADER_CACHE_DIR"\\%p.err", hash);
                     SaveFile(filenameErr.c_str(), pErrorUtf8->GetBufferPointer(), pErrorUtf8->GetBufferSize(), false);
+                    
+                    std::string errMsg = std::string((char*)pErrorUtf8->GetBufferPointer(), pErrorUtf8->GetBufferSize());
+                    Trace(errMsg);
 
                     pErrorUtf8->Release();
                 }
@@ -290,7 +358,7 @@ namespace CAULDRON_DX12
             if (ReadFile(filenameSpv.c_str(), &SpvData, &SpvSize, true) == false)
 #endif
             {
-                DXCompileToDXO(hash, pSrcCode, pDefines, pEntryPoint, pTarget, 0, 0, &SpvData, &SpvSize);
+                DXCompileToDXO(hash, pSrcCode, pDefines, pEntryPoint, pTarget, Flags1, Flags2, &SpvData, &SpvSize);
             }
 
             assert(SpvSize != 0);

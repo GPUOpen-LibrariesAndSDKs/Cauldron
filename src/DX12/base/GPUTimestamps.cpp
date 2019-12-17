@@ -42,7 +42,7 @@ namespace CAULDRON_DX12
                 nullptr,
                 IID_PPV_ARGS(&m_pBuffer))
         );
-        m_pBuffer->SetName(L"GPUTimestamps::m_pBuffer");
+        SetName(m_pBuffer, "GPUTimestamps::m_pBuffer");
 
         //pDevice->SetStablePowerState(true);
     }

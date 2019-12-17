@@ -20,7 +20,7 @@
 
 #include "ResourceViewHeaps.h"
 #include "UploadHeap.h"
-#include "Misc\ImgLoader.h"
+#include "Misc/ImgLoader.h"
 
 namespace CAULDRON_DX12
 {
@@ -32,28 +32,35 @@ namespace CAULDRON_DX12
         virtual                 ~Texture();
         virtual void            OnDestroy();
 
-        // load file into heap
+        // different ways to init a texture
         virtual bool InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f);
-        INT32 InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_RENDER_TARGET);
+        INT32 Init(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue);
+        INT32 InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET);
         INT32 InitDepthStencil(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc);
         bool InitBuffer(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, uint32_t structureSize, D3D12_RESOURCE_STATES state);     // structureSize needs to be 0 if using a valid DXGI_FORMAT
         bool InitCounter(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pCounterDesc, uint32_t counterSize, D3D12_RESOURCE_STATES state);
         bool InitFromData(Device* pDevice, const char *pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data);
 
-        ID3D12Resource* GetResource() { return m_pResource; }
+        // explicit functions for creating RTVs, SRVs and UAVs
+        void CreateRTV(uint32_t index, RTV *pRV, D3D12_RENDER_TARGET_VIEW_DESC *pRtvDesc);
+        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, D3D12_SHADER_RESOURCE_VIEW_DESC *pSrvDesc);
+        void CreateUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC *pUavDesc);
 
-        void CreateRTV(uint32_t index, RTV *pRV, int mipLevel = -1);
-        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1);
+        // less explicit functions of the above ones
         void CreateDSV(uint32_t index, DSV *pRV, int arraySlice = 1);
-        void CreateUAV(uint32_t index, CBV_SRV_UAV *pRV);
-        void CreateBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV);  // if counter=true, then UAV is in index, counter is in index+1
+        void CreateUAV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1);
+        void CreateBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV);
+        void CreateRTV(uint32_t index, RTV *pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1);
+        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1);        
         void CreateCubeSRV(uint32_t index, CBV_SRV_UAV *pRV);
 
-        uint32_t GetWidth() { return m_header.width; }
-        uint32_t GetHeight() { return m_header.height; }
-        uint32_t GetMipCount() { return m_header.mipMapCount; }
-
-        static std::map<std::string, Texture *> m_cache;
+        // accessors
+        uint32_t GetWidth() const { return m_header.width; }
+        uint32_t GetHeight() const { return m_header.height; }
+        DXGI_FORMAT GetFormat() const { return m_header.format; }
+        ID3D12Resource* GetResource() const { return m_pResource; }
+        uint32_t GetMipCount() const { return m_header.mipMapCount; }
+        uint32_t GetArraySize() const { return m_header.arraySize; }
 
     protected:
         void CreateTextureCommitted(Device* pDevice, const char *pDebugName, bool useSRGB = false);
@@ -64,9 +71,7 @@ namespace CAULDRON_DX12
         IMG_INFO                m_header = {};
         uint32_t                m_structuredBufferStride = 0;
 
-        void                    PatchFmt24To32Bit(unsigned char *pDst, unsigned char *pSrc, UINT32 pixelCount);
         bool                    isDXT(DXGI_FORMAT format)const;
-        UINT32                  GetPixelSize(DXGI_FORMAT fmt) const;
         bool                    isCubemap()const;
     };
 }

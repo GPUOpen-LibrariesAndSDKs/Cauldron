@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Misc\Ring.h"
+#include "Misc/Ring.h"
 
 namespace CAULDRON_VK
 {
@@ -29,10 +29,11 @@ namespace CAULDRON_VK
     class CommandListRing
     {
     public:
-        void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerframe);
+        void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerframe, bool compute = false);
         void OnDestroy();
         void OnBeginFrame();
         VkCommandBuffer GetNewCommandList();
+        VkCommandPool GetPool() { return m_pCommandBuffers->m_commandPool; }
 
     private:
         uint32_t m_frameIndex;

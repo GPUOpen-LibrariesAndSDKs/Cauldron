@@ -87,6 +87,24 @@ void Trace(const std::string &str)
     OutputDebugStringA(str.c_str());
 }
 
+void Trace(const char* pFormat, ...)
+{
+    std::mutex mutex;
+    std::unique_lock<std::mutex> lock(mutex);
+
+    constexpr uint32_t MaxBufferSize = 2048;
+    char str[MaxBufferSize];
+    va_list args;
+
+    // generate formatted string
+    va_start(args, pFormat);
+    vsnprintf_s(str, MaxBufferSize, pFormat, args);
+    va_end(args);
+    strcat_s(str, "\n");
+
+    OutputDebugStringA(str);
+}
+
 //
 //  Reads a file into a buffer
 //
@@ -229,7 +247,6 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
 
     return false;
 }
-
 
 void GetXYZ(float *f, XMVECTOR v)
 {

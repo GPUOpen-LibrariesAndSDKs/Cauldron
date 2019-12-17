@@ -18,8 +18,8 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base\Device.h"
-#include "Base\ShaderCompilerHelper.h"
+#include "Base/Device.h"
+#include "Base/ShaderCompilerHelper.h"
 #include "Wireframe.h"
 
 namespace CAULDRON_VK

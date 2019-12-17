@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Wireframe.h"
-#include "Misc\WirePrimitives.h"
+#include "Misc/WirePrimitives.h"
 
 namespace CAULDRON_VK
 {

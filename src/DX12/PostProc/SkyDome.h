@@ -19,10 +19,10 @@
 #pragma once
 
 #include "PostProcPS.h"
-#include "Base\Texture.h"
-#include "Base\UploadHeap.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\DynamicBufferRing.h"
+#include "Base/Texture.h"
+#include "Base/UploadHeap.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/DynamicBufferRing.h"
 
 namespace CAULDRON_DX12
 {

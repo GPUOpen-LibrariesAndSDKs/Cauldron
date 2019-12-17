@@ -18,11 +18,13 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Misc\Misc.h"
-#include "base\Device.h"
 #include "Helper.h"
+#include "Misc/Misc.h"
+#include "base/Device.h"
+#include "base/FreeSync2.h"
 
 #include "SwapChain.h"
+#include "../common/Misc/DxgiFormatHelper.h"
 
 #pragma comment(lib, "dxgi.lib")
 
@@ -30,7 +32,7 @@ namespace CAULDRON_DX12
 {
     DXGI_FORMAT SwapChain::GetFormat()
     {
-        return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        return m_swapChainFormat;
     };
 
     //--------------------------------------------------------------------------------------
@@ -38,12 +40,14 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd)
+    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd, DisplayModes displayMode)
     {
         m_hWnd = hWnd;
         m_pDevice = pDevice->GetDevice();
         m_pDirectQueue = pDevice->GetGraphicsQueue();
         m_BackBufferCount = numberBackBuffers;
+
+        m_swapChainFormat = fs2GetFormat(displayMode);
 
         CreateDXGIFactory1(IID_PPV_ARGS(&m_pFactory));
 
@@ -52,21 +56,14 @@ namespace CAULDRON_DX12
         m_descSwapChain.BufferCount = m_BackBufferCount;
         m_descSwapChain.Width = 0;
         m_descSwapChain.Height = 0;
-        m_descSwapChain.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        m_descSwapChain.Format = ConvertIntoNonGammaFormat(m_swapChainFormat);
         m_descSwapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         m_descSwapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         m_descSwapChain.SampleDesc.Count = 1;
         m_descSwapChain.Flags = 0;
 
-        // It is recommended to always use the tearing flag when it is available.
-        //descSwapChain.Flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+        m_swapChainFence.OnCreate(pDevice, format("swapchain fence").c_str());
 
-        m_Fences.resize(m_descSwapChain.BufferCount);
-        for (uint32_t n = 0; n < m_descSwapChain.BufferCount; n++)
-        {
-            // This fence is for the swap chain synchronization
-            m_Fences[n].OnCreate(pDevice, format("swapchain fence %i",n).c_str());
-        }
 
         IDXGISwapChain1 *pSwapChain;
         ThrowIfFailed(m_pFactory->CreateSwapChainForHwnd(
@@ -103,8 +100,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void SwapChain::OnDestroy()
     {
-        for (uint32_t n = 0; n < m_descSwapChain.BufferCount; n++)
-            m_Fences[n].OnDestroy();
+        m_swapChainFence.OnDestroy();
 
         m_RTVHeaps->Release();
 
@@ -130,35 +126,43 @@ namespace CAULDRON_DX12
 
     void SwapChain::WaitForSwapChain()
     {
-        uint32_t backBuffferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
-        m_Fences[(backBuffferIndex) % m_BackBufferCount].CpuWaitForFence(0);
+        m_swapChainFence.CpuWaitForFence(m_BackBufferCount - 1);
     };
 
     void SwapChain::Present()
     {
-        ThrowIfFailed(m_pSwapChain->Present(0, 0));
+        if (m_bVSyncOn)
+        {
+            ThrowIfFailed(m_pSwapChain->Present(1, 0));
+        }
+        else
+        {
+            ThrowIfFailed(m_pSwapChain->Present(0, 0));
+        }
 
         // issue a fence so we can tell when this frame ended
-        uint32_t backBuffferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
-        m_Fences[backBuffferIndex].IssueFence(m_pDirectQueue);
-    }
+        m_swapChainFence.IssueFence(m_pDirectQueue);
 
+    }
 
     void SwapChain::SetFullScreen(bool fullscreen)
     {
+        // This sets app to Fullscreen Exclusive mode which is different from fullscreen borderless mode.
         ThrowIfFailed(m_pSwapChain->SetFullscreenState(fullscreen, nullptr));
     }
 
-
-    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight)
+    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode)
     {
+        m_swapChainFormat = fs2GetFormat(displayMode);
+        m_bVSyncOn = bVSyncOn;
+
         // Set up the swap chain to allow back buffers to live on multiple GPU nodes.
         ThrowIfFailed(
             m_pSwapChain->ResizeBuffers(
                 m_descSwapChain.BufferCount,
                 dwWidth,
                 dwHeight,
-                DXGI_FORMAT_R8G8B8A8_UNORM,
+                ConvertIntoNonGammaFormat(m_swapChainFormat),
                 m_descSwapChain.Flags)
         );
 
@@ -188,7 +192,7 @@ namespace CAULDRON_DX12
             D3D12_RESOURCE_DESC desc = pBackBuffer->GetDesc();
 
             D3D12_RENDER_TARGET_VIEW_DESC colorDesc = {};
-            colorDesc.Format = GetFormat();
+            colorDesc.Format = m_swapChainFormat;
             colorDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
             colorDesc.Texture2D.MipSlice = 0;
             colorDesc.Texture2D.PlaneSlice = 0;

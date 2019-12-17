@@ -18,12 +18,12 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base\DynamicBufferRing.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\DebugMarkersExt.h"
-#include "Base\UploadHeap.h"
-#include "Base\Texture.h"
-#include "Base\Helper.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/ExtDebugMarkers.h"
+#include "Base/UploadHeap.h"
+#include "Base/Texture.h"
+#include "Base/Helper.h"
 #include "ToneMapping.h"
 
 namespace CAULDRON_VK
@@ -63,34 +63,33 @@ namespace CAULDRON_VK
         layoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         layoutBindings[1].pImmutableSamplers = NULL;
 
-        m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, &m_descriptorSetLayout, &m_descriptorSet);
-        m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ToneMappingConsts), m_descriptorSet);
+        m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_descriptorSetLayout);
 
         m_toneMapping.OnCreate(m_pDevice, renderPass, "Tonemapping.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
+
+        m_descriptorIndex = 0;
+        for(int i=0;i< s_descriptorBuffers;i++)
+            m_pResourceViewHeaps->AllocDescriptor(m_descriptorSetLayout, &m_descriptorSet[i]);
     }
 
     void ToneMapping::OnDestroy()
     {
         m_toneMapping.OnDestroy();
 
-        m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
+        for (int i = 0; i < s_descriptorBuffers; i++)
+            m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet[i]);
 
         vkDestroySampler(m_pDevice->GetDevice(), m_sampler, nullptr);
 
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorSetLayout, NULL);
     }
 
-    void ToneMapping::OnCreateWindowSizeDependentResources(VkImageView HDRSRV)
+    void ToneMapping::UpdatePipelines(VkRenderPass renderPass)
     {
-        SetDescriptorSet(m_pDevice->GetDevice(), 1, HDRSRV, &m_sampler, m_descriptorSet);
+        m_toneMapping.UpdatePipeline(renderPass, NULL, VK_SAMPLE_COUNT_1_BIT);
     }
 
-    void ToneMapping::OnDestroyWindowSizeDependentResources()
-    {
-
-    }
-
-    void ToneMapping::Draw(VkCommandBuffer cmd_buf, float exposure, int toneMapper)
+    void ToneMapping::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper, bool applyGamma)
     {
         SetPerfMarkerBegin(cmd_buf, "tonemapping");
 
@@ -99,8 +98,19 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
+        pToneMapping->applyGamma = applyGamma?1:0;
 
-        m_toneMapping.Draw(cmd_buf, cbTonemappingHandle, m_descriptorSet);
+        // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we 
+        // need to do some basic buffering. Just to keep it safe and simple we'll have 10 buffers.
+        VkDescriptorSet descriptorSet = m_descriptorSet[m_descriptorIndex];
+        m_descriptorIndex = (m_descriptorIndex + 1) % s_descriptorBuffers;
+
+        // modify Descriptor set
+        SetDescriptorSet(m_pDevice->GetDevice(), 1, HDRSRV, &m_sampler, descriptorSet);
+        m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ToneMappingConsts), descriptorSet);
+
+        // Draw!
+        m_toneMapping.Draw(cmd_buf, cbTonemappingHandle, descriptorSet);
 
         SetPerfMarkerEnd(cmd_buf);
     }

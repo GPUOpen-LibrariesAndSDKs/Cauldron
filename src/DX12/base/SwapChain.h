@@ -22,16 +22,17 @@
 #include <dxgi1_4.h>
 #include "Fence.h"
 #include "Device.h"
+#include "FreeSync2.h"
 
 namespace CAULDRON_DX12
 {
     class SwapChain
     {
     public:
-        void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd);
+        void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd, DisplayModes displayMode);
         void OnDestroy();
 
-        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight);
+        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode);
         void OnDestroyWindowSizeDependentResources();
 
         void SetFullScreen(bool fullscreen);
@@ -51,7 +52,9 @@ namespace CAULDRON_DX12
         IDXGIFactory4 *m_pFactory = NULL;
         IDXGISwapChain3 *m_pSwapChain = NULL;
 
-        std::vector<Fence> m_Fences;
+        DXGI_FORMAT m_swapChainFormat = DXGI_FORMAT_UNKNOWN;
+
+        Fence m_swapChainFence;
 
         ID3D12CommandQueue*    m_pDirectQueue;
 
@@ -59,5 +62,7 @@ namespace CAULDRON_DX12
         std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> m_CPUView;
 
         DXGI_SWAP_CHAIN_DESC1 m_descSwapChain = {};
+
+        bool m_bVSyncOn = false;
     };
 }

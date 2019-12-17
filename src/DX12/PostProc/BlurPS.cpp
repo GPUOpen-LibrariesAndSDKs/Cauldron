@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "..\base\DynamicBufferRing.h"
-#include "..\base\StaticBufferPool.h"
-#include "..\base\UploadHeap.h"
-#include "..\base\Texture.h"
-#include "..\base\Helper.h"
+#include "../Base/DynamicBufferRing.h"
+#include "../Base/StaticBufferPool.h"
+#include "../Base/UploadHeap.h"
+#include "../Base/Texture.h"
+#include "../Base/Helper.h"
 #include "PostProcPS.h"
 #include "BlurPS.h"
 
@@ -88,7 +88,7 @@ namespace CAULDRON_DX12
         SamplerDesc.RegisterSpace = 0;
         SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-        m_directionalBlur.OnCreate(pDevice, "blur.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, &SamplerDesc, m_outFormat);
+        m_directionalBlur.OnCreate(pDevice, "blur.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, m_outFormat);
 
         // Allocate descriptors for the mip chain
         //

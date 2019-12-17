@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <functional>
 #include <vector>
 #include <thread>
 #include <mutex>

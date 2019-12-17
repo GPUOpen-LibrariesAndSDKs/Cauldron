@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "..\json\json.h"
+#include "../json/json.h"
 
 using json = nlohmann::json;
 

@@ -18,10 +18,10 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "GLTF\GltfHelpers.h"
-#include "Base\ShaderCompilerHelper.h"
-#include "Misc\ThreadPool.h"
-#include "Misc\Misc.h"
+#include "GLTF/GltfHelpers.h"
+#include "Base/ShaderCompilerHelper.h"
+#include "Misc/ThreadPool.h"
+#include "Misc/Misc.h"
 
 #include "GltfDepthPass.h"
 
@@ -95,16 +95,23 @@ namespace CAULDRON_DX12
                 {
                     tfmat->m_defines["DEF_alphaCutoff"] = std::to_string(GetElementFloat(material, "alphaCutoff", 0.5));
 
-                    int id = GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1);
-                    if (id >= 0)
+                    auto pbrMetallicRoughnessIt = material.find("pbrMetallicRoughness");
+                    if (pbrMetallicRoughnessIt != material.end())
                     {
-                        // allocate descriptor table for the texture                        
-                        tfmat->m_textureCount = 1;
-                        tfmat->m_pTransparency = new CBV_SRV_UAV();
-                        pHeaps->AllocCBV_SRV_UAVDescriptor(tfmat->m_textureCount, tfmat->m_pTransparency);
-                        Texture *pTexture = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
-                        pTexture->CreateSRV(0, tfmat->m_pTransparency);
-                        tfmat->m_defines["ID_baseColorTexture"] = "0";
+                        const json::object_t &pbrMetallicRoughness = pbrMetallicRoughnessIt->second;
+
+                        int id = GetElementInt(pbrMetallicRoughness, "baseColorTexture/index", -1);
+                        if (id >= 0)
+                        {
+                            // allocate descriptor table for the texture
+                            tfmat->m_textureCount = 1;
+                            tfmat->m_pTransparency = new CBV_SRV_UAV();
+                            pHeaps->AllocCBV_SRV_UAVDescriptor(tfmat->m_textureCount, tfmat->m_pTransparency);
+                            Texture *pTexture = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
+                            pTexture->CreateSRV(0, tfmat->m_pTransparency);
+                            tfmat->m_defines["ID_baseColorTexture"] = "0";
+                            tfmat->m_defines["ID_baseTexCoord"] = std::to_string(GetElementInt(pbrMetallicRoughness, "baseColorTexture/texCoord", 0));
+                        }
                     }
                 }
             }
@@ -262,7 +269,10 @@ namespace CAULDRON_DX12
                 RTSlot[1].InitAsDescriptorTable(1, &DescRange[0], D3D12_SHADER_VISIBILITY_PIXEL);      // t0 <- per material
                 RTSlot[2].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);                 // b1 <- per material parameters
                 if (bUsingSkinning)
+                {
                     RTSlot[3].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+                    attributeDefines["ID_SKINNING_MATRICES"] = "2";
+                }
 
                 // the root signature contains 3 slots to be used        
                 descRootSignature.NumParameters = bUsingSkinning ? 4 : 3;
@@ -275,7 +285,10 @@ namespace CAULDRON_DX12
                 RTSlot[0].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL);  // b0 <- per frame
                 RTSlot[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);  // b1 <- per material parameters
                 if (bUsingSkinning)
+                {
                     RTSlot[2].InitAsConstantBufferView(2, 0, D3D12_SHADER_VISIBILITY_VERTEX);
+                    attributeDefines["ID_SKINNING_MATRICES"] = "2";
+                }
 
                 // the root signature contains 3 slots to be used        
                 descRootSignature.NumParameters = bUsingSkinning ? 3 : 2;
@@ -310,7 +323,7 @@ namespace CAULDRON_DX12
                     pOutBlob->GetBufferSize(),
                     IID_PPV_ARGS(&pPrimitive->m_RootSignature))
             );
-            pPrimitive->m_RootSignature->SetName(L"OnCreatePrimitiveDepthPass");
+            SetName(pPrimitive->m_RootSignature, "GltfDepthPass::m_RootSignature");
 
             pOutBlob->Release();
             if (pErrorBlob)
@@ -349,7 +362,7 @@ namespace CAULDRON_DX12
         ThrowIfFailed(
             pDevice->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_PipelineRender))
         );
-
+        SetName(pPrimitive->m_PipelineRender, "GltfDepthPass::m_PipelineRender");
     }
 
     //--------------------------------------------------------------------------------------
@@ -382,7 +395,7 @@ namespace CAULDRON_DX12
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_transformedData.m_worldSpaceMats.data();
+        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {

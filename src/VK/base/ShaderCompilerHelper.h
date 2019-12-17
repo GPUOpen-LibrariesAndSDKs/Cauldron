@@ -18,8 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base\Device.h"
-#include "Base\ShaderCompiler.h"
+#include "Base/Device.h"
+#include "Base/ShaderCompiler.h"
 
 namespace CAULDRON_VK
 {

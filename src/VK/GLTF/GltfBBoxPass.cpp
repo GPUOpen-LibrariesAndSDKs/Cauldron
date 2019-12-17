@@ -18,10 +18,10 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base\DebugMarkersExt.h"
+#include "Base/ExtDebugMarkers.h"
 #include "GltfBBoxPass.h"
 #include "GltfHelpers.h"
-#include "Base\ShaderCompilerHelper.h"
+#include "Base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_VK
 {
@@ -71,7 +71,7 @@ namespace CAULDRON_VK
             if (pNode->meshIndex < 0)
                 continue;
 
-            XMMATRIX mWorldViewProj = pC->m_transformedData.m_worldSpaceMats[i] * cameraViewProjMatrix;
+            XMMATRIX mWorldViewProj = pC->m_pCurrentFrameTransformedData->m_worldSpaceMats[i] * cameraViewProjMatrix;
 
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)

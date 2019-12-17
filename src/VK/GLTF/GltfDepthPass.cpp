@@ -19,11 +19,11 @@
 
 #include "stdafx.h"
 #include "GltfHelpers.h"
-#include "Base\ShaderCompilerHelper.h"
-#include "Base\ResourceViewHeaps.h"
-#include "Base\DebugMarkersExt.h"
-#include "Base\Helper.h"
-#include "Misc\Cache.h"
+#include "Base/ShaderCompilerHelper.h"
+#include "Base/ResourceViewHeaps.h"
+#include "Base/ExtDebugMarkers.h"
+#include "Base/Helper.h"
+#include "Misc/Cache.h"
 
 #include "GltfDepthPass.h"
 
@@ -104,15 +104,22 @@ namespace CAULDRON_VK
                 {
                     tfmat->m_defines["DEF_alphaCutoff"] = std::to_string(GetElementFloat(material, "alphaCutoff", 0.5));
 
-                    int id = GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1);
-                    if (id >= 0)
+                    auto pbrMetallicRoughnessIt = material.find("pbrMetallicRoughness");
+                    if (pbrMetallicRoughnessIt != material.end())
                     {
-                        // allocate descriptor table for the texture                                   
-                        tfmat->m_textureCount = 1;
-                        m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, &m_sampler, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
-                        VkImageView textureView = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
-                        SetDescriptorSet(m_pDevice->GetDevice(), 0, textureView, NULL, tfmat->m_descriptorSet);
-                        tfmat->m_defines["ID_baseColorTexture"] = "0";
+                        const json::object_t &pbrMetallicRoughness = pbrMetallicRoughnessIt->second;
+
+                        int id = GetElementInt(pbrMetallicRoughness, "baseColorTexture/index", -1);
+                        if (id >= 0)
+                        {
+                            // allocate descriptor table for the texture
+                            tfmat->m_textureCount = 1;
+                            m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, &m_sampler, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
+                            VkImageView textureView = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
+                            SetDescriptorSet(m_pDevice->GetDevice(), 0, textureView, &m_sampler, tfmat->m_descriptorSet);
+                            tfmat->m_defines["ID_baseColorTexture"] = "0";
+                            tfmat->m_defines["ID_baseTexCoord"] = std::to_string(GetElementInt(pbrMetallicRoughness, "baseColorTexture/texCoord", 0));
+                        }
                     }
                 }
             }
@@ -519,7 +526,7 @@ namespace CAULDRON_VK
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_transformedData.m_worldSpaceMats.data();
+        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {

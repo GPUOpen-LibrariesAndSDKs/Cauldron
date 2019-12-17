@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "..\imgui\imgui.h"
+#include "../imgui/imgui.h"
 
 bool ImGUI_Init(void* hwnd);
 void ImGUI_Shutdown();

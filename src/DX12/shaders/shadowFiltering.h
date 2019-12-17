@@ -20,9 +20,14 @@
 #ifdef ID_shadowMap
 Texture2D                  shadowMap : register(TEX(ID_shadowMap));
 SamplerComparisonState     samShadow : register(SMP(ID_shadowMap));
-#endif 
+#endif
 
+#ifdef ID_shadowBuffer
+Texture2D                  shadowBuffer : register(TEX(ID_shadowBuffer));
+SamplerState               sampleShadow : register(SMP(ID_shadowBuffer));
+#endif
 
+#ifdef ID_shadowMap
 float FilterShadow(Texture2D shadowMap, float3 uv)
 {
     float shadow = 0.0;
@@ -40,12 +45,16 @@ float FilterShadow(Texture2D shadowMap, float3 uv)
     shadow /= (kernelWidth*kernelWidth); 
     return shadow;
 }
+#endif
 
 float DoSpotShadow(in float3 vPosition, Light light)
 {
-#ifdef ID_shadowMap			
+#ifdef ID_shadowMap
     if (light.shadowMapIndex < 0)
-        return 0;
+        return 1.0;
+
+    if (light.type != LightType_Spot)
+        return 1.0; // no other light types cast shadows for now
 
     float4 shadowTexCoord = mul(light.mLightViewProj, float4(vPosition, 1));
     shadowTexCoord.xyz = shadowTexCoord.xyz / shadowTexCoord.w;
@@ -71,3 +80,40 @@ float DoSpotShadow(in float3 vPosition, Light light)
 #endif
 }
 
+float ReadShadows(in int2 screenPos, Light light)
+{
+#ifdef ID_shadowBuffer
+    if (light.shadowMapIndex < 0)
+        return 1.0f;
+    int3 dims;
+    shadowBuffer.GetDimensions(0, dims.x, dims.y, dims.z);
+    const float2 uv = (screenPos + 0.5f) / float2(dims.xy);
+    float4 shadows = shadowBuffer.SampleLevel(sampleShadow, uv, 0.0f);
+    switch (light.shadowMapIndex)
+    {
+    case 0:
+        return shadows.x;
+    case 1:
+        return shadows.y;
+    case 2:
+        return shadows.z;
+    case 3:
+        return shadows.w;
+    default:
+        break;
+    }
+    return 0;
+#else
+    return 1.0f;
+#endif
+}
+
+float CalcShadows(in float3 worldPos, in int2 screenPos, Light light)
+{
+#ifdef ID_shadowBuffer
+    return ReadShadows(screenPos, light);
+#endif
+#ifdef ID_shadowMap
+    return DoSpotShadow(worldPos, light);
+#endif
+}

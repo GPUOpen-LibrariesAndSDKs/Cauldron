@@ -20,7 +20,7 @@
 #include <DirectXMath.h>
 using namespace DirectX;
 
-#include "Misc\Camera.h"
+#include "Misc/Camera.h"
 
 void GenerateSphere(int sides, std::vector<short> &outIndices, std::vector<float> &outVertices)
 {

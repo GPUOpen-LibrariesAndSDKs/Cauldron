@@ -18,9 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base\StaticBufferPool.h"
-#include "Base\DynamicBufferRing.h"
-#include "Base\ResourceViewHeaps.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/ResourceViewHeaps.h"
 
 namespace CAULDRON_VK
 {
@@ -38,20 +38,23 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT
         );
         void OnDestroy();
+        void UpdatePipeline(VkRenderPass renderPass, VkPipelineColorBlendStateCreateInfo *pBlendDesc = NULL, VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT);
         void Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo constantBuffer, VkDescriptorSet descriptorSet = NULL);
 
     private:
         Device* m_pDevice;
-        VkRenderPass m_renderPass;
+        std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
 
         // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
-        VkIndexType m_indexType;
         uint32_t m_NumIndices;
+        VkIndexType m_indexType;
         VkDescriptorBufferInfo m_IBV;
         VkDescriptorBufferInfo m_verticesView;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout m_pipelineLayout;
+        VkRenderPass m_renderPass = VK_NULL_HANDLE;
+        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+
     };
 }
 

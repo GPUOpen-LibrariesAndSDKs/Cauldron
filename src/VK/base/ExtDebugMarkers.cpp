@@ -1,5 +1,5 @@
 // AMD AMDUtils code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,7 +18,8 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "DebugMarkersExt.h"
+#include "ExtDebugMarkers.h"
+
 
 namespace CAULDRON_VK
 {
@@ -27,16 +28,29 @@ namespace CAULDRON_VK
     PFN_vkCmdDebugMarkerBeginEXT        vkCmdDebugMarkerBegin = NULL;
     PFN_vkCmdDebugMarkerEndEXT          vkCmdDebugMarkerEnd = NULL;
     PFN_vkCmdDebugMarkerInsertEXT       vkCmdDebugMarkerInsert = NULL;
+    PFN_vkSetDebugUtilsObjectNameEXT    vkSetDebugUtilsObjectName = NULL;
 
-    // 
-    //
-    void ExtDebugMarkersInit(VkDevice device)
+    static bool s_bCanUseDebugMarker = false;
+
+    bool ExtDebugMarkerCheckDeviceExtensions(DeviceProperties *pDP)
     {
-        vkDebugMarkerSetObjectTag = (PFN_vkDebugMarkerSetObjectTagEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectTagEXT");
-        vkDebugMarkerSetObjectName = (PFN_vkDebugMarkerSetObjectNameEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectNameEXT");
-        vkCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerBeginEXT");
-        vkCmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerEndEXT");
-        vkCmdDebugMarkerInsert = (PFN_vkCmdDebugMarkerInsertEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerInsertEXT");
+        s_bCanUseDebugMarker = pDP->Add(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+        return s_bCanUseDebugMarker;
+    }
+
+    //
+    //
+    void ExtDebugMarkersGetProcAddresses(VkDevice device)
+    {
+        if (s_bCanUseDebugMarker)
+        {
+            vkDebugMarkerSetObjectTag = (PFN_vkDebugMarkerSetObjectTagEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectTagEXT");
+            vkDebugMarkerSetObjectName = (PFN_vkDebugMarkerSetObjectNameEXT)vkGetDeviceProcAddr(device, "vkDebugMarkerSetObjectNameEXT");
+            vkCmdDebugMarkerBegin = (PFN_vkCmdDebugMarkerBeginEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerBeginEXT");
+            vkCmdDebugMarkerEnd = (PFN_vkCmdDebugMarkerEndEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerEndEXT");
+            vkCmdDebugMarkerInsert = (PFN_vkCmdDebugMarkerInsertEXT)vkGetDeviceProcAddr(device, "vkCmdDebugMarkerInsertEXT");
+            vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
+        }
     }
 
 

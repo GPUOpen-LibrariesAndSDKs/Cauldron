@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -17,14 +17,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#pragma once
+//--------------------------------------------------------------------------------------
+// I/O Structures
+//--------------------------------------------------------------------------------------
 
-#include "InstanceProperties.h"
-
-namespace CAULDRON_VK
+struct VERTEX
 {
-    bool ValidationCheckExtensions(InstanceProperties *pIP);
-    bool ValidationCheckExtensions(DeviceProperties *pDP, void **pNext);
-    void ValidationOnCreate(VkInstance instance);
-    void ValidationOnDestroy(VkInstance instance);
+    float2 vTexcoord : TEXCOORD;
+};
+
+//--------------------------------------------------------------------------------------
+// Texture definitions
+//--------------------------------------------------------------------------------------
+
+Texture2D    DebugBuffer  : register(t0);
+SamplerState DebugSampler : register(s0);
+
+//--------------------------------------------------------------------------------------
+// Main function
+//--------------------------------------------------------------------------------------
+
+float4 mainPS(VERTEX Input) : SV_Target
+{
+    return float4(DebugBuffer.SampleLevel(DebugSampler, Input.vTexcoord, 0.0f).xxx, 1.0f);
 }

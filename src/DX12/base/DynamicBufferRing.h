@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Misc\Ring.h"
+#include "Misc/Ring.h"
 #include "ResourceViewHeaps.h"
 
 namespace CAULDRON_DX12

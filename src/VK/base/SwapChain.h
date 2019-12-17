@@ -20,17 +20,18 @@
 #pragma once
 
 #include "Device.h"
+#include "FreeSync2.h"
 
 namespace CAULDRON_VK
 {
     class SwapChain
     {
     public:
-        void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd);
+        void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd, DisplayModes displayMode);
         void OnDestroy();
 
         void SetFullScreen(bool fullscreen);
-        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight);
+        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode);
         void OnDestroyWindowSizeDependentResources();
 
         uint32_t WaitForSwapChain();
@@ -42,21 +43,23 @@ namespace CAULDRON_VK
         VkImageView GetCurrentBackBufferRTV();
         bool IsFullScreen() const { return m_isFullScreen; }
         VkSwapchainKHR GetSwapChain() const { return m_swapChain; }
-        VkFormat GetFormat() const { return m_surfaceFormat.format; };
+        VkFormat GetFormat() const { return m_swapChainFormat.format; };
         VkRenderPass GetRenderPass() { return m_render_pass_swap_chain; };
         VkFramebuffer GetFramebuffer(int i) const { return m_framebuffers[i]; }
 
     private:
         void CreateRTV();
         void DestroyRTV();
+        void CreateRenderPass();
+        void DestroyRenderPass();
         void CreateFramebuffers(uint32_t dwWidth, uint32_t dwHeight);
         void DestroyFramebuffers();
 
         HWND m_hWnd;
         Device *m_pDevice;
 
-        VkSwapchainKHR m_swapChain;
-        VkSurfaceFormatKHR m_surfaceFormat;
+        VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
+        VkSurfaceFormatKHR m_swapChainFormat;
 
         VkQueue m_presentQueue;
 
@@ -70,9 +73,8 @@ namespace CAULDRON_VK
         std::vector<VkSemaphore>   m_ImageAvailableSemaphores;
         std::vector<VkSemaphore>   m_RenderFinishedSemaphores;
 
-        uint32_t m_index;
-        uint32_t m_nextIndex;
-        uint32_t m_imageIndex;
+        uint32_t m_imageIndex = 0;
+        uint32_t m_prevImageIndex = 0;
         uint32_t m_backBufferCount;
 
         // fullscreen/windowed vars
@@ -85,5 +87,7 @@ namespace CAULDRON_VK
             RECT WindowRect;
         };
         SavedWindowInfo m_windowedState = {};
+
+        bool m_bVSyncOn = false;
     };
 }

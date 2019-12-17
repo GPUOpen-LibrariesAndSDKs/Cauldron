@@ -31,6 +31,7 @@ namespace CAULDRON_VK
         void OnDestroy();
         bool AllocDescriptor(VkDescriptorSetLayout descriptorLayout, VkDescriptorSet *pDescriptor);
         bool AllocDescriptor(int size, const VkSampler *pSamplers, VkDescriptorSetLayout *descriptorLayout, VkDescriptorSet *pDescriptor);
+        bool CreateDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *pDescSetLayout);
         bool CreateDescriptorSetLayoutAndAllocDescriptorSet(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *descriptorLayout, VkDescriptorSet *pDescriptor);
         void FreeDescriptor(VkDescriptorSet descriptorSet);
     private:

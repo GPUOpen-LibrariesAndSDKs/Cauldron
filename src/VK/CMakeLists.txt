@@ -2,6 +2,8 @@ project (Framework_VK)
 
 add_compile_options(/MP)
 
+include(common)
+
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
     GLTF/GltfBBoxPass.h
@@ -35,10 +37,6 @@ set(PostProc_src
 set(Base_src
     base/CommandListRing.cpp
     base/CommandListRing.h
-    base/DebugMarkersExt.cpp
-    base/DebugMarkersExt.h
-    base/ValidationExt.cpp
-    base/ValidationExt.h
     base/Device.cpp
     base/Device.h
     base/DeviceProperties.cpp
@@ -47,6 +45,12 @@ set(Base_src
     base/DynamicBufferRing.h
     base/GPUTimestamps.cpp
     base/GPUTimestamps.h
+    base/FreeSync2.cpp
+    base/FreeSync2.h
+    base/ExtDebugMarkers.cpp
+    base/ExtDebugMarkers.h
+    base/ExtValidation.cpp
+    base/ExtValidation.h
     base/ExtFreeSync2.cpp
     base/ExtFreeSync2.h
     base/ExtFp16.cpp
@@ -86,11 +90,13 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blend.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blur.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/DownSamplePS.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTF_VS2PS_IO.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-vert.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-vert.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skinning.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.hlsl
@@ -104,21 +110,6 @@ set(Shaders_src
 set(media_src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
 )    
-
-function(copyCommand list dest)
-    foreach(fullFileName ${list})    
-        get_filename_component(file ${fullFileName} NAME)
-        message("Generating custom command for ${fullFileName}")
-        add_custom_command(
-            OUTPUT   ${dest}/${file}
-            PRE_BUILD
-            COMMAND cmake -E make_directory ${dest}
-            COMMAND cmake -E copy ${fullFileName}  ${dest}
-            MAIN_DEPENDENCY  ${fullFileName}
-            COMMENT "Updating ${file} into ${dest}" 
-        )
-    endforeach()    
-endfunction()
 
 copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
 copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)

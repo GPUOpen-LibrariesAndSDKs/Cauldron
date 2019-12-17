@@ -24,7 +24,7 @@
 #define USE_VMA
 
 #ifdef USE_VMA
-#include "..\VulkanMemoryAllocator\vk_mem_alloc.h"
+#include "../VulkanMemoryAllocator/vk_mem_alloc.h"
 #endif
 
 namespace CAULDRON_VK
@@ -45,6 +45,8 @@ namespace CAULDRON_VK
         uint32_t GetGraphicsQueueFamilyIndex() { return present_queue_family_index; }
         VkQueue GetPresentQueue() { return present_queue; }
         uint32_t GetPresentQueueFamilyIndex() { return graphics_queue_family_index; }
+        VkQueue GetComputeQueue() { return compute_queue; }
+        uint32_t GetComputeQueueFamilyIndex() { return compute_queue_family_index; }
         VkPhysicalDevice GetPhysicalDevice() { return m_physicaldevice; }
         VkSurfaceKHR GetSurface() { return m_surface; }
 #ifdef USE_VMA
@@ -78,9 +80,10 @@ namespace CAULDRON_VK
         uint32_t present_queue_family_index;
         VkQueue graphics_queue;
         uint32_t graphics_queue_family_index;
+        VkQueue compute_queue;
+        uint32_t compute_queue_family_index;
 
         bool m_usingValidationLayer = false;
-        bool m_usingFreeSync2 = false;
         bool m_usingFp16 = false;
 #ifdef USE_VMA
         VmaAllocator m_hAllocator = NULL;

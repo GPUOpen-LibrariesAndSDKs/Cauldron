@@ -53,6 +53,9 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, uint32_t Wi
     RECT windowRect = { 0, 0, (LONG)Width, (LONG)Height };
     AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);    // adjust the size
 
+    // This makes sure that in a multimonitor setup with different resolutions, get monitor info returns correct dimensions
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
                                                                   // create the window and store a handle to it
     hWnd = CreateWindowEx(NULL,
         "WindowClass1",    // name of the window class
@@ -117,6 +120,13 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         return 0;
     }
 
+    // When close button is clicked on window
+    case WM_CLOSE:
+    {
+        PostQuitMessage(0);
+        return 0;
+    }
+
     case WM_KEYDOWN:
     {
         if (wParam == VK_ESCAPE)
@@ -146,8 +156,24 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
         if ((wParam == VK_RETURN) && (lParam & (1 << 29)))
         {
             bIsFullScreen = !bIsFullScreen;
-            dxSample->SetFullScreen(bIsFullScreen);
+            if (dxSample)
+            {
+                dxSample->SetFullScreen(bIsFullScreen);
+            }
         }
+        break;
+    }
+
+    // When window goes outof focus, use this event to fall back on SDR.
+    // If we don't gracefully fallback to SDR, the renderer will output HDR colours which will look extremely bright and washed out.
+    // However if you want to use breakpoints in HDR mode to inspect/debug values, you will have to comment this function call.
+    case WM_ACTIVATE:
+    {
+        if (dxSample)
+        {
+            dxSample->OnActivate(wParam != WA_INACTIVE);
+        }
+
         break;
     }
 

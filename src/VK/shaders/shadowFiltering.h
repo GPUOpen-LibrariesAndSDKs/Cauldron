@@ -24,12 +24,13 @@ layout(set = 1, binding = ID_shadowMap) uniform sampler2D u_shadowMap;
 // shadowmap filtering
 float FilterShadow(vec3 uv)
 {
+    float shadow = 0.0;
+#ifdef ID_shadowMap
     ivec2 texDim = textureSize(u_shadowMap, 0);
     float scale = 1.0;
     float dx = scale * 1.0 / float(texDim.x);
     float dy = scale * 1.0 / float(texDim.y);
 
-    float shadow = 0.0f;
 
     int kernelLevel = 2;
     int kernelWidth = 2 * kernelLevel + 1;
@@ -43,6 +44,7 @@ float FilterShadow(vec3 uv)
     }
 
     shadow /= (kernelWidth*kernelWidth);
+#endif
     return shadow;
 }
 

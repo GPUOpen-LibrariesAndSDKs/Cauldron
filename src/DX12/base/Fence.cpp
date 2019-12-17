@@ -19,8 +19,8 @@
 
 #include "stdafx.h"
 #include "Fence.h"
-#include "Misc\Error.h"
-#include "base\Helper.h"
+#include "Misc/Error.h"
+#include "Base/Helper.h"
 
 namespace CAULDRON_DX12
 {

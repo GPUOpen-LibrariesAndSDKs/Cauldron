@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "DynamicBufferRing.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_DX12
 {
@@ -41,7 +41,7 @@ namespace CAULDRON_DX12
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
             IID_PPV_ARGS(&m_pBuffer)));
-        m_pBuffer->SetName(L"DynamicBufferRing::m_pBuffer");
+        SetName(m_pBuffer, "DynamicBufferRing::m_pBuffer");
 
         m_pBuffer->Map(0, nullptr, reinterpret_cast<void**>(&m_pData));
     }

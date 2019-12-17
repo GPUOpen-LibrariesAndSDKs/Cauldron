@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "ShaderCompilerHelper.h"
-#include "Base\DebugMarkersExt.h"
+#include "Base/ExtDebugMarkers.h"
 #include "Imgui.h"
 
 namespace CAULDRON_VK
@@ -44,14 +44,14 @@ namespace CAULDRON_VK
         m_currentDescriptorIndex = 0;
 
         VkResult res;
-        
+
         // Get UI texture 
         //
         ImGuiIO& io = ImGui::GetIO();
         unsigned char* pixels;
         int width, height;
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-        size_t upload_size = width*height * 4 * sizeof(char);
+        size_t upload_size = width * height * 4 * sizeof(char);
 
         // Create the texture object
         //
@@ -178,7 +178,7 @@ namespace CAULDRON_VK
             res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_sampler);
             assert(res == VK_SUCCESS);
         }
-        
+
         // Vertex shader
         //
         const char *vertShaderTextGLSL =
@@ -238,7 +238,7 @@ namespace CAULDRON_VK
             "   return col;\n"
             "#endif\n"
             "}";
-        
+
         // Compile and create shaders
         //
         DefineList defines;
@@ -256,8 +256,9 @@ namespace CAULDRON_VK
         res = VKCompileFromString(pDevice->GetDevice(), SST_HLSL, VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderTextHLSL, "main", &defines, &m_fragmentShader);
         assert(res == VK_SUCCESS);
 #endif
-
-        std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { m_vertexShader, m_fragmentShader };
+        m_shaderStages.clear();
+        m_shaderStages.push_back(m_vertexShader);
+        m_shaderStages.push_back(m_fragmentShader);
 
         // Create descriptor sets
         //
@@ -363,8 +364,24 @@ namespace CAULDRON_VK
             vkUpdateDescriptorSets(m_pDevice->GetDevice(), 2, writes, 0, NULL);
         }
 
-        // Create the pipeline
-        //
+        UpdatePipeline(renderPass);
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // UpdatePipeline
+    //
+    //--------------------------------------------------------------------------------------
+    void ImGUI::UpdatePipeline(VkRenderPass renderPass)
+    {
+        if (renderPass == VK_NULL_HANDLE)
+            return;
+
+        if (m_pipeline != VK_NULL_HANDLE)
+        {
+            vkDestroyPipeline(m_pDevice->GetDevice(), m_pipeline, nullptr);
+            m_pipeline = VK_NULL_HANDLE;
+        }
 
         // vertex input state
         //
@@ -515,14 +532,13 @@ namespace CAULDRON_VK
         pipeline.pDynamicState = &dynamicState;
         pipeline.pViewportState = &vp;
         pipeline.pDepthStencilState = &ds;
-        pipeline.pStages = shaderStages.data();
-        pipeline.stageCount = (uint32_t)shaderStages.size();
+        pipeline.pStages = m_shaderStages.data();
+        pipeline.stageCount = (uint32_t)m_shaderStages.size();
         pipeline.renderPass = renderPass;
         pipeline.subpass = 0;
 
-        res = vkCreateGraphicsPipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
+        VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
         assert(res == VK_SUCCESS);
-
     }
 
     //--------------------------------------------------------------------------------------
@@ -537,21 +553,30 @@ namespace CAULDRON_VK
 
         vkDestroyImageView(m_pDevice->GetDevice(), m_pTextureSRV, NULL);
 
-        // Our heaps dot allow freeing descriptosets, this incurrs in driver overhead
+        // Our heaps dot allow freeing descriptosets, also this incurrs in driver overhead
         //
+        //vkFreeDescriptorSets(m_pDevice->GetDevice(), m_descriptorPool, 1, &m_descriptorSet);
 
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_desc_layout, nullptr);
+        m_desc_layout = VK_NULL_HANDLE;
 
-        //vkFreeDescriptorSets(m_pDevice->GetDevice(), m_descriptorPool, 1, &m_descriptorSet);
         vkDestroyPipeline(m_pDevice->GetDevice(), m_pipeline, nullptr);
+        m_pipeline = VK_NULL_HANDLE;
 
         vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, NULL);
+        m_descriptorPool = VK_NULL_HANDLE;
 
         vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemory, NULL);
+        m_deviceMemory = VK_NULL_HANDLE;
+
         vkDestroyPipelineLayout(m_pDevice->GetDevice(), m_pipelineLayout, NULL);
+        m_pipelineLayout = VK_NULL_HANDLE;
 
         vkDestroySampler(m_pDevice->GetDevice(), m_sampler, NULL);
+        m_sampler = VK_NULL_HANDLE;
+
         vkDestroyImage(m_pDevice->GetDevice(), m_pTexture2D, NULL);
+        m_pTexture2D = VK_NULL_HANDLE;
     }
 
     //--------------------------------------------------------------------------------------

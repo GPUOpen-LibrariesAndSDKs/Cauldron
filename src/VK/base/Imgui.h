@@ -21,8 +21,8 @@
 #include "DynamicBufferRing.h"
 #include "CommandListRing.h"
 #include "UploadHeap.h"
-#include "..\imgui\imgui.h"
-#include "base\ImGuiHelper.h"
+#include "../imgui/imgui.h"
+#include "Base/ImGuiHelper.h"
 
 namespace CAULDRON_VK
 {
@@ -34,22 +34,24 @@ namespace CAULDRON_VK
         void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap *pUploadHeap, DynamicBufferRing *pConstantBufferRing);
         void OnDestroy();
 
+        void UpdatePipeline(VkRenderPass renderPass);
         void Draw(VkCommandBuffer cmd_buf);
 
     private:
-        Device                  *m_pDevice;
-        DynamicBufferRing       *m_pConstBuf;
+        Device                  *m_pDevice = nullptr;
+        DynamicBufferRing       *m_pConstBuf = nullptr;
 
-        VkImage                     m_pTexture2D;
+        VkImage                     m_pTexture2D = VK_NULL_HANDLE;
         VkDeviceMemory              m_deviceMemory;
         VkDescriptorBufferInfo      m_geometry;
-        VkPipelineLayout            m_pipelineLayout;
-        VkDescriptorPool            m_descriptorPool;
-        VkPipeline                  m_pipeline;
+        VkPipelineLayout            m_pipelineLayout = VK_NULL_HANDLE;
+        VkDescriptorPool            m_descriptorPool = VK_NULL_HANDLE;
+        VkPipeline                  m_pipeline = VK_NULL_HANDLE;
         VkDescriptorSet             m_descriptorSet[128];
-        uint32_t                        m_currentDescriptorIndex;
-        VkSampler                   m_sampler;
-        VkImageView                 m_pTextureSRV;
+        uint32_t                    m_currentDescriptorIndex;
+        VkSampler                   m_sampler = VK_NULL_HANDLE;
+        VkImageView                 m_pTextureSRV = VK_NULL_HANDLE;
         VkDescriptorSetLayout       m_desc_layout;
+        std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
     };
 }

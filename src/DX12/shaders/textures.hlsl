@@ -17,9 +17,9 @@
 //  Texture and samplers bindings
 //
 //--------------------------------------------------------------------------------------
-#define CONCAT(a,b) a ## b
-#define TEX(b) CONCAT(t,b)
-#define SMP(b) CONCAT(s,b)
+//#define CONCAT(a,b) a ## b
+//#define TEX(b) CONCAT(t,b)
+//#define SMP(b) CONCAT(s,b)
 #define TEXCOORD(id) CONCAT(Input.UV, id)
 
 #ifdef ID_baseColorTexture
@@ -160,4 +160,39 @@ float2 getDiffuseUV(VS_OUTPUT_SCENE Input)
 #endif
 #endif
     return uv.xy;
+}
+
+float4 getBaseColorTexture(VS_OUTPUT_SCENE Input)
+{
+#ifdef ID_baseColorTexture
+    return baseColorTexture.Sample(samBaseColor, getBaseColorUV(Input));
+#else 
+    return float4(0, 0, 0, 1); //OPAQUE
+#endif
+}
+
+float3 getNormalTexture(VS_OUTPUT_SCENE Input)
+{
+#ifdef ID_normalTexture
+    return normalTexture.Sample(samNormal, getNormalUV(Input)).rgb;
+#else 
+    return float3(0, 0, 0); //OPAQUE
+#endif
+}
+
+void discardPixelIfAlphaCutOff(VS_OUTPUT_SCENE Input)
+{
+#ifdef ID_baseColorTexture
+    float4 baseColor = getBaseColorTexture(Input);
+
+#if defined(DEF_alphaMode_BLEND)
+        if (baseColor.a == 0)
+            discard;
+#elif defined(DEF_alphaMode_MASK) && defined(DEF_alphaCutoff)
+        if (baseColor.a < DEF_alphaCutoff)
+            discard;
+#else
+        //OPAQUE
+#endif
+#endif
 }

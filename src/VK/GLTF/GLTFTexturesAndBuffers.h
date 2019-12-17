@@ -17,10 +17,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 #pragma once
-#include "GLTF\GltfCommon.h"
-#include "Base\Texture.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\DynamicBufferRing.h"
+#include "GLTF/GltfCommon.h"
+#include "Base/Texture.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/DynamicBufferRing.h"
 
 namespace CAULDRON_VK
 {

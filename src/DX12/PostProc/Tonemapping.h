@@ -27,12 +27,13 @@ namespace CAULDRON_DX12
     public:
         void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat);
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper);
+        void UpdatePipelines(DXGI_FORMAT outFormat);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, bool applyGamma = true);
 
     private:
         PostProcPS m_toneMapping;
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        struct ToneMappingConsts { float exposure; int toneMapper; int applyGamma; };
     };
 }

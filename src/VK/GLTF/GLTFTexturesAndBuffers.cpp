@@ -19,10 +19,10 @@
 
 #include "stdafx.h"
 #include "GltfHelpers.h"
-#include "Base\UploadHeap.h"
+#include "Base/UploadHeap.h"
 #include "GLTFTexturesAndBuffers.h"
-#include "Misc\Misc.h"
-#include "Misc\ThreadPool.h"
+#include "Misc/Misc.h"
+#include "Misc/ThreadPool.h"
 
 namespace CAULDRON_VK
 {
@@ -154,7 +154,7 @@ namespace CAULDRON_VK
 
     void GLTFTexturesAndBuffers::SetSkinningMatricesForSkeletons()
     {
-        for (auto &t : m_pGLTFCommon->m_transformedData.m_worldSpaceSkeletonMats)
+        for (auto &t : m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceSkeletonMats)
         {
             std::vector<XMMATRIX> *matrices = &t.second;
 

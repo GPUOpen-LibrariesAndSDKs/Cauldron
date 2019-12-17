@@ -48,8 +48,8 @@ vec3 getNormal()
 
     // Retrieve the tangent space matrix
 #ifndef ID_4PS_TANGENT
-    vec3 pos_dx = dFdx(v_Position);
-    vec3 pos_dy = dFdy(v_Position);
+    vec3 pos_dx = dFdx(v_WorldPos);
+    vec3 pos_dy = dFdy(v_WorldPos);
     vec3 tex_dx = dFdx(vec3(UV, 0.0));
     vec3 tex_dy = dFdy(vec3(UV, 0.0));
     vec3 t = (tex_dy.y * pos_dx - tex_dx.y * pos_dy) / (tex_dx.x * tex_dy.y - tex_dy.x * tex_dx.y);

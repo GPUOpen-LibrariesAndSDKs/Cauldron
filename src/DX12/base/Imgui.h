@@ -22,7 +22,7 @@
 #include "DynamicBufferRing.h"
 #include "CommandListRing.h"
 #include "UploadHeap.h"
-#include "..\imgui\imgui.h"
+#include "../imgui\imgui.h"
 
 namespace CAULDRON_DX12
 {
@@ -33,18 +33,20 @@ namespace CAULDRON_DX12
     public:
         void OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat);
         void OnDestroy();
-
+        void UpdatePipeline(DXGI_FORMAT outFormat);
         void Draw(ID3D12GraphicsCommandList *pCmdLst);
 
     private:
-        Device                    *m_pDevice;
-        ResourceViewHeaps         *m_pResourceViewHeaps;
-        DynamicBufferRing         *m_pConstBuf;
+        Device                    *m_pDevice = nullptr;
+        ResourceViewHeaps         *m_pResourceViewHeaps = nullptr;
+        DynamicBufferRing         *m_pConstBuf = nullptr;
 
-        ID3D12Resource            *m_pTexture2D;
-        ID3D12PipelineState       *m_pPipelineState;
-        ID3D12RootSignature       *m_pRootSignature;
+        ID3D12Resource            *m_pTexture2D = nullptr;
+        ID3D12PipelineState       *m_pPipelineState = nullptr;
+        ID3D12RootSignature       *m_pRootSignature = nullptr;
 
-        CBV_SRV_UAV			       m_pTextureSRV;
+        D3D12_SHADER_BYTECODE      m_shaderVert, m_shaderPixel;
+
+        CBV_SRV_UAV                m_pTextureSRV;
     };
 }

@@ -18,12 +18,12 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "misc\Cache.h"
+#include "Misc/Cache.h"
 #include "GltfHelpers.h"
-#include "Base\Helper.h"
-#include "Base\ShaderCompilerHelper.h"
-#include "Base\DebugMarkersExt.h"
-#include "PostProc\Skydome.h"
+#include "Base/Helper.h"
+#include "Base/ShaderCompilerHelper.h"
+#include "Base/ExtDebugMarkers.h"
+#include "PostProc/Skydome.h"
 
 #include "GltfPbrPass.h"
 
@@ -233,7 +233,8 @@ namespace CAULDRON_VK
                             out++;
                         }
 
-                        attributeDefines[std::string("ID_4PS_LASTID")] = std::to_string(out-1);
+                        attributeDefines[std::string("ID_4PS_WORLDPOS")] = std::to_string(out);
+                        attributeDefines[std::string("ID_4PS_LASTID")] = std::to_string(out+1);
                     }
 
                     // Create descriptors and pipelines
@@ -272,7 +273,7 @@ namespace CAULDRON_VK
         // Alloc descriptor layout and init the descriptor set 
         if (tfmat->m_textureCount >= 0)
         {
-            // allocate descriptor table for the textures            
+            // allocate descriptor table for the textures
             m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, NULL, &tfmat->m_descriptorLayout, &tfmat->m_texturesDescriptorSet);
 
             uint32_t cnt = 0;
@@ -622,7 +623,7 @@ namespace CAULDRON_VK
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_transformedData.m_worldSpaceMats.data();
+        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
