@@ -25,6 +25,7 @@ Cauldron is compiled as a static library, hence the sample application has to st
 - Postprocessing
   - Bloom
   - HDR/Tonemapping
+- :champagne: New! FreeSync™ 2 HDR support
 - Texture Loaders for DDS, JPEG and PNG formats
   - MipMap generation for powers-of-two textures
 - In-app user interface using [Dear ImGui](https://github.com/ocornut/imgui)
