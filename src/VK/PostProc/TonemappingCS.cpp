@@ -24,74 +24,51 @@
 #include "Base/UploadHeap.h"
 #include "Base/Texture.h"
 #include "Base/Helper.h"
-#include "ToneMapping.h"
+#include "ToneMappingCS.h"
 
 namespace CAULDRON_VK
 {
-    void ToneMapping::OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing)
+    void ToneMappingCS::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing)
     {
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pResourceViewHeaps = pResourceViewHeaps;
 
-        {
-            VkSamplerCreateInfo info = {};
-            info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-            info.magFilter = VK_FILTER_LINEAR;
-            info.minFilter = VK_FILTER_LINEAR;
-            info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-            info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            info.minLod = -1000;
-            info.maxLod = 1000;
-            info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(m_pDevice->GetDevice(), &info, NULL, &m_sampler);
-            assert(res == VK_SUCCESS);
-        }
-
         std::vector<VkDescriptorSetLayoutBinding> layoutBindings(2);
         layoutBindings[0].binding = 0;
         layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layoutBindings[0].descriptorCount = 1;
-        layoutBindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+        layoutBindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
         layoutBindings[0].pImmutableSamplers = NULL;
 
         layoutBindings[1].binding = 1;
-        layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         layoutBindings[1].descriptorCount = 1;
-        layoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        layoutBindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
         layoutBindings[1].pImmutableSamplers = NULL;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_descriptorSetLayout);
 
-        m_toneMapping.OnCreate(m_pDevice, renderPass, "Tonemapping.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
+        m_toneMapping.OnCreate(m_pDevice, "ToneMappingCS.glsl", "main", m_descriptorSetLayout, 8, 8, 1 , NULL);
 
         m_descriptorIndex = 0;
         for(int i=0;i< s_descriptorBuffers;i++)
             m_pResourceViewHeaps->AllocDescriptor(m_descriptorSetLayout, &m_descriptorSet[i]);
     }
 
-    void ToneMapping::OnDestroy()
+    void ToneMappingCS::OnDestroy()
     {
         m_toneMapping.OnDestroy();
 
         for (int i = 0; i < s_descriptorBuffers; i++)
             m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet[i]);
 
-        vkDestroySampler(m_pDevice->GetDevice(), m_sampler, nullptr);
-
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorSetLayout, NULL);
     }
 
-    void ToneMapping::UpdatePipelines(VkRenderPass renderPass)
+    void ToneMappingCS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper, int width, int height)
     {
-        m_toneMapping.UpdatePipeline(renderPass, NULL, VK_SAMPLE_COUNT_1_BIT);
-    }
-
-    void ToneMapping::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper)
-    {
-        SetPerfMarkerBegin(cmd_buf, "tonemapping");
+        SetPerfMarkerBegin(cmd_buf, "ToneMappingCS");
 
         VkDescriptorBufferInfo cbTonemappingHandle;
         ToneMappingConsts *pToneMapping;
@@ -105,11 +82,11 @@ namespace CAULDRON_VK
         m_descriptorIndex = (m_descriptorIndex + 1) % s_descriptorBuffers;
 
         // modify Descriptor set
-        SetDescriptorSet(m_pDevice->GetDevice(), 1, HDRSRV, &m_sampler, descriptorSet);
+        SetDescriptorSet(m_pDevice->GetDevice(), 1, HDRSRV, NULL, descriptorSet);
         m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ToneMappingConsts), descriptorSet);
 
         // Draw!
-        m_toneMapping.Draw(cmd_buf, cbTonemappingHandle, descriptorSet);
+        m_toneMapping.Draw(cmd_buf, cbTonemappingHandle, descriptorSet, (width + 7) / 8, (height + 7) / 8, 1);
 
         SetPerfMarkerEnd(cmd_buf);
     }

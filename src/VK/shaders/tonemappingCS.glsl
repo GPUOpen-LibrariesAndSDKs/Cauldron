@@ -1,4 +1,6 @@
-// AMD AMDUtils code
+#version 420
+
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -16,38 +18,45 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-#pragma once
 
-#include "PostProcPS.h"
-#include "Base/ResourceViewHeaps.h"
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_ARB_compute_shader  : enable
 
-namespace CAULDRON_VK
+layout (std140, binding = 0) uniform perBatch 
 {
-    class ToneMapping
+    float u_exposure; 
+    int u_toneMapper; 
+} myPerScene;
+
+layout (local_size_x = 8, local_size_y = 8) in;
+layout (binding = 1, rgba16f) uniform image2D HDR;
+
+#include "tonemappers.glsl"
+
+vec3 Tonemap(vec3 color, float exposure, int tonemapper)
+{
+    color *= exposure;
+
+    switch (tonemapper)
     {
-    public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
-        void OnDestroy();
+        case 0: return TimothyTonemapper(color);
+        case 1: return DX11DSK(color);
+        case 2: return Reinhard(color);
+        case 3: return Uncharted2Tonemap(color);
+        case 4: return tonemapACES( color );
+        case 5: return color;
+        default: return vec3(1, 1, 1);
+    } 
+}
 
-        void UpdatePipelines(VkRenderPass renderPass);
+void main() 
+{
+	ivec2 coords = ivec2(gl_GlobalInvocationID.xy);
 
-        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper);
+    vec4 texColor = imageLoad(HDR, coords).rgba;
 
-    private:
-        Device* m_pDevice;
-        ResourceViewHeaps *m_pResourceViewHeaps;
+    vec3 color = Tonemap(texColor.rgb, myPerScene.u_exposure, myPerScene.u_toneMapper);
 
-        PostProcPS m_toneMapping;
-        DynamicBufferRing *m_pDynamicBufferRing = NULL;
-
-        VkSampler m_sampler;
-
-        uint32_t              m_descriptorIndex;
-        static const uint32_t s_descriptorBuffers = 10;
-
-        VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
-        VkDescriptorSetLayout m_descriptorSetLayout;
-
-        struct ToneMappingConsts { float exposure; int toneMapper; };
-    };
+    imageStore(HDR, coords, vec4(color, texColor.a));
 }

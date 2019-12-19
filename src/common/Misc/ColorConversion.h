@@ -16,38 +16,8 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-#pragma once
 
-#include "PostProcPS.h"
-#include "Base/ResourceViewHeaps.h"
+XMMATRIX AmdCalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag);
+XMMATRIX AmdCalculateXYZToRGBMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag);
 
-namespace CAULDRON_VK
-{
-    class ToneMapping
-    {
-    public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
-        void OnDestroy();
-
-        void UpdatePipelines(VkRenderPass renderPass);
-
-        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper);
-
-    private:
-        Device* m_pDevice;
-        ResourceViewHeaps *m_pResourceViewHeaps;
-
-        PostProcPS m_toneMapping;
-        DynamicBufferRing *m_pDynamicBufferRing = NULL;
-
-        VkSampler m_sampler;
-
-        uint32_t              m_descriptorIndex;
-        static const uint32_t s_descriptorBuffers = 10;
-
-        VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
-        VkDescriptorSetLayout m_descriptorSetLayout;
-
-        struct ToneMappingConsts { float exposure; int toneMapper; };
-    };
-}
+void SetupGamutMapperMatrices(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, XMMATRIX* contentToMonitorRecMatrix);

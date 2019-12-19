@@ -156,7 +156,7 @@ namespace CAULDRON_VK
         VkDescriptorImageInfo desc_image;
         desc_image.sampler = (pSampler==NULL)?VK_NULL_HANDLE: *pSampler;
         desc_image.imageView = imageView;
-        desc_image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        desc_image.imageLayout = (pSampler == NULL) ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkWriteDescriptorSet write;
         write = {};
@@ -164,7 +164,7 @@ namespace CAULDRON_VK
         write.pNext = NULL;
         write.dstSet = descriptorSet;
         write.descriptorCount = 1;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.descriptorType = (pSampler==NULL) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         write.pImageInfo = &desc_image;
         write.dstBinding = index;
         write.dstArrayElement = 0;

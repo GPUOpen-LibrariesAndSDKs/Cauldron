@@ -16,24 +16,36 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-#pragma once
 
-#include "PostProcPS.h"
+#include "stdafx.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/ShaderCompiler.h"
+#include "Base/UploadHeap.h"
+#include "ToneMappingCS.h"
 
 namespace CAULDRON_DX12
 {
-    class ToneMapping
+    void ToneMappingCS::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing)
     {
-    public:
-        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat);
-        void OnDestroy();
-        void UpdatePipelines(DXGI_FORMAT outFormat);
-        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper);
+        m_pDynamicBufferRing = pDynamicBufferRing;
+        m_toneMapping.OnCreate(pDevice, pResourceViewHeaps, "TonemappingCS.hlsl", "main",1, 0, 8, 8, 1);
+    }
 
-    private:
-        PostProcPS m_toneMapping;
-        DynamicBufferRing *m_pDynamicBufferRing = NULL;
+    void ToneMappingCS::OnDestroy()
+    {
+        m_toneMapping.OnDestroy();
+    }
 
-        struct ToneMappingConsts { float exposure; int toneMapper; };
-    };
+    void ToneMappingCS::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper,int width, int height)
+    {
+        UserMarker marker(pCommandList, "Tonemapping");
+
+        D3D12_GPU_VIRTUAL_ADDRESS cbTonemappingHandle;
+        ToneMappingConsts *pToneMapping;
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
+        pToneMapping->exposure = exposure;
+        pToneMapping->toneMapper = toneMapper;
+
+        m_toneMapping.Draw(pCommandList, cbTonemappingHandle, pHDRSRV, NULL, (width + 7) / 8, (height + 7) / 8,1);
+    }
 }

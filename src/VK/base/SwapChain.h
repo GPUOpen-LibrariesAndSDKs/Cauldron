@@ -27,16 +27,20 @@ namespace CAULDRON_VK
     class SwapChain
     {
     public:
-        void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd, DisplayModes displayMode);
+        void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd);
         void OnDestroy();
-
-        void SetFullScreen(bool fullscreen);
-        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode);
+        
+        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode = DISPLAYMODE_SDR);
         void OnDestroyWindowSizeDependentResources();
 
-        uint32_t WaitForSwapChain();
+        void SetFullScreen(bool fullscreen);
+
+        bool IsModeSupported(DisplayModes displayMode);
+        void EnumerateDisplayModes(std::vector<DisplayModes> *pModes, std::vector<const char *> *pNames = NULL);
+
         void GetSemaphores(VkSemaphore *pImageAvailableSemaphore, VkSemaphore *pRenderFinishedSemaphores, VkFence *pCmdBufExecutedFences);
         void Present();
+        uint32_t WaitForSwapChain();
 
         // getters
         VkImage GetCurrentBackBuffer();
@@ -45,6 +49,7 @@ namespace CAULDRON_VK
         VkSwapchainKHR GetSwapChain() const { return m_swapChain; }
         VkFormat GetFormat() const { return m_swapChainFormat.format; };
         VkRenderPass GetRenderPass() { return m_render_pass_swap_chain; };
+        DisplayModes GetDisplayMode() { return m_displayMode; }
         VkFramebuffer GetFramebuffer(int i) const { return m_framebuffers[i]; }
 
     private:
@@ -58,11 +63,12 @@ namespace CAULDRON_VK
         HWND m_hWnd;
         Device *m_pDevice;
 
-        VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
+        VkSwapchainKHR m_swapChain;
         VkSurfaceFormatKHR m_swapChainFormat;
 
         VkQueue m_presentQueue;
 
+        DisplayModes m_displayMode = DISPLAYMODE_SDR;
         VkRenderPass m_render_pass_swap_chain = VK_NULL_HANDLE;
 
         std::vector<VkImage> m_images;

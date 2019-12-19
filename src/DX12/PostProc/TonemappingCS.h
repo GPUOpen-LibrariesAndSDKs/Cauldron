@@ -18,36 +18,21 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "PostProcPS.h"
-#include "Base/ResourceViewHeaps.h"
+#include "PostProcCS.h"
 
-namespace CAULDRON_VK
+namespace CAULDRON_DX12
 {
-    class ToneMapping
+    class ToneMappingCS
     {
     public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
+        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing);
         void OnDestroy();
-
-        void UpdatePipelines(VkRenderPass renderPass);
-
-        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, int width, int height);
 
     private:
-        Device* m_pDevice;
-        ResourceViewHeaps *m_pResourceViewHeaps;
-
-        PostProcPS m_toneMapping;
+        PostProcCS m_toneMapping;
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
-        VkSampler m_sampler;
-
-        uint32_t              m_descriptorIndex;
-        static const uint32_t s_descriptorBuffers = 10;
-
-        VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
-        VkDescriptorSetLayout m_descriptorSetLayout;
-
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        struct ToneMappingConsts { float exposure; int toneMapper; int applyGamma; };
     };
 }

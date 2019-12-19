@@ -19,35 +19,30 @@
 #pragma once
 
 #include "PostProcPS.h"
-#include "Base/ResourceViewHeaps.h"
 
-namespace CAULDRON_VK
+namespace CAULDRON_DX12
 {
-    class ToneMapping
+    class ColorConversionPS
     {
     public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
+        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat);
         void OnDestroy();
-
-        void UpdatePipelines(VkRenderPass renderPass);
-
-        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper);
+        void UpdatePipelines(DXGI_FORMAT outFormat, DisplayModes displayMode);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV);
 
     private:
-        Device* m_pDevice;
-        ResourceViewHeaps *m_pResourceViewHeaps;
+        PostProcPS m_ColorConversion;
 
-        PostProcPS m_toneMapping;
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
-        VkSampler m_sampler;
+        struct ColorConversionConsts 
+        {
+            XMMATRIX m_contentToMonitorRecMatrix;
+            DisplayModes m_displayMode;
+            float m_displayMinLuminancePerNits;
+            float m_displayMaxLuminancePerNits;
+        };
 
-        uint32_t              m_descriptorIndex;
-        static const uint32_t s_descriptorBuffers = 10;
-
-        VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
-        VkDescriptorSetLayout m_descriptorSetLayout;
-
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        ColorConversionConsts m_colorConversionConsts;
     };
 }

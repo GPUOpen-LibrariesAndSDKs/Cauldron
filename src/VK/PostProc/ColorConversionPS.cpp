@@ -22,13 +22,15 @@
 #include "Base/StaticBufferPool.h"
 #include "Base/ExtDebugMarkers.h"
 #include "Base/UploadHeap.h"
+#include "Base/Freesync2.h"
 #include "Base/Texture.h"
 #include "Base/Helper.h"
-#include "ToneMapping.h"
+#include "Misc/ColorConversion.h"
+#include "ColorConversionPS.h"
 
 namespace CAULDRON_VK
 {
-    void ToneMapping::OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing)
+    void ColorConversionPS::OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing)
     {
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;
@@ -65,16 +67,16 @@ namespace CAULDRON_VK
 
         m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_descriptorSetLayout);
 
-        m_toneMapping.OnCreate(m_pDevice, renderPass, "Tonemapping.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
+        m_ColorConversion.OnCreate(m_pDevice, renderPass, "ColorConversionPS.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
 
         m_descriptorIndex = 0;
         for(int i=0;i< s_descriptorBuffers;i++)
             m_pResourceViewHeaps->AllocDescriptor(m_descriptorSetLayout, &m_descriptorSet[i]);
     }
 
-    void ToneMapping::OnDestroy()
+    void ColorConversionPS::OnDestroy()
     {
-        m_toneMapping.OnDestroy();
+        m_ColorConversion.OnDestroy();
 
         for (int i = 0; i < s_descriptorBuffers; i++)
             m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet[i]);
@@ -84,20 +86,36 @@ namespace CAULDRON_VK
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorSetLayout, NULL);
     }
 
-    void ToneMapping::UpdatePipelines(VkRenderPass renderPass)
+    void ColorConversionPS::UpdatePipelines(VkRenderPass renderPass, DisplayModes displayMode)
     {
-        m_toneMapping.UpdatePipeline(renderPass, NULL, VK_SAMPLE_COUNT_1_BIT);
+        m_ColorConversion.UpdatePipeline(renderPass, NULL, VK_SAMPLE_COUNT_1_BIT);
+
+        m_colorConversionConsts.m_displayMode = displayMode;
+
+        if (displayMode != DISPLAYMODE_SDR)
+        {
+            const VkHdrMetadataEXT *pHDRMetatData = fs2GetDisplayInfo();
+
+            m_colorConversionConsts.m_displayMinLuminancePerNits = (float)pHDRMetatData->minLuminance / 80.0f; // RGB(1, 1, 1) maps to 80 nits in scRGB;
+            m_colorConversionConsts.m_displayMaxLuminancePerNits = (float)pHDRMetatData->maxLuminance / 80.0f; // This means peak white equals RGB(m_maxLuminanace/80.0f, m_maxLuminanace/80.0f, m_maxLuminanace/80.0f) in scRGB;
+
+            SetupGamutMapperMatrices(
+                pHDRMetatData->whitePoint.x, pHDRMetatData->whitePoint.y,
+                pHDRMetatData->displayPrimaryRed.x, pHDRMetatData->displayPrimaryRed.y,
+                pHDRMetatData->displayPrimaryGreen.x, pHDRMetatData->displayPrimaryGreen.y,
+                pHDRMetatData->displayPrimaryBlue.x, pHDRMetatData->displayPrimaryBlue.y,                
+                &m_colorConversionConsts.m_contentToMonitorRecMatrix);
+        }
     }
 
-    void ToneMapping::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper)
+    void ColorConversionPS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper, bool applyGamma)
     {
-        SetPerfMarkerBegin(cmd_buf, "tonemapping");
+        SetPerfMarkerBegin(cmd_buf, "ColorConversion");
 
         VkDescriptorBufferInfo cbTonemappingHandle;
-        ToneMappingConsts *pToneMapping;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
-        pToneMapping->exposure = exposure;
-        pToneMapping->toneMapper = toneMapper;
+        ColorConversionConsts *pColorConversionConsts;
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ColorConversionConsts), (void **)&pColorConversionConsts, &cbTonemappingHandle);
+        *pColorConversionConsts = m_colorConversionConsts;
 
         // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we 
         // need to do some basic buffering. Just to keep it safe and simple we'll have 10 buffers.
@@ -106,10 +124,10 @@ namespace CAULDRON_VK
 
         // modify Descriptor set
         SetDescriptorSet(m_pDevice->GetDevice(), 1, HDRSRV, &m_sampler, descriptorSet);
-        m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ToneMappingConsts), descriptorSet);
+        m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ColorConversionConsts), descriptorSet);
 
         // Draw!
-        m_toneMapping.Draw(cmd_buf, cbTonemappingHandle, descriptorSet);
+        m_ColorConversion.Draw(cmd_buf, cbTonemappingHandle, descriptorSet);
 
         SetPerfMarkerEnd(cmd_buf);
     }

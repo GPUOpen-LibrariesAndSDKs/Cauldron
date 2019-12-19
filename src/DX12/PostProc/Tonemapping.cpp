@@ -57,7 +57,7 @@ namespace CAULDRON_DX12
         m_toneMapping.UpdatePipeline(outFormat);
     }
 
-    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, bool applyGamma)
+    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper)
     {
         UserMarker marker(pCommandList, "Tonemapping");
 
@@ -66,7 +66,6 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
-        pToneMapping->applyGamma = applyGamma ? 1 : 0;
 
         m_toneMapping.Draw(pCommandList, 1, pHDRSRV, cbTonemappingHandle);
     }

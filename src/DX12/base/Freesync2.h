@@ -22,6 +22,7 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
 #include <windows.h>
+#include <vector>
 #include <dxgi.h>
 #include "..\AGS\amd_ags.h"
 
@@ -36,12 +37,10 @@ namespace CAULDRON_DX12
         DISPLAYMODE_HDR10_SCRGB
     };
 
-    void fs2Init(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo);
+    bool fs2Init(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hwnd);
+    bool fs2EnumerateDisplayModes(std::vector<DisplayModes> *pModes);
     DXGI_FORMAT fs2GetFormat(DisplayModes displayMode);
-    void fs2SetDisplayMode(DisplayModes displayMode, bool disableLocalDimming);
-
+    bool fs2SetDisplayMode(DisplayModes displayMode, bool disableLocalDimming);
+    const char *fs2GetDisplayModeString(DisplayModes displayMode);
     const AGSDisplayInfo* fs2GetDisplayInfo();
-    bool fs2IsFreesync2Display();
-    bool fs2IsHDR10Display();
-
 }

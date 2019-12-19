@@ -63,7 +63,6 @@ namespace CAULDRON_DX12
             GPUDescriptor.ptr += i * m_descriptorSize;
             return GPUDescriptor;
         }
-
     private:
         friend class StaticResourceViewHeapDX12;
         friend class DynamicResourceViewHeapDX12;

@@ -25,78 +25,139 @@
 
 namespace CAULDRON_DX12
 {
-    bool            m_isFS2Display;
-    bool            m_isHDR10Display;
-    int             m_displayIndex;
-    AGSDisplayInfo  m_AGSDisplayInfo;
-    AGSContext     *m_pAGSContext;
-    AGSGPUInfo     *m_pGPUInfo;
+    int             s_displayIndex;
+    AGSDisplayInfo  s_AGSDisplayInfo;
+    AGSContext     *s_pAGSContext;
+    AGSGPUInfo     *s_pGPUInfo;
+    static HWND     s_hWnd = NULL;
 
-    void fs2Init(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo)
+    bool fs2Init(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hWnd)
     {
-        m_displayIndex = -1;
-        m_isFS2Display = false;
-        m_isHDR10Display = false;
-        m_AGSDisplayInfo = {};
-        m_pAGSContext = pAGSContext;
-        m_pGPUInfo = pGPUInfo;
+        s_displayIndex = -1;
+        s_AGSDisplayInfo = {};
+        s_pAGSContext = pAGSContext;
+        s_pGPUInfo = pGPUInfo;
+        s_hWnd = hWnd;
 
-        if (m_pAGSContext == NULL)
-            return;
-
-        // Assert that primary monitor supports freesync2 mode
-        // Store that monitor index if it exists
-
-        int numDevices = pGPUInfo->numDevices;
-        AGSDeviceInfo* devices = pGPUInfo->devices;
-
-        int numDisplays = devices[0].numDisplays;
-
-        m_displayIndex = -1;
-        for (int i = 0; i < numDisplays; i++)
-        {
-            if (devices[0].displays[i].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_FREESYNC_2
-                &&
-                devices[0].displays[i].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_PRIMARY_DISPLAY)
-            {
-                m_displayIndex = i;
-                m_isFS2Display = true;
-                m_isHDR10Display = true;
-                break;
-            }
-        }
-
-        if (!m_isFS2Display)
-        {
-            for (int i = 0; i < numDisplays; i++)
-            {
-                if (devices[0].displays[i].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_HDR10
-                    &&
-                    devices[0].displays[i].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_PRIMARY_DISPLAY)
-                {
-                    m_displayIndex = i;
-                    m_isHDR10Display = true;
-                    break;
-                }
-            }
-        }
-
-        if (m_displayIndex == -1)
-        {
-            // Set primary display as display to render to
-            for (int i = 0; i < numDisplays; i++)
-            {
-                if (devices[0].displays[i].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_PRIMARY_DISPLAY)
-                {
-                    m_displayIndex = i;
-                }
-            }
-        }
+        if (s_pAGSContext == NULL)
+            return false;
+        return true;
     }
 
+    //--------------------------------------------------------------------------------------
+    // To detect HDR support, we will need to check the color space in the primary DXGI output associated with the app at
+    // this point in time (using window/display intersection).
+
+    // Compute the overlay area of two rectangles, A and B.
+    // (ax1, ay1) = left-top coordinates of A; (ax2, ay2) = right-bottom coordinates of A
+    // (bx1, by1) = left-top coordinates of B; (bx2, by2) = right-bottom coordinates of B
+    // based on https://github.com/microsoft/DirectX-Graphics-Samples/blob/master/Samples/Desktop/D3D12HDR/src/D3D12HDR.cpp
+    //--------------------------------------------------------------------------------------
+    inline int ComputeIntersectionArea(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
+    {
+        return max(0, min(ax2, bx2) - max(ax1, bx1)) * max(0, min(ay2, by2) - max(ay1, by1));
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // fs2EnumerateDisplayModes, enumerates availabe modes
+    //
+    //--------------------------------------------------------------------------------------
+    bool fs2EnumerateDisplayModes(std::vector<DisplayModes> *pModes)
+    {
+        pModes->clear();
+        pModes->push_back(DISPLAYMODE_SDR);
+
+        if (s_pAGSContext == NULL)
+            return true;
+
+        assert(s_pGPUInfo->numDevices >= 0);
+        if (s_pGPUInfo->numDevices == 0)
+            return false;
+
+        int numDevices = s_pGPUInfo->numDevices;
+        AGSDeviceInfo* devices = s_pGPUInfo->devices;
+
+        // Find display, app window is rendering to
+        int numDisplays = devices[0].numDisplays;
+        float bestIntersectArea = -1;
+        int bestDisplayIndex = -1;
+        for (int i = 0; i < numDisplays; i++)
+        {
+            AGSRect monitorRect = devices[0].displays[i].currentResolution;
+            RECT windowRect;
+            GetWindowRect(s_hWnd, &windowRect);
+
+            // Get the retangle bounds of the app window
+            int ax1 = windowRect.left;
+            int ay1 = windowRect.top;
+            int ax2 = windowRect.right;
+            int ay2 = windowRect.bottom;
+
+            int bx1 = monitorRect.offsetX;
+            int by1 = monitorRect.offsetY;
+            int bx2 = monitorRect.offsetX + monitorRect.width;
+            int by2 = monitorRect.offsetY + monitorRect.height;
+
+            // Compute the intersection
+            int intersectArea = ComputeIntersectionArea(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2);
+            if (intersectArea > bestIntersectArea)
+            {
+                bestDisplayIndex = i;
+                bestIntersectArea = static_cast<float>(intersectArea);
+            }
+        }
+
+        s_displayIndex = bestDisplayIndex;
+
+        // First check for FS2 support
+        if (devices[0].displays[bestDisplayIndex].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_FREESYNC_2)
+        {
+            pModes->push_back(DISPLAYMODE_FS2_Gamma22);
+            pModes->push_back(DISPLAYMODE_FS2_SCRGB);
+            pModes->push_back(DISPLAYMODE_HDR10_2084);
+            pModes->push_back(DISPLAYMODE_HDR10_SCRGB);
+        }
+        else // Check for HDR support
+        {
+            if (devices[0].displays[bestDisplayIndex].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_HDR10)
+            {
+                pModes->push_back(DISPLAYMODE_HDR10_2084);
+                pModes->push_back(DISPLAYMODE_HDR10_SCRGB);
+            }
+        }
+
+        return true;
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // fs2GetDisplayModeString
+    //
+    //--------------------------------------------------------------------------------------
+    const char *fs2GetDisplayModeString(DisplayModes displayMode)
+    {
+        // note that these string must match the order of the DisplayModes enum
+        const char *DisplayModesStrings[]
+        {
+            "SDR",
+            "FS2_Gamma22",
+            "FS2_SCRGB",
+            "HDR10_2084",
+            "HDR10_SCRGB"
+        };
+
+        return DisplayModesStrings[displayMode];
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // fs2GetFormat
+    //
+    //--------------------------------------------------------------------------------------
     DXGI_FORMAT fs2GetFormat(DisplayModes displayMode)
     {
-        if (m_pAGSContext==NULL)
+        if (s_pAGSContext==NULL)
             displayMode = DISPLAYMODE_SDR;
 
         switch (displayMode)
@@ -121,124 +182,124 @@ namespace CAULDRON_DX12
         }
     }
 
-    void fs2SetDisplayMode(DisplayModes displayMode, bool disableLocalDimming)
+    //--------------------------------------------------------------------------------------
+    //
+    // fs2SetDisplayMode
+    //
+    //--------------------------------------------------------------------------------------
+    bool fs2SetDisplayMode(DisplayModes displayMode, bool disableLocalDimming)
     {
-        if (m_pAGSContext == NULL)
-            return;
+        if (s_pAGSContext == NULL)
+            return false;
 
-        m_AGSDisplayInfo = m_pGPUInfo->devices[0].displays[m_displayIndex];
+        s_AGSDisplayInfo = s_pGPUInfo->devices[0].displays[s_displayIndex];
 
         AGSDisplaySettings agsDisplaySettings = {};
 
         switch (displayMode)
         {
-        case DISPLAYMODE_SDR:
-        {
-            // rec 709 primaries
-            m_AGSDisplayInfo.chromaticityRedX = 0.64;
-            m_AGSDisplayInfo.chromaticityRedY = 0.33;
-            m_AGSDisplayInfo.chromaticityGreenX = 0.30;
-            m_AGSDisplayInfo.chromaticityGreenY = 0.60;
-            m_AGSDisplayInfo.chromaticityBlueX = 0.15;
-            m_AGSDisplayInfo.chromaticityBlueY = 0.06;
-            m_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
-            m_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
+            case DISPLAYMODE_SDR:
+            {
+                // rec 709 primaries
+                s_AGSDisplayInfo.chromaticityRedX = 0.64;
+                s_AGSDisplayInfo.chromaticityRedY = 0.33;
+                s_AGSDisplayInfo.chromaticityGreenX = 0.30;
+                s_AGSDisplayInfo.chromaticityGreenY = 0.60;
+                s_AGSDisplayInfo.chromaticityBlueX = 0.15;
+                s_AGSDisplayInfo.chromaticityBlueY = 0.06;
+                s_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
+                s_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
 
-            agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_SDR;
-            agsDisplaySettings.flags = 0; // Local dimming always enabled for SDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
-            break;
+                agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_SDR;
+                agsDisplaySettings.flags = 0; // Local dimming always enabled for SDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
+                break;
+            }
+
+            case DISPLAYMODE_FS2_Gamma22:
+            {
+                agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_Freesync2_Gamma22;
+                agsDisplaySettings.flags = disableLocalDimming; // Local dimming could be enabled or disabled for FS2 based on preference.
+                if (disableLocalDimming)
+                    s_AGSDisplayInfo.maxLuminance = s_AGSDisplayInfo.avgLuminance;
+                break;
+            }
+
+            case DISPLAYMODE_FS2_SCRGB:
+            {
+                agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_Freesync2_scRGB;
+                agsDisplaySettings.flags = disableLocalDimming; // Local dimming could be enabled or disabled for FS2 based on preference.
+                if (disableLocalDimming)
+                    s_AGSDisplayInfo.maxLuminance = s_AGSDisplayInfo.avgLuminance;
+                break;
+            }
+
+            case DISPLAYMODE_HDR10_2084:
+            {
+                // rec 2020 primaries
+                s_AGSDisplayInfo.chromaticityRedX = 0.708;
+                s_AGSDisplayInfo.chromaticityRedY = 0.292;
+                s_AGSDisplayInfo.chromaticityGreenX = 0.170;
+                s_AGSDisplayInfo.chromaticityGreenY = 0.797;
+                s_AGSDisplayInfo.chromaticityBlueX = 0.131;
+                s_AGSDisplayInfo.chromaticityBlueY = 0.046;
+                s_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
+                s_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
+                s_AGSDisplayInfo.minLuminance = 0.0;
+                s_AGSDisplayInfo.maxLuminance = 1000.0; // This will cause tonemapping to happen on display end as long as it's greater than display's actual queried max luminance. The look will change and it will be display dependent!
+                agsDisplaySettings.maxContentLightLevel = 1000.0;
+                agsDisplaySettings.maxFrameAverageLightLevel = 400.0; // max and average content ligt level data will be used to do tonemapping on display
+                agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_HDR10_PQ;
+                agsDisplaySettings.flags = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
+                break;
+            }
+
+            case DISPLAYMODE_HDR10_SCRGB:
+            {
+                // rec 2020 primaries
+                s_AGSDisplayInfo.chromaticityRedX = 0.708;
+                s_AGSDisplayInfo.chromaticityRedY = 0.292;
+                s_AGSDisplayInfo.chromaticityGreenX = 0.170;
+                s_AGSDisplayInfo.chromaticityGreenY = 0.797;
+                s_AGSDisplayInfo.chromaticityBlueX = 0.131;
+                s_AGSDisplayInfo.chromaticityBlueY = 0.046;
+                s_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
+                s_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
+                s_AGSDisplayInfo.minLuminance = 0.0;
+                s_AGSDisplayInfo.maxLuminance = 1000.0; // This will cause tonemapping to happen on display end as long as it's greater than display's actual queried max luminance. The look will change and it will be display dependent!
+                agsDisplaySettings.maxContentLightLevel = 1000.0;
+                agsDisplaySettings.maxFrameAverageLightLevel = 400.0; // max and average content ligt level data will be used to do tonemapping on display
+                agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_HDR10_scRGB;
+                agsDisplaySettings.flags = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
+                break;
+            }
         }
 
-        case DISPLAYMODE_FS2_Gamma22:
-        {
-            agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_Freesync2_Gamma22;
-            agsDisplaySettings.flags = disableLocalDimming; // Local dimming could be enabled or disabled for FS2 based on preference.
-            if (disableLocalDimming)
-                m_AGSDisplayInfo.maxLuminance = m_AGSDisplayInfo.avgLuminance;
-            break;
-        }
+        agsDisplaySettings.chromaticityRedX = s_AGSDisplayInfo.chromaticityRedX;
+        agsDisplaySettings.chromaticityRedY = s_AGSDisplayInfo.chromaticityRedY;
+        agsDisplaySettings.chromaticityGreenX = s_AGSDisplayInfo.chromaticityGreenX;
+        agsDisplaySettings.chromaticityGreenY = s_AGSDisplayInfo.chromaticityGreenY;
+        agsDisplaySettings.chromaticityBlueX = s_AGSDisplayInfo.chromaticityBlueX;
+        agsDisplaySettings.chromaticityBlueY = s_AGSDisplayInfo.chromaticityBlueY;
+        agsDisplaySettings.chromaticityWhitePointX = s_AGSDisplayInfo.chromaticityWhitePointX;
+        agsDisplaySettings.chromaticityWhitePointY = s_AGSDisplayInfo.chromaticityWhitePointY;
+        agsDisplaySettings.minLuminance = s_AGSDisplayInfo.minLuminance;
+        agsDisplaySettings.maxLuminance = s_AGSDisplayInfo.maxLuminance;
 
-        case DISPLAYMODE_FS2_SCRGB:
-        {
-            agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_Freesync2_scRGB;
-            agsDisplaySettings.flags = disableLocalDimming; // Local dimming could be enabled or disabled for FS2 based on preference.
-            if (disableLocalDimming)
-                m_AGSDisplayInfo.maxLuminance = m_AGSDisplayInfo.avgLuminance;
-            break;
-        }
-
-        case DISPLAYMODE_HDR10_2084:
-        {
-            // rec 2020 primaries
-            m_AGSDisplayInfo.chromaticityRedX = 0.708;
-            m_AGSDisplayInfo.chromaticityRedY = 0.292;
-            m_AGSDisplayInfo.chromaticityGreenX = 0.170;
-            m_AGSDisplayInfo.chromaticityGreenY = 0.797;
-            m_AGSDisplayInfo.chromaticityBlueX = 0.131;
-            m_AGSDisplayInfo.chromaticityBlueY = 0.046;
-            m_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
-            m_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
-            m_AGSDisplayInfo.minLuminance = 0.0;
-            m_AGSDisplayInfo.maxLuminance = 1000.0; // This will cause tonemapping to happen on display end as long as it's greater than display's actual queried max luminance. The look will change and it will be display dependent!
-            agsDisplaySettings.maxContentLightLevel = 1000.0;
-            agsDisplaySettings.maxFrameAverageLightLevel = 400.0; // max and average content ligt level data will be used to do tonemapping on display
-            agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_HDR10_PQ;
-            agsDisplaySettings.flags = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
-            break;
-        }
-
-        case DISPLAYMODE_HDR10_SCRGB:
-        {
-            // rec 2020 primaries
-            m_AGSDisplayInfo.chromaticityRedX = 0.708;
-            m_AGSDisplayInfo.chromaticityRedY = 0.292;
-            m_AGSDisplayInfo.chromaticityGreenX = 0.170;
-            m_AGSDisplayInfo.chromaticityGreenY = 0.797;
-            m_AGSDisplayInfo.chromaticityBlueX = 0.131;
-            m_AGSDisplayInfo.chromaticityBlueY = 0.046;
-            m_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
-            m_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
-            m_AGSDisplayInfo.minLuminance = 0.0;
-            m_AGSDisplayInfo.maxLuminance = 1000.0; // This will cause tonemapping to happen on display end as long as it's greater than display's actual queried max luminance. The look will change and it will be display dependent!
-            agsDisplaySettings.maxContentLightLevel = 1000.0;
-            agsDisplaySettings.maxFrameAverageLightLevel = 400.0; // max and average content ligt level data will be used to do tonemapping on display
-            agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_HDR10_scRGB;
-            agsDisplaySettings.flags = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
-            break;
-        }
-        }
-
-        agsDisplaySettings.chromaticityRedX = m_AGSDisplayInfo.chromaticityRedX;
-        agsDisplaySettings.chromaticityRedY = m_AGSDisplayInfo.chromaticityRedY;
-        agsDisplaySettings.chromaticityGreenX = m_AGSDisplayInfo.chromaticityGreenX;
-        agsDisplaySettings.chromaticityGreenY = m_AGSDisplayInfo.chromaticityGreenY;
-        agsDisplaySettings.chromaticityBlueX = m_AGSDisplayInfo.chromaticityBlueX;
-        agsDisplaySettings.chromaticityBlueY = m_AGSDisplayInfo.chromaticityBlueY;
-        agsDisplaySettings.chromaticityWhitePointX = m_AGSDisplayInfo.chromaticityWhitePointX;
-        agsDisplaySettings.chromaticityWhitePointY = m_AGSDisplayInfo.chromaticityWhitePointY;
-        agsDisplaySettings.minLuminance = m_AGSDisplayInfo.minLuminance;
-        agsDisplaySettings.maxLuminance = m_AGSDisplayInfo.maxLuminance;
-
-        AGSReturnCode rc = agsSetDisplayMode(m_pAGSContext, 0, m_displayIndex, &agsDisplaySettings);
-        assert(rc == AGS_SUCCESS);
+        AGSReturnCode rc = agsSetDisplayMode(s_pAGSContext, 0, s_displayIndex, &agsDisplaySettings);
+        return (rc == AGS_SUCCESS);
     }
 
+
+    //--------------------------------------------------------------------------------------
+    //
+    // fs2GetDisplayInfo
+    //
+    //--------------------------------------------------------------------------------------
     const AGSDisplayInfo* fs2GetDisplayInfo()
     {
-        if (m_pAGSContext == NULL)
+        if (s_pAGSContext == NULL)
             return NULL;
 
-        return &m_AGSDisplayInfo;
+        return &s_AGSDisplayInfo;
     };
-
-    bool fs2IsFreesync2Display()
-    {
-        return m_isFS2Display;
-    };
-
-    bool fs2IsHDR10Display()
-    {
-        return m_isHDR10Display;
-    };
-
 }

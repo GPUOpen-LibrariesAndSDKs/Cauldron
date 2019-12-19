@@ -2,7 +2,7 @@ project (Framework_DX12)
 
 add_compile_options(/MP)
 
-include(common)
+include(common) 
 
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
@@ -34,8 +34,12 @@ set(PostProc_src
     PostProc/SkyDome.h
     PostProc/SkyDomeProc.cpp
     PostProc/SkyDomeProc.h
+    PostProc/ColorConversionPS.h
+    PostProc/ColorConversionPS.cpp
     PostProc/Tonemapping.cpp
     PostProc/Tonemapping.h
+    PostProc/TonemappingCS.cpp
+    PostProc/TonemappingCS.h
 )
 
 set(Base_src
@@ -92,24 +96,27 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDomeProc.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Tonemappers.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Tonemapping.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TonemappingCS.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/functions.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textures.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/PixelParams.hlsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
-)
+    )
 
 set(media_src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
-)
+)    
 
 copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
 copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX)
 
-add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src})
+add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src}  ${Shaders_src} ${media_src})
 
 target_link_libraries (${PROJECT_NAME} Framework_Common NJSON D3D12X)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

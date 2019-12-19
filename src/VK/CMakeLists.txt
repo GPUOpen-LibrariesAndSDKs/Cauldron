@@ -31,8 +31,13 @@ set(PostProc_src
     PostProc/SkyDome.h
     PostProc/SkyDomeProc.cpp
     PostProc/SkyDomeProc.h
+    PostProc/ColorConversionPS.cpp
+    PostProc/ColorConversionPS.h
     PostProc/Tonemapping.cpp
-    PostProc/Tonemapping.h)
+    PostProc/Tonemapping.h
+    PostProc/TonemappingCS.cpp
+    PostProc/TonemappingCS.h
+)
 
 set(Base_src
     base/CommandListRing.cpp
@@ -90,19 +95,22 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blend.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blur.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/DownSamplePS.glsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTF_VS2PS_IO.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-vert.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTF_VS2PS_IO.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-vert.glsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skinning.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDomeProc.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDomeProc.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappers.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemapping.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappingCS.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/functions.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textures.glsl
     )

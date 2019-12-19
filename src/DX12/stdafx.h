@@ -44,5 +44,4 @@ using namespace DirectX;
 #include "base\Helper.h"
 #include "..\common\misc\misc.h"
 
-
 // TODO: reference additional headers your program requires here

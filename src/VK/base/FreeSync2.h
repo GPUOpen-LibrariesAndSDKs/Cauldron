@@ -32,16 +32,18 @@ namespace CAULDRON_VK
         DISPLAYMODE_HDR10_SCRGB
     };
 
+    // only the swapchain should be using these functions
+
     bool fs2Init(VkDevice device, VkSurfaceKHR surface, VkPhysicalDevice physicalDevice, HWND hWnd);
+    bool fs2EnumerateDisplayModes(std::vector<DisplayModes> *pModes);
     VkSurfaceFormatKHR fs2GetFormat(DisplayModes displayMode);
-    void fs2SetDisplayMode(DisplayModes displayMode, VkSwapchainKHR swapChain);
+    bool fs2SetDisplayMode(DisplayModes displayMode, VkSwapchainKHR swapChain);
+    const char *fs2GetDisplayModeString(DisplayModes displayMode);
+    const VkHdrMetadataEXT* fs2GetDisplayInfo();
+
     void fs2SetLocalDimmingMode(VkSwapchainKHR swapchain, VkBool32 localDimmingEnable);
     void fs2SetFullscreenState(bool fullscreen, VkSwapchainKHR swapchain);
 
-    const VkHdrMetadataEXT* fs2GetDisplayInfo();
-    bool fs2IsFreesync2Display();
-    bool fs2IsHDR10Display();
-
-    void VkGetPhysicalDeviceSurfaceCapabilities2KHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR *pSurfCapabilities);
+    void fs2GetPhysicalDeviceSurfaceCapabilities2KHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR *pSurfCapabilities);
     VkSwapchainDisplayNativeHdrCreateInfoAMD* GetVkSwapchainDisplayNativeHdrCreateInfoAMD();
 }

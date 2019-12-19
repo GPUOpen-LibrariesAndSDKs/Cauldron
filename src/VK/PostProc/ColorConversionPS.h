@@ -23,21 +23,21 @@
 
 namespace CAULDRON_VK
 {
-    class ToneMapping
+    class ColorConversionPS
     {
     public:
         void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
         void OnDestroy();
 
-        void UpdatePipelines(VkRenderPass renderPass);
+        void UpdatePipelines(VkRenderPass renderPass, DisplayModes displayMode);
 
-        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper);
+        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper, bool applyGamma = true);
 
     private:
         Device* m_pDevice;
         ResourceViewHeaps *m_pResourceViewHeaps;
 
-        PostProcPS m_toneMapping;
+        PostProcPS m_ColorConversion;
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
         VkSampler m_sampler;
@@ -48,6 +48,14 @@ namespace CAULDRON_VK
         VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
         VkDescriptorSetLayout m_descriptorSetLayout;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        struct ColorConversionConsts
+        {
+            XMMATRIX m_contentToMonitorRecMatrix;
+            DisplayModes m_displayMode;
+            float m_displayMinLuminancePerNits;
+            float m_displayMaxLuminancePerNits;
+        };
+
+        ColorConversionConsts m_colorConversionConsts;
     };
 }

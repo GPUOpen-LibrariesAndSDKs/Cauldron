@@ -30,7 +30,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd, DisplayModes displayMode)
+    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd)
     {
         VkResult res;
 
@@ -40,7 +40,11 @@ namespace CAULDRON_VK
         m_backBufferCount = numberBackBuffers;
         m_presentQueue = pDevice->GetPresentQueue();
 
-        m_swapChainFormat = fs2GetFormat(displayMode);
+        // Init FS2
+        fs2Init(pDevice->GetDevice(), pDevice->GetSurface(), pDevice->GetPhysicalDevice(), hWnd);
+
+        // set some safe format to start with
+        m_swapChainFormat = fs2GetFormat(DISPLAYMODE_SDR);
 
         VkDevice device = m_pDevice->GetDevice();
 
@@ -87,6 +91,35 @@ namespace CAULDRON_VK
             vkDestroySemaphore(m_pDevice->GetDevice(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroySemaphore(m_pDevice->GetDevice(), m_RenderFinishedSemaphores[i], nullptr);
         }
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // EnumerateDisplayModes
+    //
+    //--------------------------------------------------------------------------------------
+    void SwapChain::EnumerateDisplayModes(std::vector<DisplayModes> *pModes, std::vector<const char *> *pNames)
+    {
+        fs2EnumerateDisplayModes(pModes);
+
+        if (pNames != NULL)
+        {
+            pNames->clear();
+            for (DisplayModes mode : *pModes)
+                pNames->push_back(fs2GetDisplayModeString(mode));
+        }
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // EnumerateDisplayModes
+    //
+    //--------------------------------------------------------------------------------------
+    bool SwapChain::IsModeSupported(DisplayModes displayMode)
+    {
+        std::vector<DisplayModes> displayModesAvailable;
+        EnumerateDisplayModes(&displayModesAvailable);
+        return  std::find(displayModesAvailable.begin(), displayModesAvailable.end(), displayMode) != displayModesAvailable.end();
     }
 
     VkImage SwapChain::GetCurrentBackBuffer()
@@ -189,13 +222,35 @@ namespace CAULDRON_VK
 
     void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode)
     {
+        // check whether the requested mode is supported and fall back to SDR if not supported
+        bool bIsModeSupported = IsModeSupported(displayMode);
+        if (bIsModeSupported == false)
+        {
+            assert(!"FS2 display mode not supported");
+            displayMode = DISPLAYMODE_SDR;
+        }
+
+        m_displayMode = displayMode;
+        m_swapChainFormat = fs2GetFormat(displayMode);
+        m_bVSyncOn = bVSyncOn;
+
+        // note that FS2 modes require to be in fullscreen mode!
+        if (m_displayMode != DISPLAYMODE_SDR)
+        {
+            assert(m_isFullScreen == true);
+        }
+
+        // if SDR then use a gamma corrected swapchain so the blending is correct
+        if (m_displayMode == DISPLAYMODE_SDR)
+        {            
+            assert(m_swapChainFormat.format == VK_FORMAT_B8G8R8A8_UNORM);
+            m_swapChainFormat.format = VK_FORMAT_B8G8R8A8_SRGB;
+        }
+
         VkResult res;
         VkDevice device = m_pDevice->GetDevice();
         VkPhysicalDevice physicaldevice = m_pDevice->GetPhysicalDevice();
         VkSurfaceKHR surface = m_pDevice->GetSurface();
-
-        m_swapChainFormat = fs2GetFormat(displayMode);
-        m_bVSyncOn = bVSyncOn;
 
         // redo the render passes for rendering using the new format
         DestroyRenderPass();
@@ -204,9 +259,9 @@ namespace CAULDRON_VK
         // Get capabilities
         //
         VkSurfaceCapabilitiesKHR surfCapabilities;
-        if (displayMode != DISPLAYMODE_SDR && fs2IsHDR10Display())
+        if (displayMode != DISPLAYMODE_SDR)
         {
-            VkGetPhysicalDeviceSurfaceCapabilities2KHR(physicaldevice, surface, &surfCapabilities);
+            fs2GetPhysicalDeviceSurfaceCapabilities2KHR(physicaldevice, surface, &surfCapabilities);
         }
         else
         {
@@ -215,12 +270,13 @@ namespace CAULDRON_VK
         }
 
         VkExtent2D swapchainExtent;
+        swapchainExtent.width = dwWidth;
+        swapchainExtent.height = dwHeight;
+
         // width and height are either both 0xFFFFFFFF, or both not 0xFFFFFFFF.
         if (surfCapabilities.currentExtent.width == 0xFFFFFFFF) {
             // If the surface size is undefined, the size is set to
             // the size of the images requested.
-            swapchainExtent.width = dwWidth;
-            swapchainExtent.height = dwHeight;
             if (swapchainExtent.width < surfCapabilities.minImageExtent.width)
             {
                 swapchainExtent.width = surfCapabilities.minImageExtent.width;
@@ -242,7 +298,7 @@ namespace CAULDRON_VK
         else
         {
             // If the surface size is defined, the swap chain size must match
-            swapchainExtent = surfCapabilities.currentExtent;
+            //swapchainExtent = surfCapabilities.currentExtent;
         }
 
         // Set identity transform
@@ -279,18 +335,10 @@ namespace CAULDRON_VK
         VkSwapchainCreateInfoKHR swapchain_ci = {};
         swapchain_ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapchain_ci.pNext = nullptr;
-        if (displayMode != DISPLAYMODE_SDR && fs2IsHDR10Display())
+        if (ExtFreeSync2AreAllExtensionsPresent())
         {
             swapchain_ci.pNext = GetVkSwapchainDisplayNativeHdrCreateInfoAMD();
         }
-
-        uint32_t surfaceFormatCount = 0;
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicaldevice, surface, &surfaceFormatCount, NULL);
-        assert(res == VK_SUCCESS);
-        std::vector<VkSurfaceFormatKHR> surfaceFormats(surfaceFormatCount);
-        res = vkGetPhysicalDeviceSurfaceFormatsKHR(physicaldevice, surface, &surfaceFormatCount, surfaceFormats.data());
-        assert(res == VK_SUCCESS);
-
         swapchain_ci.surface = surface;
         swapchain_ci.imageFormat = m_swapChainFormat.format;
         swapchain_ci.minImageCount = m_backBufferCount;
@@ -301,7 +349,7 @@ namespace CAULDRON_VK
         swapchain_ci.compositeAlpha = compositeAlpha;
         swapchain_ci.imageArrayLayers = 1;
         swapchain_ci.presentMode = m_bVSyncOn ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;  // The FIFO present mode is guaranteed by the spec to be supported
-        swapchain_ci.oldSwapchain = m_swapChain;
+        swapchain_ci.oldSwapchain = VK_NULL_HANDLE;
         swapchain_ci.clipped = true;
         swapchain_ci.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -319,9 +367,10 @@ namespace CAULDRON_VK
             swapchain_ci.pQueueFamilyIndices = queueFamilyIndices;
         }
 
-        m_swapChain = VK_NULL_HANDLE;
         res = vkCreateSwapchainKHR(device, &swapchain_ci, NULL, &m_swapChain);
         assert(res == VK_SUCCESS);
+
+        fs2SetDisplayMode(displayMode, m_swapChain);
 
         // we are querying the swapchain count so the next call doesn't generate a validation warning
         uint32_t backBufferCount;

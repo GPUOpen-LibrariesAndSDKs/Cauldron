@@ -30,24 +30,23 @@
 
 namespace CAULDRON_DX12
 {
-    DXGI_FORMAT SwapChain::GetFormat()
-    {
-        return m_swapChainFormat;
-    };
-
     //--------------------------------------------------------------------------------------
     //
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd, DisplayModes displayMode)
+    void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd)
     {
         m_hWnd = hWnd;
         m_pDevice = pDevice->GetDevice();
         m_pDirectQueue = pDevice->GetGraphicsQueue();
         m_BackBufferCount = numberBackBuffers;
 
-        m_swapChainFormat = fs2GetFormat(displayMode);
+        // Init FS2
+        fs2Init(pDevice->GetAGSContext(), pDevice->GetAGSGPUInfo(), hWnd);
+
+        // set some safe format to start with
+        m_swapChainFormat = fs2GetFormat(DISPLAYMODE_SDR);
 
         CreateDXGIFactory1(IID_PPV_ARGS(&m_pFactory));
 
@@ -56,14 +55,13 @@ namespace CAULDRON_DX12
         m_descSwapChain.BufferCount = m_BackBufferCount;
         m_descSwapChain.Width = 0;
         m_descSwapChain.Height = 0;
-        m_descSwapChain.Format = ConvertIntoNonGammaFormat(m_swapChainFormat);
+        m_descSwapChain.Format = m_swapChainFormat; 
         m_descSwapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
         m_descSwapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
         m_descSwapChain.SampleDesc.Count = 1;
         m_descSwapChain.Flags = 0;
 
         m_swapChainFence.OnCreate(pDevice, format("swapchain fence").c_str());
-
 
         IDXGISwapChain1 *pSwapChain;
         ThrowIfFailed(m_pFactory->CreateSwapChainForHwnd(
@@ -108,6 +106,35 @@ namespace CAULDRON_DX12
         m_pFactory->Release();
     }
 
+    //--------------------------------------------------------------------------------------
+    //
+    // EnumerateDisplayModes
+    //
+    //--------------------------------------------------------------------------------------
+    void SwapChain::EnumerateDisplayModes(std::vector<DisplayModes> *pModes, std::vector<const char *> *pNames)
+    {
+        fs2EnumerateDisplayModes(pModes);
+
+        if (pNames != NULL)
+        {
+            pNames->clear();
+            for (DisplayModes mode : *pModes)
+                pNames->push_back(fs2GetDisplayModeString(mode));
+        }
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // EnumerateDisplayModes
+    //
+    //--------------------------------------------------------------------------------------
+    bool SwapChain::IsModeSupported(DisplayModes displayMode)
+    {
+        std::vector<DisplayModes> displayModesAvailable;
+        EnumerateDisplayModes(&displayModesAvailable);
+        return  std::find(displayModesAvailable.begin(), displayModesAvailable.end(), displayMode) != displayModesAvailable.end();
+    }
+
     ID3D12Resource *SwapChain::GetCurrentBackBufferResource()
     {
         uint32_t backBuffferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
@@ -126,6 +153,7 @@ namespace CAULDRON_DX12
 
     void SwapChain::WaitForSwapChain()
     {
+        uint32_t backBuffferIndex = m_pSwapChain->GetCurrentBackBufferIndex();
         m_swapChainFence.CpuWaitForFence(m_BackBufferCount - 1);
     };
 
@@ -142,7 +170,6 @@ namespace CAULDRON_DX12
 
         // issue a fence so we can tell when this frame ended
         m_swapChainFence.IssueFence(m_pDirectQueue);
-
     }
 
     void SwapChain::SetFullScreen(bool fullscreen)
@@ -151,10 +178,27 @@ namespace CAULDRON_DX12
         ThrowIfFailed(m_pSwapChain->SetFullscreenState(fullscreen, nullptr));
     }
 
-    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode)
+    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode, bool disableLocalDimming)
     {
+        // check whether the requested mode is supported and fall back to SDR if not supported
+        bool bIsModeSupported = IsModeSupported(displayMode);
+        if (bIsModeSupported == false)
+        {
+            assert(!"FS2 display mode not supported");
+            displayMode = DISPLAYMODE_SDR;
+        }
+
+        m_displayMode = displayMode;
         m_swapChainFormat = fs2GetFormat(displayMode);
         m_bVSyncOn = bVSyncOn;
+
+        // note that FS2 modes require to be in fullscreen mode!
+        BOOL isFullScreen;
+        ThrowIfFailed(m_pSwapChain->GetFullscreenState(&isFullScreen, nullptr));
+        if (m_displayMode != DISPLAYMODE_SDR)
+        { 
+            assert(isFullScreen==TRUE);
+        }
 
         // Set up the swap chain to allow back buffers to live on multiple GPU nodes.
         ThrowIfFailed(
@@ -162,9 +206,17 @@ namespace CAULDRON_DX12
                 m_descSwapChain.BufferCount,
                 dwWidth,
                 dwHeight,
-                ConvertIntoNonGammaFormat(m_swapChainFormat),
+                m_swapChainFormat,
                 m_descSwapChain.Flags)
         );
+
+        fs2SetDisplayMode(displayMode, disableLocalDimming);
+
+        // if SDR, convert add gamma for the swapchain format so blending is correct
+        if (m_displayMode == DISPLAYMODE_SDR)
+        {
+            m_swapChainFormat = ConvertIntoGammaFormat(m_swapChainFormat);
+        }
 
         CreateRTV();
     }
@@ -201,5 +253,22 @@ namespace CAULDRON_DX12
             SetName(pBackBuffer, format("BackBuffer %i", i));
             pBackBuffer->Release();
         }
+    }
+
+    DXGI_FORMAT SwapChain::GetFormat()
+    {
+        return m_swapChainFormat;
+    }
+
+    DisplayModes SwapChain::GetDisplayMode()
+    {
+        return m_displayMode;
+    }
+
+    bool SwapChain::IsFullScreen()
+    {
+        BOOL isFullScreen;
+        ThrowIfFailed(m_pSwapChain->GetFullscreenState(&isFullScreen, nullptr));
+        return (bool)isFullScreen;
     }
 }
