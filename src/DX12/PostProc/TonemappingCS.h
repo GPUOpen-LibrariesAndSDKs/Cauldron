@@ -36,3 +36,4 @@ namespace CAULDRON_DX12
         struct ToneMappingConsts { float exposure; int toneMapper; int applyGamma; };
     };
 }
+

@@ -37,12 +37,15 @@ namespace CAULDRON_VK
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-            VkSampleCountFlagBits sampleCount);
+            Wireframe *pWireframe);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX cameraViewProjMatrix);
+        void Draw(VkCommandBuffer cmd_buf, const XMMATRIX& cameraViewProjMatrix, const XMVECTOR& color);
+        inline void Draw(VkCommandBuffer cmd_buf, const XMMATRIX& cameraViewProjMatrix) { Draw(cmd_buf, cameraViewProjMatrix, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f)); }
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
+
+        Wireframe *m_pWireframe;
         WireframeBox m_wireframeBox;
     };
 }

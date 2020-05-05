@@ -46,6 +46,7 @@ namespace CAULDRON_DX12
         bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, D3D12_INDEX_BUFFER_VIEW *pView);
         bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, D3D12_VERTEX_BUFFER_VIEW *pView);
         bool AllocConstantBuffer(uint32_t size, void **pData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferViewDesc);
+        D3D12_GPU_VIRTUAL_ADDRESS AllocConstantBuffer(uint32_t size, void *pInitData);
         void OnBeginFrame();
 
     private:

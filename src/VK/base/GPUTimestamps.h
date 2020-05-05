@@ -18,6 +18,10 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <vector>
+#include <string>
+#include "Base/Benchmark.h"
+
 namespace CAULDRON_VK
 {
     // This class helps insert queries in the command buffer and readback the results.
@@ -25,19 +29,13 @@ namespace CAULDRON_VK
     // For that it splits the readback heap in <numberOfBackBuffers> pieces and it reads 
     // from the last used chuck.
 
-    struct TimeStamp
-    {
-        std::string m_label;
-        float       m_microseconds;
-    };
-
     class GPUTimestamps
     {
     public:
         void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers);
         void OnDestroy();
 
-        void GetTimeStamp(VkCommandBuffer cmd_buf, char *label);
+        void GetTimeStamp(VkCommandBuffer cmd_buf, const char *label);
 
         void OnBeginFrame(VkCommandBuffer cmd_buf, std::vector<TimeStamp> *pTimestamp);
         void OnEndFrame();
@@ -46,8 +44,8 @@ namespace CAULDRON_VK
         Device* m_pDevice;
 
         const uint32_t MaxValuesPerFrame = 128;
-        bool m_queryNeedsInitialReset = true;
-        VkQueryPool m_QueryPool;
+
+        VkQueryPool        m_QueryPool;
 
         uint32_t m_frame = 0;
         uint32_t m_NumberOfBackBuffers = 0;

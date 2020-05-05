@@ -30,10 +30,10 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t result
 //
 // DefineList, holds pairs of key & value that will be used by the compiler as defines
 //
-class DefineList : public std::map<std::string, std::string>
+class DefineList : public std::map<const std::string, std::string>
 {
 public:
-    bool Has(const std::string &str)
+    bool Has(const std::string &str) const 
     {
         return find(str) != end();
     }
@@ -48,11 +48,11 @@ public:
         return result;
     }
 
-    friend DefineList operator+(      DefineList   def1,        // passing lhs by value helps optimize chained a+b+c
-                                const DefineList & def2) // otherwise, both parameters may be const references
+    friend DefineList operator+(DefineList   def1,        // passing lhs by value helps optimize chained a+b+c
+                                const DefineList & def2)  // otherwise, both parameters may be const references
     {
         for (auto it = def2.begin(); it != def2.end(); it++)
-            def1[it->first] = it->second;    
-        return def1; 
+            def1[it->first] = it->second;
+        return def1;
     }
 };

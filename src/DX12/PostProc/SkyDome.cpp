@@ -25,7 +25,7 @@
 
 namespace CAULDRON_DX12
 {
-    void SkyDome::OnCreate(Device* pDevice, UploadHeap* pUploadHeap, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, char *pDiffuseCubemap, char *pSpecularCubemap, DXGI_FORMAT outFormat, uint32_t sampleDescCount)
+    void SkyDome::OnCreate(Device* pDevice, UploadHeap* pUploadHeap, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, DXGI_FORMAT outFormat, uint32_t sampleDescCount)
     {
         m_pDynamicBufferRing = pDynamicBufferRing;
         
@@ -99,10 +99,7 @@ namespace CAULDRON_DX12
     {
         UserMarker marker(pCommandList, "Skydome");
 
-        XMMATRIX *cbPerDraw;
-        D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(XMMATRIX), (void **)&cbPerDraw, &constantBuffer);
-        *cbPerDraw = invViewProj;
+        D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(XMMATRIX), &invViewProj);
 
         m_skydome.Draw(pCommandList, 1, &m_CubeSpecularTextureSRV, constantBuffer);
     }

@@ -61,6 +61,13 @@ void Camera::SetMatrix(XMMATRIX cameraMatrix)
 {
     m_eyePos = cameraMatrix.r[3];
     m_View = XMMatrixInverse(nullptr, cameraMatrix);
+
+    XMFLOAT3 zBasis;
+    XMStoreFloat3(&zBasis, cameraMatrix.r[2]);
+
+    m_yaw = atan2f(zBasis.x, zBasis.z);
+    float fLen = sqrtf(zBasis.z * zBasis.z + zBasis.x * zBasis.x);
+    m_pitch = atan2f(zBasis.y, fLen);
 }
 
 //--------------------------------------------------------------------------------------
@@ -127,6 +134,33 @@ void Camera::SetProjectionJitter(float jitterX, float jitterY)
     Proj.m[2][0] = jitterX;
     Proj.m[2][1] = jitterY;
     m_Proj = XMLoadFloat4x4(&Proj);
+}
+
+void Camera::SetProjectionJitter(uint32_t width, uint32_t height, uint32_t &sampleIndex)
+{
+    static const auto CalculateHaltonNumber = [](uint32_t index, uint32_t base)
+    {
+        float f = 1.0f, result = 0.0f;
+
+        for (uint32_t i = index; i > 0;)
+        {
+            f /= static_cast<float>(base);
+            result = result + f * static_cast<float>(i % base);
+            i = static_cast<uint32_t>(floorf(static_cast<float>(i) / static_cast<float>(base)));
+        }
+
+        return result;
+    };
+
+    sampleIndex = (sampleIndex + 1) % 16;   // 16x TAA
+
+    float jitterX = 2.0f * CalculateHaltonNumber(sampleIndex + 1, 2) - 1.0f;
+    float jitterY = 2.0f * CalculateHaltonNumber(sampleIndex + 1, 3) - 1.0f;
+
+    jitterX /= static_cast<float>(width);
+    jitterY /= static_cast<float>(height);
+
+    SetProjectionJitter(jitterX, jitterY);
 }
 
 //--------------------------------------------------------------------------------------

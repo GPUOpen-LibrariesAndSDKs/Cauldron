@@ -1,8 +1,8 @@
-project (Framework_DX12)
+project (Cauldron_DX12)
 
 add_compile_options(/MP)
 
-include(common) 
+include(common)
 
 set(GLTF_src
     GLTF/GltfBBoxPass.cpp
@@ -13,6 +13,8 @@ set(GLTF_src
     GLTF/GltfHelpers.h
     GLTF/GltfPbrPass.cpp
     GLTF/GltfPbrPass.h
+    GLTF/GltfMotionVectorsPass.cpp
+    GLTF/GltfMotionVectorsPass.h
     GLTF/GLTFTexturesAndBuffers.cpp
     GLTF/GLTFTexturesAndBuffers.h
 )
@@ -20,6 +22,8 @@ set(GLTF_src
 set(PostProc_src
     PostProc/Bloom.cpp
     PostProc/Bloom.h
+    PostProc/BakeSkinning.cpp
+    PostProc/BakeSkinning.h
     PostProc/BlurPS.cpp
     PostProc/BlurPS.h
     PostProc/Debug.cpp
@@ -30,16 +34,22 @@ set(PostProc_src
     PostProc/PostProcCS.h
     PostProc/PostProcPS.cpp
     PostProc/PostProcPS.h
+    PostProc/Sharpen.cpp
+    PostProc/Sharpen.h
     PostProc/SkyDome.cpp
     PostProc/SkyDome.h
     PostProc/SkyDomeProc.cpp
     PostProc/SkyDomeProc.h
+    PostProc/TAA.cpp
+    PostProc/TAA.h
     PostProc/ColorConversionPS.h
     PostProc/ColorConversionPS.cpp
     PostProc/Tonemapping.cpp
     PostProc/Tonemapping.h
     PostProc/TonemappingCS.cpp
     PostProc/TonemappingCS.h
+    PostProc/ShadowResolvePass.cpp
+    PostProc/ShadowResolvePass.h
 )
 
 set(Base_src
@@ -93,7 +103,10 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-PS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-VS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-IO.hlsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPBRLighting.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ShadowResolve.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFMotionVectorsPass.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDomeProc.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Tonemappers.hlsl
@@ -101,24 +114,28 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TonemappingCS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/functions.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/taa.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/sharpen.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textures.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/motionBlur.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/PixelParams.hlsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/BakeSkinning.hlsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
-    )
+)
 
 set(media_src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
-)    
+)
 
 copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
 copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX)
 
-add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src}  ${Shaders_src} ${media_src})
+add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src})
 
-target_link_libraries (${PROJECT_NAME} Framework_Common NJSON D3D12X)
+target_link_libraries (${PROJECT_NAME} Cauldron_Common NJSON D3D12X)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("GLTF"            FILES ${GLTF_src})

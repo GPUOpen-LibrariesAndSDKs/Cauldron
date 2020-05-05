@@ -62,16 +62,11 @@ namespace CAULDRON_DX12
 
         // Closing all the command buffers so we can call reset on them the first time we use them, otherwise the runtime would show a warning. 
         //
-        ID3D12CommandQueue* queue = pDevice->GetGraphicsQueue();
-        if (queueDesc.Type == D3D12_COMMAND_LIST_TYPE_COMPUTE)
-        {
-            queue = pDevice->GetComputeQueue();
-        }
-
+        ID3D12CommandQueue* queue = (queueDesc.Type == D3D12_COMMAND_LIST_TYPE_COMPUTE) ? pDevice->GetComputeQueue() : pDevice->GetGraphicsQueue();
         for (uint32_t a = 0; a < m_numberOfAllocators; a++)
         {
             queue->ExecuteCommandLists(m_commandListsPerBackBuffer, (ID3D12CommandList *const *)m_pCommandBuffers[a].m_ppCommandList);
-        }        
+        }
 
         pDevice->GPUFlush();
 
@@ -106,9 +101,9 @@ namespace CAULDRON_DX12
     //
     //--------------------------------------------------------------------------------------
     ID3D12GraphicsCommandList2 *CommandListRing::GetNewCommandList()
-    {      
+    {
         ID3D12GraphicsCommandList2 *pCL = m_pCurrentFrame->m_ppCommandList[m_pCurrentFrame->m_UsedCls++];
-                
+
         assert(m_pCurrentFrame->m_UsedCls < m_commandListsPerBackBuffer); //if hit increase commandListsPerBackBuffer
 
         // reset command list and assign current allocator

@@ -18,8 +18,9 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "StaticBufferPool.h"
 #include "Misc/Misc.h"
+#include "StaticBufferPool.h"
+#include "ExtDebugUtils.h"
 
 namespace CAULDRON_VK
 {
@@ -47,6 +48,8 @@ namespace CAULDRON_VK
 
         res = vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_buffer, &m_bufferAlloc, nullptr);
         assert(res == VK_SUCCESS);
+        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_BUFFER, (uint64_t)m_buffer, "StaticBufferPool (sys mem)");
+
         res = vmaMapMemory(pDevice->GetAllocator(), m_bufferAlloc, (void **)&m_pData);
         assert(res == VK_SUCCESS);
 #else
@@ -108,7 +111,9 @@ namespace CAULDRON_VK
             allocInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
             allocInfo.pUserData = (void*)name;
 
-            vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_bufferVid, &m_bufferAllocVid, nullptr);
+            res = vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_bufferVid, &m_bufferAllocVid, nullptr);
+            assert(res == VK_SUCCESS);
+            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_BUFFER, (uint64_t)m_buffer, "StaticBufferPool (vid mem)");
 #else
 
             // create the buffer, allocate it in VIDEO memory and bind it 

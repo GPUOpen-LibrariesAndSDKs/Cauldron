@@ -37,11 +37,12 @@ namespace CAULDRON_VK
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-        VkSampleCountFlagBits sampleCount)
+        Wireframe *pWireframe)
     {
+        m_pWireframe = pWireframe;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
 
-        m_wireframeBox.OnCreate(pDevice, renderPass, pResourceViewHeaps, pDynamicBufferRing, pStaticBufferPool, sampleCount);
+        m_wireframeBox.OnCreate(pDevice, pResourceViewHeaps, pDynamicBufferRing, pStaticBufferPool);
     }
 
     //--------------------------------------------------------------------------------------
@@ -59,7 +60,9 @@ namespace CAULDRON_VK
     // Draw
     //
     //--------------------------------------------------------------------------------------
-    void GltfBBoxPass::Draw(VkCommandBuffer cmd_buf, XMMATRIX cameraViewProjMatrix)
+    void GltfBBoxPass::Draw(VkCommandBuffer cmd_buf
+        , const XMMATRIX& cameraViewProjMatrix
+        , const XMVECTOR& color)
     {
         SetPerfMarkerBegin(cmd_buf, "bounding boxes");
 
@@ -76,7 +79,7 @@ namespace CAULDRON_VK
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
-                m_wireframeBox.Draw(cmd_buf, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
+                m_wireframeBox.Draw(cmd_buf, m_pWireframe, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, color);
             }
         }
 

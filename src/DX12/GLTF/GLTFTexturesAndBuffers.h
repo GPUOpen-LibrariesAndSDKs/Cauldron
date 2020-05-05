@@ -24,6 +24,8 @@
 #include "Base/DynamicBufferRing.h" 
 #include "GLTF/GltfCommon.h"
 
+class DefineList;
+
 namespace CAULDRON_DX12
 {
     // This class takes a GltfCommon class (that holds all the non-GPU specific data) as an input and loads all the GPU specific data
@@ -41,7 +43,7 @@ namespace CAULDRON_DX12
         Device     *m_pDevice;
         UploadHeap *m_pUploadHeap;
 
-        const json::array_t *m_pTextureNodes;
+        const json *m_pTextureNodes;
 
         std::vector<Texture> m_textures;
 
@@ -62,6 +64,8 @@ namespace CAULDRON_DX12
 
         void CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, DXGI_FORMAT *pIndexType, D3D12_INDEX_BUFFER_VIEW *pIBV);
         void CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry);
+
+        void CreateGeometry(const json &primitive, const std::vector<std::string > requiredAttributes, std::vector<std::string> &semanticNames, std::vector<D3D12_INPUT_ELEMENT_DESC> &layout, DefineList &defines, Geometry *pGeometry);
 
         void SetPerFrameConstants();
         void SetSkinningMatricesForSkeletons();

@@ -75,9 +75,9 @@ XMMATRIX GetMatrix(const json::array_t &accessor)
 }
 
 template <class type>
-type GetElement(const json::object_t *pRoot, char *path, type pDefault)
+type GetElement(const json::object_t *pRoot, const char *path, type pDefault)
 {
-    char *p = path;
+    const char *p = path;
     char token[128];
     while (true)
     {
@@ -113,32 +113,32 @@ type GetElement(const json::object_t *pRoot, char *path, type pDefault)
     return pDefault;
 }
 
-std::string GetElementString(const json::object_t &root, char *path, std::string pDefault)
+std::string GetElementString(const json::object_t &root, const char *path, std::string pDefault)
 {
     return GetElement<std::string>(&root, path, pDefault);
 }
 
-bool GetElementBoolean(const json::object_t &root, char *path, bool default)
+bool GetElementBoolean(const json::object_t &root, const char *path, bool default)
 {
     return GetElement<bool>(&root, path, default);
 }
 
-float GetElementFloat(const json::object_t &root, char *path, float default)
+float GetElementFloat(const json::object_t &root, const char *path, float default)
 {
     return GetElement<float>(&root, path, default);
 }
 
-int GetElementInt(const json::object_t &root, char *path, int default)
+int GetElementInt(const json::object_t &root, const char *path, int default)
 {
     return GetElement<int>(&root, path, default);
 }
 
-json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::array_t default)
+json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t default)
 {
     return GetElement<json::array_t>(&root, path, default);
 }
 
-XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default)
+XMVECTOR GetElementVector(json::object_t &root, const char *path, XMVECTOR default)
 {
     if (root.find(path) != root.end() && !root[path].is_null())
     {

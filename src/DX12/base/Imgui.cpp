@@ -129,7 +129,7 @@ namespace CAULDRON_DX12
         // Create sampler
         //
         D3D12_STATIC_SAMPLER_DESC SamplerDesc = {};
-        SamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        SamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
         SamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         SamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         SamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -187,6 +187,8 @@ namespace CAULDRON_DX12
         float4 main(PS_INPUT input) : SV_Target\
         {\
         float4 out_col = input.col * texture0.Sample(sampler0, input.uv); \
+        const float gamma = 2.2f;\
+        out_col.xyz = pow(out_col.xyz, float3(gamma, gamma, gamma));\
         return out_col; \
         }";
 

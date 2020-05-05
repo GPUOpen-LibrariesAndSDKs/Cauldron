@@ -23,14 +23,6 @@
 
 namespace CAULDRON_DX12
 {
-    Wireframe::Wireframe()
-    {
-    }
-
-    Wireframe::~Wireframe()
-    {
-    }
-
     void Wireframe::OnCreate(
         Device* pDevice,
         ResourceViewHeaps *pHeaps,
@@ -183,13 +175,12 @@ namespace CAULDRON_DX12
 
         // Set per Object constants
         //
-        per_object *cbPerObject;
-        D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), (void **)&cbPerObject, &perObjectDesc);
-        cbPerObject->m_mWorldViewProj = WorldViewProj;
-        cbPerObject->m_vCenter = vCenter;
-        cbPerObject->m_vRadius = vRadius;
-        cbPerObject->m_vColor = vColor;
+        per_object cbPerObject;
+        cbPerObject.m_mWorldViewProj = WorldViewProj;
+        cbPerObject.m_vCenter = vCenter;
+        cbPerObject.m_vRadius = vRadius;
+        cbPerObject.m_vColor = vColor;
+        D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), &cbPerObject);
 
         pCommandList->SetGraphicsRootConstantBufferView(0, perObjectDesc);
 

@@ -28,15 +28,14 @@ precision highp float;
 // I/O Structures
 //--------------------------------------------------------------------------------------
 
-#ifdef ID_4PS_TEXCOORD_0
-    layout (location = ID_4PS_TEXCOORD_0) in  vec2 v_UV0;
-#endif
+#include "GLTF_VS2PS_IO.glsl"
+layout (location = 0) in VS2PS Input;
 
 //--------------------------------------------------------------------------------------
 // Texture definitions
 //--------------------------------------------------------------------------------------
 
-#include "textures.glsl"
+#include "PixelParams.glsl"
 
 //--------------------------------------------------------------------------------------
 // Pixel Shader
@@ -44,5 +43,5 @@ precision highp float;
 
 void main()
 {
-	discardPixelIfAlphaCutOff();
+	discardPixelIfAlphaCutOff(Input);
 }

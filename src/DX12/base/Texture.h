@@ -35,7 +35,7 @@ namespace CAULDRON_DX12
         // different ways to init a texture
         virtual bool InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f);
         INT32 Init(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue);
-        INT32 InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET);
+        INT32 InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET, const FLOAT * clearColor = nullptr);
         INT32 InitDepthStencil(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc);
         bool InitBuffer(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, uint32_t structureSize, D3D12_RESOURCE_STATES state);     // structureSize needs to be 0 if using a valid DXGI_FORMAT
         bool InitCounter(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pCounterDesc, uint32_t counterSize, D3D12_RESOURCE_STATES state);
@@ -51,7 +51,7 @@ namespace CAULDRON_DX12
         void CreateUAV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1);
         void CreateBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV);
         void CreateRTV(uint32_t index, RTV *pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1);
-        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1);        
+        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1);
         void CreateCubeSRV(uint32_t index, CBV_SRV_UAV *pRV);
 
         // accessors

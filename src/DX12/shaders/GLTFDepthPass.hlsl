@@ -43,7 +43,7 @@ cbuffer cbPerObject : register(b1)
 // Texture definitions
 //--------------------------------------------------------------------------------------
 
-#include "textures.hlsl"
+#include "PixelParams.hlsl"
 
 //--------------------------------------------------------------------------------------
 // Vertex Shader

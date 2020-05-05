@@ -28,7 +28,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 
     m_path = path;
 
-    std::ifstream f(path + filename);    
+    std::ifstream f(path + filename);
     if (!f)
     {
         Trace(format("The file %s cannot be found\n", filename.c_str()));
@@ -41,7 +41,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
     //
     if (j3.find("buffers") != j3.end())
     {
-        json::array_t buffers = j3["buffers"];
+        const json &buffers = j3["buffers"];
         m_buffersData.resize(buffers.size());
         for (int i = 0; i < buffers.size(); i++)
         {
@@ -60,9 +60,9 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 
     // Load Meshes
     //
-    m_pAccessors = j3["accessors"].get_ptr<const json::array_t *>();
-    m_pBufferViews = j3["bufferViews"].get_ptr<const json::array_t *>();
-    const json::array_t &meshes = j3["meshes"];
+    m_pAccessors = &j3["accessors"];
+    m_pBufferViews = &j3["bufferViews"];
+    const json &meshes = j3["meshes"];
     m_meshes.resize(meshes.size());
     for (int i = 0; i < meshes.size(); i++)
     {
@@ -74,14 +74,14 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             tfPrimitives *pPrimitive = &tfmesh->m_pPrimitives[p];
 
             int positionId = primitives[p]["attributes"]["POSITION"];
-            json::object_t accessor = m_pAccessors->at(positionId);
+            const json &accessor = m_pAccessors->at(positionId);
 
             XMVECTOR max = GetVector(GetElementJsonArray(accessor, "max", { 0.0, 0.0, 0.0, 0.0 }));
             XMVECTOR min = GetVector(GetElementJsonArray(accessor, "min", { 0.0, 0.0, 0.0, 0.0 }));
 
             pPrimitive->m_center = (min + max)*.5;
             pPrimitive->m_radius = max - pPrimitive->m_center;
-         
+
             pPrimitive->m_center = XMVectorSetW(pPrimitive->m_center, 1.0f); //set the W to 1 since this is a position not a direction
         }
     }
@@ -96,7 +96,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             const json &KHR_lights_punctual = extensions["KHR_lights_punctual"];
             if (KHR_lights_punctual.find("lights") != KHR_lights_punctual.end())
             {
-                const json::array_t &lights = KHR_lights_punctual["lights"];
+                const json &lights = KHR_lights_punctual["lights"];
                 m_lights.resize(lights.size());
                 for (int i = 0; i < lights.size(); i++)
                 {
@@ -105,13 +105,15 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                     m_lights[i].m_range = GetElementFloat(light, "range", 105);
                     m_lights[i].m_intensity = GetElementFloat(light, "intensity", 1);
                     m_lights[i].m_innerConeAngle = GetElementFloat(light, "spot/innerConeAngle", 0);
-                    m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/m_outerConeAngle", XM_PIDIV4);                    
-                    
+                    m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/outerConeAngle", XM_PIDIV4);
+
                     std::string name = GetElementString(light, "type", "");
                     if (name == "spot")
                         m_lights[i].m_type = tfLight::LIGHT_SPOTLIGHT;
                     else if (name == "point")
                         m_lights[i].m_type = tfLight::LIGHT_POINTLIGHT;
+                    else if (name == "directional")
+                        m_lights[i].m_type = tfLight::LIGHT_DIRECTIONAL;
                 }
             }
         }
@@ -121,25 +123,25 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
     //
     if (j3.find("cameras") != j3.end())
     {
-        const json::array_t &cameras = j3["cameras"];
+        const json &cameras = j3["cameras"];
         m_cameras.resize(cameras.size());
         for (int i = 0; i < cameras.size(); i++)
         {
-            json::object_t camera = cameras[i];
+            const json &camera = cameras[i];
             tfCamera *tfcamera = &m_cameras[i];
 
             tfcamera->yfov = GetElementFloat(camera, "perspective/yfov", 0.1f);
             tfcamera->znear = GetElementFloat(camera, "perspective/znear", 0.1f);
             tfcamera->zfar = GetElementFloat(camera, "perspective/zfar", 100.0f);
             tfcamera->m_nodeIndex = -1;
-        }        
+        }
     }
 
     // Load nodes
     //
     if (j3.find("nodes") != j3.end())
     {
-        const json::array_t &nodes = j3["nodes"];
+        const json &nodes = j3["nodes"];
         m_nodes.resize(nodes.size());
         for (int i = 0; i < nodes.size(); i++)
         {
@@ -154,7 +156,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                 for (int c = 0; c < node["children"].size(); c++)
                 {
                     int nodeID = node["children"][c];
-                    tfnode->m_children.push_back(&m_nodes[nodeID]);
+                    tfnode->m_children.push_back(nodeID);
                 }
             }
 
@@ -188,7 +190,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
     //
     if (j3.find("scenes") != j3.end())
     {
-        json::array_t scenes = j3["scenes"];
+        const json &scenes = j3["scenes"];
         m_scenes.resize(scenes.size());
         for (int i = 0; i < scenes.size(); i++)
         {
@@ -196,7 +198,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             for (int n = 0; n < scene["nodes"].size(); n++)
             {
                 int nodeId = scene["nodes"][n];
-                m_scenes[i].m_nodes.push_back(&m_nodes[nodeId]);
+                m_scenes[i].m_nodes.push_back(nodeId);
             }
         }
     }
@@ -205,7 +207,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
     //
     if (j3.find("skins") != j3.end())
     {
-        const json::array_t &skins = j3["skins"];
+        const json &skins = j3["skins"];
         m_skins.resize(skins.size());
         for (uint32_t i = 0; i < skins.size(); i++)
         {
@@ -214,7 +216,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             if (skins[i].find("skeleton") != skins[i].end())
                 m_skins[i].m_pSkeleton = &m_nodes[skins[i]["skeleton"]];
 
-            auto &joints = skins[i]["joints"];
+            const json &joints = skins[i]["joints"];
             for (uint32_t n = 0; n < joints.size(); n++)
             {
                 m_skins[i].m_jointsNodeIdx.push_back(joints[n]);
@@ -227,12 +229,12 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
     //
     if (j3.find("animations") != j3.end())
     {
-        const json::array_t &animations = j3["animations"];
+        const json &animations = j3["animations"];
         m_animations.resize(animations.size());
         for (int i = 0; i < animations.size(); i++)
         {
-            const json::array_t &channels = animations[i]["channels"];
-            const json::array_t &samplers = animations[i]["samplers"];
+            const json &channels = animations[i]["channels"];
+            const json &samplers = animations[i]["samplers"];
 
             tfAnimation *tfanim = &m_animations[i];
             for (int c = 0; c < channels.size(); c++)
@@ -316,7 +318,7 @@ void GLTFCommon::Unload()
 //
 void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 {
-    if (animationIndex<m_animations.size())
+    if (animationIndex < m_animations.size())
     {
         tfAnimation *anim = &m_animations[animationIndex];
 
@@ -329,7 +331,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
             Transform animated;
 
             float frac, *pCurr, *pNext;
-            
+
             // Animate translation
             //
             if (it->second.m_pTranslation != NULL)
@@ -373,32 +375,33 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
 void GLTFCommon::GetBufferDetails(int accessor, tfAccessor *pAccessor)
 {
-    const json::object_t *pInAccessor = m_pAccessors->at(accessor).get_ptr<const json::object_t *>();
-    const json::object_t *pBufferView = m_pBufferViews->at(pInAccessor->at("bufferView").get<int>()).get_ptr<const json::object_t *>();
+    const json &inAccessor = m_pAccessors->at(accessor);
 
-    char *buffer = m_buffersData[pBufferView->at("buffer").get<int>()];
+    int32_t bufferViewIdx = inAccessor.value("bufferView", -1);
+    assert(bufferViewIdx >= 0);
+    const json &bufferView = m_pBufferViews->at(bufferViewIdx);
 
-    uint32_t offset = 0;
-    if (pBufferView->count("byteOffset")>0)
-        offset += pBufferView->at("byteOffset").get<int>();;
+    int32_t bufferIdx = bufferView.value("buffer", -1);
+    assert(bufferIdx >= 0);
 
-    int byteLength = pBufferView->at("byteLength");
+    char *buffer = m_buffersData[bufferIdx];
 
-    if (pInAccessor->count("byteOffset") > 0)
-    {
-        uint32_t byteOffset = pInAccessor->at("byteOffset").get<int>();
-        offset += byteOffset;
-        byteLength -= byteOffset;
-    }
+    int32_t offset = bufferView.value("byteOffset", 0);
+
+    int byteLength = bufferView["byteLength"];
+
+    int32_t byteOffset = inAccessor.value("byteOffset", 0);
+    offset += byteOffset;
+    byteLength -= byteOffset;
 
     pAccessor->m_data = &buffer[offset];
-    pAccessor->m_dimension = GetDimensions(pInAccessor->at("type").get<std::string>());
-    pAccessor->m_type = GetFormatSize(pInAccessor->at("componentType"));
+    pAccessor->m_dimension = GetDimensions(inAccessor["type"]);
+    pAccessor->m_type = GetFormatSize(inAccessor["componentType"]);
     pAccessor->m_stride = pAccessor->m_dimension * pAccessor->m_type;
-    pAccessor->m_count = pInAccessor->at("count").get<uint32_t>();
+    pAccessor->m_count = inAccessor["count"];
 }
 
-void GLTFCommon::GetAttributesAccessors(const json::object_t &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors)
+void GLTFCommon::GetAttributesAccessors(const json &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors)
 {
     int streamIndex = 0;
     for (int s = 0; s < pStreamNames->size(); s++)
@@ -407,7 +410,7 @@ void GLTFCommon::GetAttributesAccessors(const json::object_t &gltfAttributes, st
         if (attr != gltfAttributes.end())
         {
             tfAccessor accessor;
-            GetBufferDetails(attr->second, &accessor);
+            GetBufferDetails(attr.value(), &accessor);
             pAccessors->push_back(accessor);
         }
     }
@@ -443,18 +446,18 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id)
 //
 // Transforms a node hierarchy recursively 
 //
-void GLTFCommon::TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNode *> *pNodes, GLTFCommonTransformed *pTransformed)
+void GLTFCommon::TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNodeIdx> *pNodes, GLTFCommonTransformed *pTransformed)
 {
+    pTransformed->m_worldSpaceMats.resize(m_nodes.size());
+
     for (uint32_t n = 0; n < pNodes->size(); n++)
     {
-        tfNode  *pNode = pNodes->at(n);
-
-        uint32_t nodeIdx = (uint32_t)(pNode - pRootNode);
+        uint32_t nodeIdx = pNodes->at(n);
 
         XMMATRIX m = m_animatedMats[nodeIdx] * world;
         pTransformed->m_worldSpaceMats[nodeIdx] = m;
 
-        TransformNodes(pRootNode, m, &pNode->m_children, pTransformed);
+        TransformNodes(pRootNode, m, &m_nodes[nodeIdx].m_children, pTransformed);
     }
 }
 
@@ -485,7 +488,7 @@ void GLTFCommon::InitTransformedData()
     for (uint32_t i = 0; i < m_nodes.size(); i++)
     {
         m_animatedMats[i] = m_nodes[i].m_tranform.GetWorldMat();
-    }  
+    }
 }
 
 //
@@ -496,16 +499,16 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
     //swap transformation buffers, we need to keep the last frame data around so we can compute the motion vectors
     GLTFCommonTransformed *pTmp = m_pCurrentFrameTransformedData;
     m_pCurrentFrameTransformedData = m_pPreviousFrameTransformedData;
-    m_pPreviousFrameTransformedData = pTmp;    
+    m_pPreviousFrameTransformedData = pTmp;
 
     // transform all the nodes of the scene
     //           
-    std::vector<tfNode *> sceneNodes = { m_scenes[sceneIndex].m_nodes };
+    std::vector<int> sceneNodes = { m_scenes[sceneIndex].m_nodes };
     TransformNodes(m_nodes.data(), world, &sceneNodes, m_pCurrentFrameTransformedData);
 
     //process skeletons, takes the skinning matrices from the scene and puts them into a buffer that the vertex shader will consume
     //
-    for (uint32_t i = 0; i<m_skins.size(); i++)
+    for (uint32_t i = 0; i < m_skins.size(); i++)
     {
         tfSkins &skin = m_skins[i];
 
@@ -519,25 +522,36 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
     }
 }
 
+bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam)
+{
+    if (cameraIdx < 0 || cameraIdx >= m_cameras.size())
+    {
+        pCam = NULL;
+        return false;
+    }
+
+    XMMATRIX *pMats = m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
+
+    XMMATRIX cameraMat = pMats[m_cameras[cameraIdx].m_nodeIndex];
+    pCam->SetMatrix(cameraMat);
+    pCam->SetFov(m_cameras[cameraIdx].yfov, 1280, 720, m_cameras[cameraIdx].znear, m_cameras[cameraIdx].zfar);
+
+    return true;
+}
+
 //
 // Sets the per frame data from the GLTF, returns a pointer to it in case the user wants to override some values
 // The scene needs to be animated and transformed before we can set the per_frame data. We need those final matrices for the lights and the camera.
 //
-per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx, float cameraAspect)
+per_frame *GLTFCommon::SetPerFrameData(const Camera &cam)
 {
     XMMATRIX *pMats = m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
 
     //Sets the camera
-    if (m_cameras.size() > 0)
-    {
-        assert(cameraIdx < m_cameras.size());
+    m_perFrameData.mCameraViewProj = cam.GetView() * cam.GetProjection();
+    m_perFrameData.mInverseCameraViewProj = XMMatrixInverse(nullptr, m_perFrameData.mCameraViewProj);
+    m_perFrameData.cameraPos = cam.GetPosition();
 
-        XMMATRIX cameraMat = pMats[m_cameras[cameraIdx].m_nodeIndex];
-        XMMATRIX cameraView = XMMatrixInverse(nullptr, cameraMat);
-        m_perFrameData.mCameraViewProj = cameraView * XMMatrixPerspectiveFovRH(m_cameras[0].yfov, cameraAspect, m_cameras[0].znear, m_cameras[0].zfar);
-        m_perFrameData.cameraPos = cameraMat.r[3];
-    }
-    
     // Process lights
     m_perFrameData.lightCount = (int32_t)m_lights.size();
     for (int i = 0; i < m_lights.size(); i++)
@@ -546,7 +560,10 @@ per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx, float cameraAspect)
         XMMATRIX lightView = XMMatrixInverse(nullptr, lightMat);
 
         Light* pSL = &m_perFrameData.lights[i];
-        pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle * 2.0f, 1, .1f, 100.0f);
+        if (m_lights[i].m_type == LightType_Spot)
+            pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle * 2.0f, 1, .1f, 100.0f);
+        else if (m_lights[i].m_type == LightType_Directional)
+            pSL->mLightViewProj = lightView * XMMatrixOrthographicRH(30.0, 30.0, 0.1f, 100.0f);
 
         GetXYZ(pSL->direction, XMVector4Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMMatrixTranspose(lightView)));
         GetXYZ(pSL->color, m_lights[i].m_color);
@@ -556,7 +573,25 @@ per_frame *GLTFCommon::SetPerFrameData(uint32_t cameraIdx, float cameraAspect)
         pSL->outerConeCos = cosf(m_lights[i].m_outerConeAngle);
         pSL->innerConeCos = cosf(m_lights[i].m_innerConeAngle);
         pSL->type = m_lights[i].m_type;
-        pSL->depthBias = 0.001f;
+        pSL->depthBias = 0.0001f;
     }
     return &m_perFrameData;
+}
+
+
+tfNodeIdx GLTFCommon::AddNode(tfNode node)
+{
+    m_nodes.push_back(node);
+    tfNodeIdx idx = (tfNodeIdx)(m_nodes.size() - 1);
+    m_scenes[0].m_nodes.push_back(idx);
+    
+    m_animatedMats.push_back(node.m_tranform.GetWorldMat());
+
+    return idx;
+}
+
+int GLTFCommon::AddLight(tfLight light)
+{
+    m_lights.push_back(light);    
+    return (int)(m_lights.size() - 1);
 }

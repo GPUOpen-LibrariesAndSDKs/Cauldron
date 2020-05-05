@@ -21,13 +21,39 @@
 #include "GltfPbrMaterial.h"
 #include "gltfHelpers.h"
 
-void AddTextureIfExists(const json::object_t &material, std::map<std::string, int> &textureIds, char *texturePath, char *textureName)
+//
+// Set some default parameters 
+//
+void SetDefaultMaterialParamters(PBRMaterialParameters *pPbrMaterialParameters)
 {
-    int id = GetElementInt(material, texturePath, -1);
-    if (id >= 0)
+    pPbrMaterialParameters->m_doubleSided = false;
+    pPbrMaterialParameters->m_blending = false;
+
+    pPbrMaterialParameters->m_params.m_emissiveFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_baseColorFactor = XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f);
+    pPbrMaterialParameters->m_params.m_metallicRoughnessValues = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_specularGlossinessFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+}
+
+bool ProcessGetTextureIndexAndTextCoord(const json::object_t &material, const std::string &textureName, int *pIndex, int *pTexCoord)
+{
+    if (pIndex)
     {
-        textureIds[textureName] = id;
+        *pIndex = -1;
+        std::string strIndex = textureName + "/index";
+        *pIndex = GetElementInt(material, strIndex.c_str(), -1);
+        if (*pIndex == -1)
+            return false;
     }
+
+    if (pTexCoord)
+    {
+        *pTexCoord = -1;
+        std::string strTexCoord = textureName + "/texCoord";
+        *pTexCoord = GetElementInt(material, strTexCoord.c_str(), 0);
+    }
+
+    return true;
 }
 
 void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfmat, std::map<std::string, int> &textureIds)
@@ -46,32 +72,51 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
 
     // look for textures and store their IDs in a map 
     //
-    AddTextureIfExists(material, textureIds, "normalTexture/index", "normalTexture");
-    AddTextureIfExists(material, textureIds, "emissiveTexture/index", "emissiveTexture");
-    AddTextureIfExists(material, textureIds, "occlusionTexture/index", "occlusionTexture");
+    int index, texCoord;
 
-    tfmat->m_defines["ID_normalTexCoord"] = std::to_string(GetElementInt(material, "normalTexture/texCoord", 0));
-    tfmat->m_defines["ID_emissiveTexCoord"] = std::to_string(GetElementInt(material, "emissiveTexture/texCoord", 0));
-    tfmat->m_defines["ID_occlusionTexCoord"] = std::to_string(GetElementInt(material, "occlusionTexture/texCoord", 0));
+    if (ProcessGetTextureIndexAndTextCoord(material, "normalTexture", &index, &texCoord))
+    {
+        textureIds["normalTexture"] = index;
+        tfmat->m_defines["ID_normalTexCoord"] = std::to_string(texCoord);
+    }
+        
+    if (ProcessGetTextureIndexAndTextCoord(material, "emissiveTexture", &index, &texCoord))
+    {
+        textureIds["emissiveTexture"] = index;
+        tfmat->m_defines["ID_emissiveTexCoord"] = std::to_string(texCoord);
+    }
+
+    if (ProcessGetTextureIndexAndTextCoord(material, "occlusionTexture", &index, &texCoord))
+    {
+        textureIds["occlusionTexture"] = index;
+        tfmat->m_defines["ID_occlusionTexCoord"] = std::to_string(texCoord);
+    }
 
     // If using pbrMetallicRoughness
     //
     auto pbrMetallicRoughnessIt = material.find("pbrMetallicRoughness");
     if (pbrMetallicRoughnessIt != material.end())
     {
-        const json::object_t &pbrMetallicRoughness = pbrMetallicRoughnessIt->second;
+        const json &pbrMetallicRoughness = pbrMetallicRoughnessIt->second;
 
-        tfmat->m_pbrType = PBRMaterialParameters::MATERIAL_METALLIC_ROUGHNESS;
+        tfmat->m_defines["MATERIAL_METALLICROUGHNESS"] = "1";
+
         float metallicFactor = GetElementFloat(pbrMetallicRoughness, "metallicFactor", 1.0);
         float roughnessFactor = GetElementFloat(pbrMetallicRoughness, "roughnessFactor", 1.0);
         tfmat->m_params.m_metallicRoughnessValues = XMVectorSet(metallicFactor, roughnessFactor, 0, 0);
         tfmat->m_params.m_baseColorFactor = GetVector(GetElementJsonArray(pbrMetallicRoughness, "baseColorFactor", ones));
 
-        AddTextureIfExists(pbrMetallicRoughness, textureIds, "baseColorTexture/index", "baseColorTexture");
-        AddTextureIfExists(pbrMetallicRoughness, textureIds, "metallicRoughnessTexture/index", "metallicRoughnessTexture");
-        tfmat->m_defines["ID_baseTexCoord"] = std::to_string(GetElementInt(pbrMetallicRoughness, "baseColorTexture/texCoord", 0));
-        tfmat->m_defines["ID_metallicRoughnessTextCoord"] = std::to_string(GetElementInt(pbrMetallicRoughness, "metallicRoughnessTexture/texCoord", 0));
-        tfmat->m_defines["MATERIAL_METALLICROUGHNESS"] = "1";
+        if (ProcessGetTextureIndexAndTextCoord(pbrMetallicRoughness, "baseColorTexture", &index, &texCoord))
+        {
+            textureIds["baseColorTexture"] = index;
+            tfmat->m_defines["ID_baseTexCoord"] = std::to_string(texCoord);
+        }
+
+        if (ProcessGetTextureIndexAndTextCoord(pbrMetallicRoughness, "metallicRoughnessTexture", &index, &texCoord))
+        {
+            textureIds["metallicRoughnessTexture"] = index;
+            tfmat->m_defines["ID_metallicRoughnessTexCoord"] = std::to_string(texCoord);
+        }        
     }
     else
     {
@@ -80,25 +125,101 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
         auto extensionsIt = material.find("extensions");
         if (extensionsIt != material.end())
         {
-            const json::object_t &extensions = extensionsIt->second;
+            const json &extensions = extensionsIt->second;
             auto KHR_materials_pbrSpecularGlossinessIt = extensions.find("KHR_materials_pbrSpecularGlossiness");
             if (KHR_materials_pbrSpecularGlossinessIt != extensions.end())
             {
-                const json::object_t &pbrSpecularGlossiness = KHR_materials_pbrSpecularGlossinessIt->second;
+                const json &pbrSpecularGlossiness = KHR_materials_pbrSpecularGlossinessIt.value();
 
-                tfmat->m_pbrType = PBRMaterialParameters::MATERIAL_SPECULAR_GLOSSINESS;
+                tfmat->m_defines["MATERIAL_SPECULARGLOSSINESS"] = "1";
+
                 float glossiness = GetElementFloat(pbrSpecularGlossiness, "glossinessFactor", 1.0);
                 tfmat->m_params.m_DiffuseFactor = GetVector(GetElementJsonArray(pbrSpecularGlossiness, "diffuseFactor", ones));
                 tfmat->m_params.m_specularGlossinessFactor = XMVectorSetW(GetVector(GetElementJsonArray(pbrSpecularGlossiness, "specularFactor", ones)), glossiness);
 
+                if (ProcessGetTextureIndexAndTextCoord(pbrSpecularGlossiness, "diffuseTexture", &index, &texCoord))
+                {
+                    textureIds["diffuseTexture"] = index;
+                    tfmat->m_defines["ID_diffuseTexCoord"] = std::to_string(texCoord);
+                }
 
-                AddTextureIfExists(pbrSpecularGlossiness, textureIds, "diffuseTexture/index", "diffuseTexture");
-                AddTextureIfExists(pbrSpecularGlossiness, textureIds, "specularGlossinessTexture/index", "specularGlossinessTexture");
-                tfmat->m_defines["ID_diffuseTextCoord"] = std::to_string(GetElementInt(pbrSpecularGlossiness, "diffuseTexture/texCoord", 0));
-                tfmat->m_defines["ID_specularGlossinessTextCoord"] = std::to_string(GetElementInt(pbrSpecularGlossiness, "specularGlossinessTexture/texCoord", 0));
-                tfmat->m_defines["MATERIAL_SPECULARGLOSSINESS"] = "1";
+                if (ProcessGetTextureIndexAndTextCoord(pbrSpecularGlossiness, "specularGlossinessTexture", &index, &texCoord))
+                {
+                    textureIds["specularGlossinessTexture"] = index;
+                    tfmat->m_defines["ID_specularGlossinessTexCoord"] = std::to_string(texCoord);
+                }                
             }
         }
     }
 }
 
+bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName)
+{
+    // search if any *TexCoord mentions this channel
+    //
+    if (semanticName.substr(0, 9) == "TEXCOORD_")
+    {
+        char id = semanticName[9];
+
+        for (auto def : defines)
+        {
+            uint32_t size = static_cast<uint32_t>(def.first.size());
+            if (size<= 8) 
+                continue;
+
+            if (def.first.substr(size-8) == "TexCoord")
+            {
+                if (id == def.second.c_str()[0])
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    return false;
+}
+
+//
+// Identify what material uses this texture, this helps:
+// 1) determine the color space if the texture and also the cut out level. Authoring software saves albedo and emissive images in SRGB mode, the rest are linear mode
+// 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used. 
+//
+void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, bool *pSrgbOut, float *pCutoff)
+{
+    *pSrgbOut = false;
+    *pCutoff = 1.0f; // no cutoff
+
+    for (int m = 0; m < materials.size(); m++)
+    {
+        const json &material = materials[m];
+
+        if (GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1) == imageIndex)
+        {
+            *pSrgbOut = true;
+
+            *pCutoff = GetElementFloat(material, "alphaCutoff", 0.5);
+
+            return;
+        }
+
+        if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/specularGlossinessTexture/index", -1) == imageIndex)
+        {
+            *pSrgbOut = true;
+            return;
+        }
+
+        if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/diffuseTexture/index", -1) == imageIndex)
+        {
+            *pSrgbOut = true;
+            return;
+        }
+
+        if (GetElementInt(material, "emissiveTexture/index", -1) == imageIndex)
+        {
+            *pSrgbOut = true;
+            return;
+        }
+    }
+}

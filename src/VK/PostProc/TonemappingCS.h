@@ -44,6 +44,6 @@ namespace CAULDRON_VK
         VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
         VkDescriptorSetLayout m_descriptorSetLayout;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; int applyGamma; };
+        struct ToneMappingConsts { float exposure; int toneMapper; };
     };
 }

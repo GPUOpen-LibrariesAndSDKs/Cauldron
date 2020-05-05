@@ -30,10 +30,6 @@ namespace CAULDRON_DX12
     class Wireframe
     {
     public:
-        Wireframe();
-
-        ~Wireframe();
-
         void OnCreate(
             Device* pDevice,
             ResourceViewHeaps *pHeaps,
@@ -44,8 +40,8 @@ namespace CAULDRON_DX12
 
         void OnDestroy();
         void Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, XMMATRIX WorldViewProj, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
-    private:
 
+    private:
         DynamicBufferRing *m_pDynamicBufferRing;
         ResourceViewHeaps *m_pResourceViewHeaps;
 

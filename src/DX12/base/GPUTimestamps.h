@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <string>
+#include "Base/Benchmark.h"
 
 namespace CAULDRON_DX12
 {
@@ -33,12 +34,6 @@ namespace CAULDRON_DX12
     // The tricky part in fact is reading back the results without stalling the GPU. 
     // For that it splits the readback heap in <numberOfBackBuffers> pieces and it reads 
     // from the last used chuck.
-
-    struct TimeStamp
-    {
-        std::string m_label;
-        float       m_microseconds;
-    };
 
     class GPUTimestamps
     {

@@ -17,75 +17,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//--------------------------------------------------------------------------------------
-//  For VS layout
-//--------------------------------------------------------------------------------------
+#ifndef VS2PS_struct
+#define VS2PS_struct
 
-#ifdef ID_4VS_POSITION
-    layout (location = ID_4VS_POSITION) in vec4 a_Position;
+struct VS2PS
+{
+#ifdef ID_COLOR_0
+    vec3 Color0;
 #endif
 
-#ifdef ID_4VS_COLOR_0
-    layout (location = ID_4VS_COLOR_0) in  vec3 a_Color0;
+#ifdef ID_TEXCOORD_0
+    vec2 UV0;
 #endif
 
-#ifdef ID_4VS_TEXCOORD_0
-    layout (location = ID_4VS_TEXCOORD_0) in  vec2 a_UV0;
+#ifdef ID_TEXCOORD_1
+    vec2 UV1;
 #endif
 
-#ifdef ID_4VS_TEXCOORD_1
-    layout (location = ID_4VS_TEXCOORD_1) in  vec2 a_UV1;
+#ifdef ID_NORMAL
+    vec3 Normal;
 #endif
 
-#ifdef ID_4VS_NORMAL
-    layout (location = ID_4VS_NORMAL) in  vec3 a_Normal;
+#ifdef ID_TANGENT
+    vec3 Tangent;
+    vec3 Binormal;
 #endif
 
-#ifdef ID_4VS_TANGENT
-    layout (location = ID_4VS_TANGENT) in vec4 a_Tangent;
+	vec3 WorldPos;
+
+#ifdef HAS_MOTION_VECTORS
+	vec4 CurrPosition;
+	vec4 PrevPosition;
 #endif
 
-#ifdef ID_4VS_WEIGHTS_0
-    layout (location = ID_4VS_WEIGHTS_0) in  vec4 a_Weights0;
-#endif
+};
 
-#ifdef ID_4VS_WEIGHTS_1
-    layout (location = ID_4VS_WEIGHTS_1) in  vec4 a_Weights1;
-#endif
-
-#ifdef ID_4VS_JOINTS_0
-    layout (location = ID_4VS_JOINTS_0) in  uvec4 a_Joints0;
-#endif
-
-#ifdef ID_4VS_JOINTS_1
-    layout (location = ID_4VS_JOINTS_1) in  uvec4 a_Joints1;
-#endif
-
-//--------------------------------------------------------------------------------------
-//  For PS layout (make sure this layout matches the one in glTF20-frag.glsl)
-//--------------------------------------------------------------------------------------
-
-#ifdef ID_4PS_COLOR_0
-    layout (location = ID_4PS_COLOR_0) out  vec3 v_Color0;
-#endif
-
-#ifdef ID_4PS_TEXCOORD_0
-    layout (location = ID_4PS_TEXCOORD_0) out vec2 v_UV0;
-#endif
-
-#ifdef ID_4PS_TEXCOORD_1
-    layout (location = ID_4PS_TEXCOORD_1) out vec2 v_UV1;
-#endif
-
-#ifdef ID_4PS_NORMAL
-    layout (location = ID_4PS_NORMAL) out vec3 v_Normal;
-#endif
-
-#ifdef ID_4PS_TANGENT
-    layout (location = ID_4PS_TANGENT) out vec3 v_Tangent;
-    layout (location = ID_4PS_LASTID+1) out vec3 v_Binormal;
-#endif
-
-#ifdef ID_4PS_WORLDPOS
-layout (location = ID_4PS_WORLDPOS) out vec3 v_WorldPos;
 #endif

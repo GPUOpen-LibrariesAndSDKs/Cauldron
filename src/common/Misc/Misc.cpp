@@ -92,7 +92,7 @@ void Trace(const char* pFormat, ...)
     std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
 
-    constexpr uint32_t MaxBufferSize = 2048;
+    constexpr uint32_t MaxBufferSize = 20480;
     char str[MaxBufferSize];
     va_list args;
 
@@ -248,9 +248,54 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
     return false;
 }
 
-void GetXYZ(float *f, XMVECTOR v)
+void GetXYZ(float *f, const XMVECTOR v)
 {
     f[0] = XMVectorGetX(v);
     f[1] = XMVectorGetY(v);
     f[2] = XMVectorGetZ(v);
 }
+
+//
+// Frustrum culls an AABB. The culling is done in clip space. 
+//
+bool FrustumCulled(const XMMATRIX mCameraViewProj, const XMVECTOR center, const XMVECTOR extent)
+{
+    float ex = XMVectorGetX(extent);
+    float ey = XMVectorGetY(extent);
+    float ez = XMVectorGetZ(extent);
+
+    XMVECTOR p[8];
+    p[0] = XMVector4Transform((center + XMVectorSet(ex, ey, ez, 0)), mCameraViewProj);
+    p[1] = XMVector4Transform((center + XMVectorSet(ex, ey, -ez, 0)), mCameraViewProj);
+    p[2] = XMVector4Transform((center + XMVectorSet(ex, -ey, ez, 0)), mCameraViewProj);
+    p[3] = XMVector4Transform((center + XMVectorSet(ex, -ey, -ez, 0)), mCameraViewProj);
+    p[4] = XMVector4Transform((center + XMVectorSet(-ex, ey, ez, 0)), mCameraViewProj);
+    p[5] = XMVector4Transform((center + XMVectorSet(-ex, ey, -ez, 0)), mCameraViewProj);
+    p[6] = XMVector4Transform((center + XMVectorSet(-ex, -ey, ez, 0)), mCameraViewProj);
+    p[7] = XMVector4Transform((center + XMVectorSet(-ex, -ey, -ez, 0)), mCameraViewProj);
+
+    uint32_t left = 0;
+    uint32_t right = 0;
+    uint32_t top = 0;
+    uint32_t bottom = 0;
+    uint32_t back = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        float x = XMVectorGetX(p[i]);
+        float y = XMVectorGetY(p[i]);
+        float z = XMVectorGetZ(p[i]);
+        float w = XMVectorGetW(p[i]);
+
+        if (x < -w) left++;
+        if (x > w) right++;
+        if (y < -w) bottom++;
+        if (y > w) top++;
+        if (z < 0) back++;
+    }
+
+    if (left == 8 || right == 8 || top == 8 || bottom == 8 || back == 8)
+        return true;
+
+    return false;
+}
+

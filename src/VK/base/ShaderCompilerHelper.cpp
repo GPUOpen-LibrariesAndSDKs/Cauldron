@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "ShaderCompilerHelper.h"
+#include "Base/ExtDebugUtils.h"
 
 #include "Misc/Misc.h"
 #include "Misc/Cache.h"
@@ -58,7 +59,7 @@ namespace CAULDRON_VK
         case VK_SHADER_STAGE_FRAGMENT_BIT:  stage = "fragment"; break;
         case VK_SHADER_STAGE_COMPUTE_BIT:  stage = "compute"; break;
         }
-        
+
         // add the #defines
         //
         std::string defines;
@@ -224,7 +225,9 @@ namespace CAULDRON_VK
 
         if (ReadFile(fullpath, &pShaderCode, &size, false))
         {
-            return VKCompileFromString(device, sourceType, shader_type, pShaderCode, pEntryPoint, pDefines, pShader);
+            VkResult res = VKCompileFromString(device, sourceType, shader_type, pShaderCode, pEntryPoint, pDefines, pShader);
+            SetResourceName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)pShader->module, pFilename);
+            return res;
         }
 
         return VK_NOT_READY;

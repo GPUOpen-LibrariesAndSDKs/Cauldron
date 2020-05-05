@@ -41,6 +41,7 @@ namespace CAULDRON_VK
                 Trace(format("FreeSync2 disabled, missing extension: %s\n", ext));
                 bFp16Enabled = false;
             }
+
         }
 
         if (bFp16Enabled)

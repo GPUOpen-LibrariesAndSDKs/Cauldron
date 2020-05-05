@@ -18,11 +18,14 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "GLTF/GltfHelpers.h"
-#include "Base/Texture.h"
-#include "Base/UploadHeap.h"
-#include "GLTFTexturesAndBuffers.h"
 #include "Misc/Misc.h"
+#include "GltfHelpers.h"
+#include "Base/ShaderCompiler.h"
+#include "Misc/ThreadPool.h"
+#include "GLTFTexturesAndBuffers.h"
+#include "../common/GLTF/GltfPbrMaterial.h"
+
+class DefineList;
 
 namespace CAULDRON_DX12
 {
@@ -43,53 +46,19 @@ namespace CAULDRON_DX12
         //
         if (m_pGLTFCommon->j3.find("images") != m_pGLTFCommon->j3.end())
         {
-            m_pTextureNodes = m_pGLTFCommon->j3["textures"].get_ptr<const json::array_t *>();
-            const json::array_t images = m_pGLTFCommon->j3["images"];
-            const json::array_t materials = m_pGLTFCommon->j3["materials"];
+            m_pTextureNodes = &m_pGLTFCommon->j3["textures"];
+            const json &images = m_pGLTFCommon->j3["images"];
+            const json &materials = m_pGLTFCommon->j3["materials"];
 
             m_textures.resize(images.size());
-            for (int i = 0; i < images.size(); i++)
+            for (int imageIndex = 0; imageIndex < images.size(); imageIndex++)
             {
-                // Identify what material uses this texture, this helps:
-                // 1) determine the color space if the texture and also the cut out level. Authoring software saves albedo and emissive images in SRGB mode, the rest are linear mode
-                // 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used. 
-                //
-                bool useSRGB = false;
-                float cutOff = 1.0f; // no cutoff
-                for (int m = 0; m < materials.size(); m++)
-                {
-                    const json::object_t &material = materials[m].get_ref<const json::object_t &>();
+                bool useSRGB;
+                float cutOff;
+                GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, &useSRGB, &cutOff);
 
-                    if (GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-
-                        cutOff = GetElementFloat(material, "alphaCutoff", 0.5);
-
-                        break;
-                    }
-
-                    if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/specularGlossinessTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-                        break;
-                    }
-
-                    if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/diffuseTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-                        break;
-                    }
-
-                    if (GetElementInt(material, "emissiveTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-                        break;
-                    }
-                }
-
-                std::string filename = images[i]["uri"];
-                bool result = m_textures[i].InitFromFile(m_pDevice, m_pUploadHeap, (m_pGLTFCommon->m_path + filename).c_str(), useSRGB, cutOff);
+                std::string filename = images[imageIndex]["uri"];
+                bool result = m_textures[imageIndex].InitFromFile(m_pDevice, m_pUploadHeap, (m_pGLTFCommon->m_path + filename).c_str(), useSRGB, cutOff);
                 assert(result != false);
             }
             m_pUploadHeap->FlushAndFinish();
@@ -137,7 +106,7 @@ namespace CAULDRON_DX12
     //
     //
     void GLTFTexturesAndBuffers::CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry)
-    {        
+    {
         CreateIndexBuffer(indexBuffer, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
 
         // load the rest of the buffers onto the GPU
@@ -149,11 +118,62 @@ namespace CAULDRON_DX12
         }
     }
 
+    // Creates buffers and the input assemby at the same time. It needs a list of attributes to use.
+    //
+    void GLTFTexturesAndBuffers::CreateGeometry(const json &primitive, const std::vector<std::string> requiredAttributes, std::vector<std::string> &semanticNames, std::vector<D3D12_INPUT_ELEMENT_DESC> &layout, DefineList &defines, Geometry *pGeometry)
+    {
+        // Get Index Buffer accessor
+        //
+        tfAccessor indexBuffer;
+        int indexAcc = primitive.value("indices", -1);
+        m_pGLTFCommon->GetBufferDetails(indexAcc, &indexBuffer);
+        CreateIndexBuffer(indexBuffer, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
+
+        // Create vertex buffers and input layout
+        //
+        int cnt = 0;
+        layout.resize(requiredAttributes.size());
+        semanticNames.resize(requiredAttributes.size());
+        pGeometry->m_VBV.resize(requiredAttributes.size());
+        const json &attributes = primitive.at("attributes");
+        for (auto attrName : requiredAttributes)
+        {
+            // get vertex buffer into static pool
+            // 
+            tfAccessor acc;
+            const int attr = attributes.find(attrName).value();
+            m_pGLTFCommon->GetBufferDetails(attr, &acc);
+            m_pStaticBufferPool->AllocVertexBuffer(acc.m_count, acc.m_stride, acc.m_data, &pGeometry->m_VBV[cnt]);
+
+            // Set define so the shaders knows this stream is available
+            //
+            defines[std::string("HAS_") + attrName] = std::string("1");
+
+            // split semantic name from index, DX doesnt like the trailing number
+            uint32_t semanticIndex = 0;
+            SplitGltfAttribute(attrName, &semanticNames[cnt], &semanticIndex);
+
+            const json &inAccessor = m_pGLTFCommon->m_pAccessors->at(attr);
+
+            // Create Input Layout
+            //
+            D3D12_INPUT_ELEMENT_DESC l = {};
+            l.SemanticName = semanticNames[cnt].c_str(); // we need to set it in the pipeline function (because of multithreading)
+            l.SemanticIndex = semanticIndex;
+            l.Format = GetFormat(inAccessor["type"], inAccessor["componentType"]);
+            l.InputSlot = (UINT)cnt;
+            l.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+            l.InstanceDataStepRate = 0;
+            l.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
+            layout[cnt] = l;
+
+            cnt++;            
+        }
+    }
+
     void GLTFTexturesAndBuffers::SetPerFrameConstants()
     {
-        per_frame *cbPerFrame;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_frame), (void **)&cbPerFrame, &m_perFrameConstants);
-        *cbPerFrame = m_pGLTFCommon->m_perFrameData;
+        m_perFrameConstants = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_frame), &m_pGLTFCommon->m_perFrameData);
     }
 
     void GLTFTexturesAndBuffers::SetSkinningMatricesForSkeletons()
@@ -161,14 +181,7 @@ namespace CAULDRON_DX12
         for (auto &t : m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceSkeletonMats)
         {
             std::vector<XMMATRIX> *matrices = &t.second;
-
-            D3D12_GPU_VIRTUAL_ADDRESS perSkeleton = {};
-            XMMATRIX *cbPerSkeleton;
-            m_pDynamicBufferRing->AllocConstantBuffer((uint32_t)(matrices->size() * sizeof(XMMATRIX)), (void **)&cbPerSkeleton, &perSkeleton);
-            for (int i = 0; i < matrices->size(); i++)
-            {
-                cbPerSkeleton[i] = matrices->at(i);
-            }
+            D3D12_GPU_VIRTUAL_ADDRESS perSkeleton = m_pDynamicBufferRing->AllocConstantBuffer((uint32_t)(matrices->size() * sizeof(XMMATRIX)), matrices->data());
 
             m_skeletonMatricesBuffer[t.first] = perSkeleton;
         }

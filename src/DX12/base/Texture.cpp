@@ -86,7 +86,7 @@ namespace CAULDRON_DX12
         return hr;
     }
 
-    INT32 Texture::InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState)
+    INT32 Texture::InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const FLOAT * clearColor)
     {
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
@@ -97,6 +97,14 @@ namespace CAULDRON_DX12
         clearValue.Color[3] = 0.0f;
 
         bool isRenderTarget = pDesc->Flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET ? 1 : 0;
+
+        if (clearColor)
+        {
+            clearValue.Color[0] = clearColor[0];
+            clearValue.Color[1] = clearColor[1];
+            clearValue.Color[2] = clearColor[2];
+            clearValue.Color[3] = clearColor[3];
+        }
 
         Init(pDevice, pDebugName, pDesc, initialState, isRenderTarget ? &clearValue : nullptr);
 
@@ -427,9 +435,12 @@ namespace CAULDRON_DX12
 
     INT32 Texture::InitDepthStencil(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc)
     {
+        // depth buffers need to be created as typeless! That way we can create different views out of them
+        assert(pDesc->Format == DXGI_FORMAT_R32_TYPELESS);
+
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
-        clearValue.Format = (pDesc->Format == DXGI_FORMAT_R32_TYPELESS)? DXGI_FORMAT_D32_FLOAT: pDesc->Format;
+        clearValue.Format = (pDesc->Format == DXGI_FORMAT_R32_TYPELESS) ? DXGI_FORMAT_D32_FLOAT : pDesc->Format;
         clearValue.DepthStencil.Depth = 1.0f;
         clearValue.DepthStencil.Stencil = 0;
 

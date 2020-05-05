@@ -4,28 +4,37 @@ A simple framework for rapid prototyping on Vulkan or DirectX12.
 
 Cauldron was developed by AMD and is used internally to develop prototypes, demos and SDK samples.
 
-Cauldron is compiled as a static library, hence the sample application has to statically link against it.
+Cauldron is compiled as a static library, to see it in action check projects below.
 
-# Sample Projects & Screenshots
+# Projects that feature Cauldron
 
-- [glTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/glTFSample), a simple demo app to show off Cauldron's features
-  ![Screenshot](https://github.com/GPUOpen-LibrariesAndSDKs/glTFSample/raw/master/screenshot.png)
+- [TressFX](https://github.com/GPUOpen-Effects/TressFX), a library that simulates and renders realistic hair and fur
+- [GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample), a simple demo app to show off Cauldron's features
+  ![GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample/raw/master/screenshot.png)
+
 
 # Cauldron Features
 
 - [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0) File loader
   - Animation for cameras, objects, skeletons and lights
   - Skinning
-  - PBR Materials 
-    - Metallic-Roughness 
-    - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
-  - Lighting (KHR_lights_punctual extension)
-    - Spot Lights w/ Shadows (up to 4)
-    - Image-based Lighting (IBL) CubeMaps
+  - Rendering techniques
+    - :champagne: Motion vectors (New!)
+    - Depth pass only
+    - :champagne: Baking skinning (New! and DX12 only)
+    - PBR Materials 
+      - Metallic-Roughness 
+  	  - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
+    - Lighting (KHR_lights_punctual extension)
+      - Spot Lights w/ Shadows (up to 4)
+      - Image-based Lighting (IBL) CubeMaps
+  - Shadow techniques
+    - shadow maps
+    - :champagne: shadow masks (New! and DX12 only)
 - Postprocessing
+  - :champagne: TAA (New! and DX12 only)
   - Bloom
   - HDR/Tonemapping
-- :champagne: New! FreeSync™ 2 HDR support
 - Texture Loaders for DDS, JPEG and PNG formats
   - MipMap generation for powers-of-two textures
 - In-app user interface using [Dear ImGui](https://github.com/ocornut/imgui)
@@ -42,6 +51,7 @@ Cauldron is compiled as a static library, hence the sample application has to st
   - Fullscreen/Windowed Modes
 - Support for DXC/SM6.x 
 - Shader Binary & PSO caching
+- FreeSync :tm: 2 HDR support
 
 # Directory Structure
 
@@ -65,10 +75,10 @@ Note: more info on the rendering backends can be found in the Readme of their re
 
 ## Prerequisites
 
-- [CMake 3.4](https://cmake.org/download/)
+- [CMake 3.16](https://cmake.org/download/)
 - [Visual Studio 2017](https://visualstudio.microsoft.com/downloads/)
-- [Windows 10 SDK 10.0.17763.0](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)
-- [Vulkan SDK 1.1.106](https://www.lunarg.com/vulkan-sdk/)
+- [Windows 10 SDK 10.0.18362.0](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)
+- [Vulkan SDK 1.2.131.2](https://www.lunarg.com/vulkan-sdk/)
 
 ## How-to-Build
 
@@ -92,7 +102,7 @@ The main features could be grouped in 4 categories:
   - CommandListRing - *allocates a number of command buffers from a ring buffer and returns a ready-to-use command buffer.*
   - Device - *all the device related code.*
 - **Renderers**
-  - GLTF* - *loads and renders the model*
+  - GLTF* - *loads and renders the model using a certain technique*
   - PostProcPS/PS - *draws a 2D quad using a custom shader, used by the post processing passes.*
   - ImGUI - *code for driving the ImGUI*
   - Widgets
@@ -100,7 +110,11 @@ The main features could be grouped in 4 categories:
     - Axis - *draws the coordinate axis of a matrix*
 - **Vulkan specific helpers & setup code**
   - InstanceVK - *creates an instance and enables the validation layer*
-  - DebugMarkersExtVk - *sets up the debug markers*
+  - Extension helpers 
+    - ExtDebugMarkers - *sets up the debug markers*
+    - ExtFp16 - *enables FP16 extension*
+    - ExtFreeSync2 - *enables FreeSync extension*
+    - ExtValidation - *enables the validation layer*
 - **Commons & OS-specific code**
   - Swapchain - *handles resizing, fullscreen/windowed modes, etc.*
   - FrameworkWindows - *creates a window, processes windows message pump*

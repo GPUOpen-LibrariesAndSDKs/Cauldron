@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 #ifdef ID_shadowMap
-layout(set = 1, binding = ID_shadowMap) uniform sampler2D u_shadowMap;
+layout(set = 1, binding = ID_shadowMap) uniform sampler2DShadow u_shadowMap;
 #endif
 
 // shadowmap filtering
@@ -38,8 +38,7 @@ float FilterShadow(vec3 uv)
     {
         for (int j = -kernelLevel; j <= kernelLevel; j++)
         {
-            float distanceFromLight = texture(u_shadowMap, uv.st + vec2(dx*i, dy*j)).r;                
-            shadow += (distanceFromLight < uv.z) ? 0.0 : 1.0 ;
+            shadow += texture(u_shadowMap, uv + vec3(dx*i, dy*j, 0)).r;
         }
     }
 
@@ -57,6 +56,9 @@ float DoSpotShadow(vec3 vPosition, Light light)
     if (light.shadowMapIndex < 0)
         return 1.0f;
 
+    if (light.type != LightType_Spot && light.type != LightType_Directional)
+        return 1.0; // no other light types cast shadows for now
+
     vec4 shadowTexCoord = light.mLightViewProj * vec4(vPosition, 1.0);
     shadowTexCoord.xyz = shadowTexCoord.xyz / shadowTexCoord.w;
 
@@ -64,8 +66,21 @@ float DoSpotShadow(vec3 vPosition, Light light)
     shadowTexCoord.x = (1.0 + shadowTexCoord.x) * 0.25;
     shadowTexCoord.y = (1.0 - shadowTexCoord.y) * 0.25;
 
-    if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 0;
-    if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 0;
+    if (light.type == LightType_Spot)
+    {
+        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 0;
+        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 0;
+        if (shadowTexCoord.z < 0.0f) return 0.0f;
+        if (shadowTexCoord.z > 1.0f) return 1.0f;
+    }
+    else if (light.type == LightType_Directional)
+    {
+        // This is the sun, so outside of the volume we do have light
+        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 1.0f;
+        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 1.0f;
+        if (shadowTexCoord.z < 0.0f) return 1.0f;
+        if (shadowTexCoord.z > 1.0f) return 1.0f;
+    }
 
     // offsets of the center of the shadow map atlas
     float offsetsX[4] = { 0.0, 1.0, 0.0, 1.0 };
@@ -74,7 +89,7 @@ float DoSpotShadow(vec3 vPosition, Light light)
     shadowTexCoord.y += offsetsY[light.shadowMapIndex] * .5;
 
     shadowTexCoord.z -= light.depthBias;
-    
+
     return FilterShadow(shadowTexCoord.xyz);
 #else
     return 1.0f;

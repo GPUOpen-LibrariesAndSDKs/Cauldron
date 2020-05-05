@@ -18,11 +18,12 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
+#include "Misc/Misc.h"
 #include "GltfHelpers.h"
 #include "Base/UploadHeap.h"
-#include "GLTFTexturesAndBuffers.h"
-#include "Misc/Misc.h"
 #include "Misc/ThreadPool.h"
+#include "GLTFTexturesAndBuffers.h"
+#include "../common/GLTF/GltfPbrMaterial.h"
 
 namespace CAULDRON_VK
 {
@@ -43,57 +44,23 @@ namespace CAULDRON_VK
         //
         if (m_pGLTFCommon->j3.find("images") != m_pGLTFCommon->j3.end())
         {
-            m_pTextureNodes = m_pGLTFCommon->j3["textures"].get_ptr<const json::array_t *>();
-            nlohmann::json::array_t images = m_pGLTFCommon->j3["images"];
-            nlohmann::json::array_t materials = m_pGLTFCommon->j3["materials"];
+            m_pTextureNodes = &m_pGLTFCommon->j3["textures"];
+            const json &images = m_pGLTFCommon->j3["images"];
+            const json &materials = m_pGLTFCommon->j3["materials"];
 
             m_textures.resize(images.size());
             m_textureViews.resize(images.size());
-            for (int i = 0; i < images.size(); i++)
+            for (int imageIndex = 0; imageIndex < images.size(); imageIndex++)
             {
-                // Identify what material uses this texture, this helps:
-                // 1) determine the color space if the texture and also the cut out level. Authoring software saves albedo and emissive images in SRGB mode, the rest are linear mode
-                // 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used. 
-                //
-                bool useSRGB = false;
-                float cutOff = 1.0f; // no cutoff
-                for (int m = 0; m < materials.size(); m++)
-                {
-                    const json::object_t &material = materials[m].get_ref<const json::object_t &>();
+                bool useSRGB;
+                float cutOff;
+                GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, &useSRGB, &cutOff);
 
-                    if (GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-
-                        cutOff = GetElementFloat(material, "alphaCutoff", 0.5);
-
-                        break;
-                    }
-
-                    if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/specularGlossinessTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-                        break;
-                    }
-
-                    if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/diffuseTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-                        break;
-                    }
-
-                    if (GetElementInt(material, "emissiveTexture/index", -1) == i)
-                    {
-                        useSRGB = true;
-                        break;
-                    }
-                }
-
-                std::string filename = images[i]["uri"];
-                bool result = m_textures[i].InitFromFile(m_pDevice, m_pUploadHeap, (m_pGLTFCommon->m_path + filename).c_str(), useSRGB, cutOff);
+                std::string filename = images[imageIndex]["uri"];
+                bool result = m_textures[imageIndex].InitFromFile(m_pDevice, m_pUploadHeap, (m_pGLTFCommon->m_path + filename).c_str(), useSRGB, cutOff);
                 assert(result != false);
 
-                m_textures[i].CreateSRV(&m_textureViews[i]);
+                m_textures[imageIndex].CreateSRV(&m_textureViews[imageIndex]);
             }
             m_pUploadHeap->FlushAndFinish();
         }
@@ -114,13 +81,13 @@ namespace CAULDRON_VK
         return m_textureViews[tex];
     }
 
-    // Creates Vertex Buffers from accessors and sets them in the Primitive struct.
+    // Creates a Index Buffer from the accessor
     //
     //
-    void GLTFTexturesAndBuffers::CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry)
+    void GLTFTexturesAndBuffers::CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, VkIndexType *pIndexType, VkDescriptorBufferInfo *pIBV)
     {
-        pGeometry->m_NumIndices = indexBuffer.m_count;
-        pGeometry->m_indexType = (indexBuffer.m_stride == 4) ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
+        *pNumIndices = indexBuffer.m_count;
+        *pIndexType = (indexBuffer.m_stride == 4) ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
 
         // Some exporters use 1-byte indices, need to convert them to shorts since the GPU doesn't support 1-byte indices
         if (indexBuffer.m_stride == 1)
@@ -128,13 +95,21 @@ namespace CAULDRON_VK
             unsigned short *pIndices = (unsigned short *)malloc(indexBuffer.m_count * (2 * indexBuffer.m_stride));
             for (int i = 0; i < indexBuffer.m_count; i++)
                 pIndices[i] = ((unsigned char *)indexBuffer.m_data)[i];
-            m_pStaticBufferPool->AllocBuffer(indexBuffer.m_count, 2 * indexBuffer.m_stride, pIndices, &pGeometry->m_IBV);
+            m_pStaticBufferPool->AllocBuffer(indexBuffer.m_count, 2 * indexBuffer.m_stride, pIndices, pIBV);
             free(pIndices);
         }
         else
         {
-            m_pStaticBufferPool->AllocBuffer(indexBuffer.m_count, indexBuffer.m_stride, indexBuffer.m_data, &pGeometry->m_IBV);
+            m_pStaticBufferPool->AllocBuffer(indexBuffer.m_count, indexBuffer.m_stride, indexBuffer.m_data, pIBV);
         }
+    }
+
+    // Creates Vertex Buffers from accessors and sets them in the Primitive struct.
+    //
+    //
+    void GLTFTexturesAndBuffers::CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry)
+    {
+        CreateIndexBuffer(indexBuffer, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
 
         // load the rest of the buffers onto the GPU
         pGeometry->m_VBV.resize(vertexBuffers.size());
@@ -142,6 +117,50 @@ namespace CAULDRON_VK
         {
             tfAccessor *pVertexAccessor = &vertexBuffers[i];
             m_pStaticBufferPool->AllocBuffer(pVertexAccessor->m_count, pVertexAccessor->m_stride, pVertexAccessor->m_data, &pGeometry->m_VBV[i]);
+        }
+    }
+
+    // Creates buffers and the input assemby at the same time. It needs a list of attributes to use.
+    //
+    void GLTFTexturesAndBuffers::CreateGeometry(const json &primitive, const std::vector<std::string> requiredAttributes, std::vector<VkVertexInputAttributeDescription> &layout, DefineList &defines, Geometry *pGeometry)
+    {
+        // Get Index and vertex buffer buffer accessors and create the geometry
+        //
+        tfAccessor indexBuffer;
+        int indexAcc = primitive.value("indices", -1);
+        m_pGLTFCommon->GetBufferDetails(indexAcc, &indexBuffer);
+        CreateIndexBuffer(indexBuffer, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
+
+        // Create vertex buffers and input layout
+        //
+        int cnt = 0;
+        layout.resize(requiredAttributes.size());
+        pGeometry->m_VBV.resize(requiredAttributes.size());
+        const json &attributes = primitive.at("attributes");
+        for (auto attrName : requiredAttributes)
+        {
+            // get vertex buffer into static pool
+            // 
+            tfAccessor acc;
+            const int attr = attributes.find(attrName).value();
+            m_pGLTFCommon->GetBufferDetails(attr, &acc);
+            m_pStaticBufferPool->AllocBuffer(acc.m_count, acc.m_stride, acc.m_data, &pGeometry->m_VBV[cnt]);
+
+            // let the compiler know we have this stream
+            defines[std::string("ID_") + attrName] = std::to_string(cnt);
+
+            const json &inAccessor = m_pGLTFCommon->m_pAccessors->at(attr);
+
+            // Create Input Layout
+            //
+            VkVertexInputAttributeDescription l = {};
+            l.location = (uint32_t)cnt;
+            l.format = GetFormat(inAccessor["type"], inAccessor["componentType"]);
+            l.offset = 0;
+            l.binding = cnt;
+            layout[cnt]=l;
+
+            cnt++;
         }
     }
 

@@ -19,6 +19,7 @@
 #pragma once
 #include "GLTF/GltfCommon.h"
 #include "Base/Texture.h"
+#include "Base/ShaderCompiler.h"
 #include "Base/StaticBufferPool.h"
 #include "Base/DynamicBufferRing.h"
 
@@ -39,7 +40,7 @@ namespace CAULDRON_VK
         Device* m_pDevice;
         UploadHeap *m_pUploadHeap;
 
-        const json::array_t *m_pTextureNodes;
+        const json *m_pTextureNodes;
 
         std::vector<Texture> m_textures;
         std::vector<VkImageView> m_textureViews;
@@ -57,7 +58,9 @@ namespace CAULDRON_VK
         void LoadTextures();
         void OnDestroy();
 
+        void CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, VkIndexType *pIndexType, VkDescriptorBufferInfo *pIBV);
         void CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry);
+        void CreateGeometry(const json &primitive, const std::vector<std::string> requiredAttributes, std::vector<VkVertexInputAttributeDescription> &layout, DefineList &defines, Geometry *pGeometry);
 
         VkImageView GetTextureViewByID(int id);
 

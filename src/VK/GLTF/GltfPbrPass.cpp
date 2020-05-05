@@ -22,6 +22,7 @@
 #include "GltfHelpers.h"
 #include "Base/Helper.h"
 #include "Base/ShaderCompilerHelper.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/ExtDebugMarkers.h"
 #include "PostProc/Skydome.h"
 
@@ -44,9 +45,12 @@ namespace CAULDRON_VK
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
         SkyDome *pSkyDome,
         VkImageView ShadowMapView,
+        bool bExportForwardPass,
+        bool bExportSpecularRoughness,
+        bool bExportDiffuseColor,
         VkSampleCountFlagBits sampleCount
     )
-    {        
+    {
         m_pDevice = pDevice;
         m_renderPass = renderPass;
         m_sampleCount = sampleCount;
@@ -55,11 +59,27 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
 
-        const json &j3 = pGLTFTexturesAndBuffers->m_pGLTFCommon->j3;
+        //set bindings for the render targets
+        //
+        DefineList rtDefines;
+        {
+            int rtIndex = 0;
+            if (bExportForwardPass)
+            {
+                rtDefines["ID_FORWARD_RT"] = std::to_string(rtIndex++);
+            }
+            if (bExportSpecularRoughness)
+            {
+                rtDefines["ID_SPECULAR_ROUGHNESS_RT"] = std::to_string(rtIndex++);
+            }
+            if (bExportDiffuseColor)
+            {
+                rtDefines["ID_DIFFUSE_RT"] = std::to_string(rtIndex++);
+            }
+        }
 
-        /////////////////////////////////////////////
         // Load BRDF look up table for the PBR shader
-
+        //
         m_brdfLutTexture.InitFromFile(pDevice, pUploadHeap, "BrdfLut.dds", false); // LUT images are stored as linear
         m_brdfLutTexture.CreateSRV(&m_brdfLutView);
 
@@ -104,12 +124,14 @@ namespace CAULDRON_VK
         {
             VkSamplerCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-            info.magFilter = VK_FILTER_NEAREST;
-            info.minFilter = VK_FILTER_NEAREST;
+            info.magFilter = VK_FILTER_LINEAR;
+            info.minFilter = VK_FILTER_LINEAR;
             info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             info.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
             info.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
             info.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+            info.compareEnable = VK_TRUE;
+            info.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
@@ -117,24 +139,20 @@ namespace CAULDRON_VK
             assert(res == VK_SUCCESS);
         }
 
-        // Create a default material that is all black.
+        // Create default material, this material will be used if none is assigned
         //
         {
-            m_defaultMaterial.m_pbrMaterialParameters.m_doubleSided = false;
-            m_defaultMaterial.m_pbrMaterialParameters.m_blending = false;
-
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_emissiveFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_baseColorFactor = XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f);
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_metallicRoughnessValues = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-            m_defaultMaterial.m_pbrMaterialParameters.m_params.m_specularGlossinessFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+            SetDefaultMaterialParamters(&m_defaultMaterial.m_pbrMaterialParameters);
 
             std::map<std::string, VkImageView> texturesBase;
-            CreateGPUMaterialData(&m_defaultMaterial, texturesBase, pSkyDome, ShadowMapView);
+            CreateDescriptorTableForMaterialTextures(&m_defaultMaterial, texturesBase, pSkyDome, ShadowMapView);
         }
 
         // Load PBR 2.0 Materials
         //
-        const json::array_t &materials = j3["materials"];
+        const json &j3 = pGLTFTexturesAndBuffers->m_pGLTFCommon->j3;
+
+        const json &materials = j3["materials"];
         m_materialsData.resize(materials.size());
         for (uint32_t i = 0; i < materials.size(); i++)
         {
@@ -151,100 +169,60 @@ namespace CAULDRON_VK
             for (auto const& value : textureIds)
                 texturesBase[value.first] = m_pGLTFTexturesAndBuffers->GetTextureViewByID(value.second);
 
-            CreateGPUMaterialData(tfmat, texturesBase, pSkyDome, ShadowMapView);
+            CreateDescriptorTableForMaterialTextures(tfmat, texturesBase, pSkyDome, ShadowMapView);
         }
 
         // Load Meshes
         //
         if (j3.find("meshes") != j3.end())
         {
-            const json::array_t &meshes = j3["meshes"];
-            const json::array_t &accessors = j3["accessors"];
+            const json &meshes = j3["meshes"];
 
             m_meshes.resize(meshes.size());
             for (uint32_t i = 0; i < meshes.size(); i++)
             {
+                const json &primitives = meshes[i]["primitives"];
+
+                // Loop through all the primitives (sets of triangles with a same material) and 
+                // 1) create an input layout for the geometry
+                // 2) then take its material and create a Root descriptor
+                // 3) With all the above, create a pipeline
+                //
                 PBRMesh *tfmesh = &m_meshes[i];
-                const json::array_t &primitives = meshes[i]["primitives"];
                 tfmesh->m_pPrimitives.resize(primitives.size());
 
                 for (uint32_t p = 0; p < primitives.size(); p++)
                 {
-                    json::object_t primitive = primitives[p];
+                    const json &primitive = primitives[p];
                     PBRPrimitives *pPrimitive = &tfmesh->m_pPrimitives[p];
 
                     // Sets primitive's material, or set a default material if none was specified in the GLTF
                     //
                     auto mat = primitive.find("material");
-                    pPrimitive->m_pMaterial = (mat != primitive.end()) ? &m_materialsData[mat->second] : &m_defaultMaterial;
+                    pPrimitive->m_pMaterial = (mat != primitive.end()) ? &m_materialsData[mat.value()] : &m_defaultMaterial;
 
-                    int32_t mode = GetElementInt(primitive, "mode", 4);
-
-                    // Defines for the shader compiler, they will hold the PS and VS bindings for the geometry, io and textures 
+                    // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
                     //
-                    DefineList attributeDefines;
+                    DefineList defines = pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_defines + rtDefines;
 
-                    // Set input layout from glTF attributes and set VS bindings
+                    // make a list of all the attribute names our pass requires, in the case of PBR we need them all
                     //
-                    const json::object_t &attribute = primitive["attributes"];
-                    std::vector<tfAccessor> vertexBuffers(attribute.size());
-                    std::vector<VkVertexInputAttributeDescription> layout;
-                    {
-                        uint32_t in = 0;
-                        for (auto it = attribute.begin(); it != attribute.end(); it++, in++)
-                        {
-                            const json::object_t &accessor = accessors[it->second];
+                    std::vector<std::string> requiredAttributes;
+                    for (auto const & it : primitive["attributes"].items())
+                        requiredAttributes.push_back(it.key());
 
-                            // let the compiler know we have this stream
-                            attributeDefines[std::string("ID_4VS_") + it->first] = std::to_string(in);
-
-                            // Create Input Layout
-                            //
-                            VkVertexInputAttributeDescription l;
-                            l.location = (uint32_t)in;
-                            l.format = GetFormat(accessor.at("type"), accessor.at("componentType"));
-                            l.offset = 0;
-                            l.binding = in;
-                            layout.push_back(l);
-
-                            // Get VB accessors
-                            //
-                            m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetBufferDetails(it->second, &vertexBuffers[in]);
-                        }
-
-                        // Get Index and vertex buffer buffer accessors and create the geometry
-                        //
-                        tfAccessor indexBuffer;
-                        m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetBufferDetails(primitive["indices"], &indexBuffer);
-                        m_pGLTFTexturesAndBuffers->CreateGeometry(indexBuffer, vertexBuffers, &pPrimitive->m_geometry);
-                    }
-
-                    // Set PS bindings
-                    {
-                        uint32_t out = 0;
-                        std::vector<std::string> attributeList = { "POSITION", "COLOR_0", "TEXCOORD_0", "TEXCOORD_1", "NORMAL", "TANGENT" };
-                        for (auto it = attributeList.begin(); it != attributeList.end(); it++)
-                        {
-                            auto att = attribute.find(*it);
-                            if (att == attribute.end())
-                                continue;
-
-                            attributeDefines[std::string("ID_4PS_") + *it] = std::to_string(out);
-                            out++;
-                        }
-
-                        attributeDefines[std::string("ID_4PS_WORLDPOS")] = std::to_string(out);
-                        attributeDefines[std::string("ID_4PS_LASTID")] = std::to_string(out+1);
-                    }
+                    // create an input layout from the required attributes
+                    // shader's can tell the slots from the #defines
+                    //
+                    std::vector<VkVertexInputAttributeDescription> inputLayout;
+                    m_pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, inputLayout, defines, &pPrimitive->m_geometry);
 
                     // Create descriptors and pipelines
                     //
-                    {
-                        int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
-                        int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
-                        CreateDescriptors(pDevice, inverseMatrixBufferSize, &attributeDefines, pPrimitive);
-                        CreatePipeline(pDevice, layout, &attributeDefines, pPrimitive);
-                    };
+                    int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
+                    int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
+                    CreateDescriptors(pDevice, inverseMatrixBufferSize, &defines, pPrimitive);
+                    CreatePipeline(pDevice, inputLayout, defines, pPrimitive);
                 }
             }
         }
@@ -252,60 +230,71 @@ namespace CAULDRON_VK
 
     //--------------------------------------------------------------------------------------
     //
-    // CreateGPUMaterialData
+    // CreateDescriptorTableForMaterialTextures
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::CreateGPUMaterialData(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, VkImageView ShadowMapView)
+    void GltfPbrPass::CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, VkImageView ShadowMapView)
     {
         // count the number of textures to init bindings and descriptor
         {
             tfmat->m_textureCount = (int)texturesBase.size();
 
-            tfmat->m_textureCount += 1;   // This is for the BRDF LUT texture
-
             if (pSkyDome)
-                tfmat->m_textureCount += 2;   // +2 because the skydome has a specular, diffusse and BDRF maps
+            {
+                tfmat->m_textureCount += 3;   // +3 because the skydome has a specular, diffusse and a BDRF LUT map
+            }
 
-            if (ShadowMapView != VK_NULL_HANDLE) // will use a shadowmap texture if present
+            if (ShadowMapView != VK_NULL_HANDLE)
                 tfmat->m_textureCount += 1;
         }
 
-        // Alloc descriptor layout and init the descriptor set 
-        if (tfmat->m_textureCount >= 0)
+        // Alloc a descriptor layout and init the descriptor set for the following textures 
+        // 1) all the textures of the PBR material (if any)
+        // 2) the 3 textures used for IBL: 
+        //         - 1 BRDF LUT 
+        //         - 2 cubemaps for the specular, difusse
+        // 3) the shadowmap
+        // for each entry we create a #define with that texture name that hold the id of the texture. That way the PS knows in what slot is each texture.      
         {
             // allocate descriptor table for the textures
             m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, NULL, &tfmat->m_descriptorLayout, &tfmat->m_texturesDescriptorSet);
 
             uint32_t cnt = 0;
 
-            //create SRVs and #defines for the BRDF LUT resources
-            tfmat->m_pbrMaterialParameters.m_defines["ID_brdfTexture"] = std::to_string(cnt);
-            SetDescriptorSet(m_pDevice->GetDevice(), cnt++, m_brdfLutView, &m_brdfLutSampler, tfmat->m_texturesDescriptorSet);
+            // 1) create SRV for the PBR materials
+            //
+            for (auto const &it : texturesBase)
+            {
+                tfmat->m_pbrMaterialParameters.m_defines[std::string("ID_") + it.first] = std::to_string(cnt);
+                SetDescriptorSet(m_pDevice->GetDevice(), cnt, it.second, &m_samplerPbr, tfmat->m_texturesDescriptorSet);
+                cnt++;
+            }
 
-            //create SRVs and #defines for the IBL resources
+            // 2) 3 SRVs for the IBL probe
+            //
             if (pSkyDome)
             {
+                tfmat->m_pbrMaterialParameters.m_defines["ID_brdfTexture"] = std::to_string(cnt);
+                SetDescriptorSet(m_pDevice->GetDevice(), cnt, m_brdfLutView, &m_brdfLutSampler, tfmat->m_texturesDescriptorSet);
+                cnt++;
+
                 tfmat->m_pbrMaterialParameters.m_defines["ID_diffuseCube"] = std::to_string(cnt);
-                pSkyDome->SetDescriptorDiff(cnt++, tfmat->m_texturesDescriptorSet);
+                pSkyDome->SetDescriptorDiff(cnt, tfmat->m_texturesDescriptorSet);
+                cnt++;
 
                 tfmat->m_pbrMaterialParameters.m_defines["ID_specularCube"] = std::to_string(cnt);
-                pSkyDome->SetDescriptorSpec(cnt++, tfmat->m_texturesDescriptorSet);
+                pSkyDome->SetDescriptorSpec(cnt, tfmat->m_texturesDescriptorSet);
+                cnt++;
 
                 tfmat->m_pbrMaterialParameters.m_defines["USE_IBL"] = "1";
             }
 
-            // Create SRV for the shadowmap
+            // 3) 1 SRV for the shadowmap
             if (ShadowMapView != VK_NULL_HANDLE)
             {
                 tfmat->m_pbrMaterialParameters.m_defines["ID_shadowMap"] = std::to_string(cnt);
-                SetDescriptorSet(m_pDevice->GetDevice(), cnt++, ShadowMapView, &m_samplerShadow, tfmat->m_texturesDescriptorSet);
-            }
-
-            // Create SRVs for the material textures
-            for (auto it = texturesBase.begin(); it != texturesBase.end(); it++)
-            {
-                tfmat->m_pbrMaterialParameters.m_defines[std::string("ID_") + it->first] = std::to_string(cnt);
-                SetDescriptorSet(m_pDevice->GetDevice(), cnt++, it->second, &m_samplerPbr, tfmat->m_texturesDescriptorSet);
+                SetDescriptorSet(m_pDevice->GetDevice(), cnt, ShadowMapView, &m_samplerShadow, tfmat->m_texturesDescriptorSet);
+                cnt++;
             }
         }
     }
@@ -421,6 +410,7 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &pPrimitive->m_pipelineLayout);
         assert(res == VK_SUCCESS);
+        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pPrimitive->m_pipelineLayout, "GltfPbrPass PL");
     }
 
     //--------------------------------------------------------------------------------------
@@ -428,26 +418,21 @@ namespace CAULDRON_VK
     // CreatePipeline
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::CreatePipeline(Device* pDevice, std::vector<VkVertexInputAttributeDescription> layout, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive)
+    void GltfPbrPass::CreatePipeline(Device* pDevice, std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, PBRPrimitives *pPrimitive)
     {
-        /////////////////////////////////////////////
         // Compile and create shaders
-
+        //
         VkPipelineShaderStageCreateInfo vertexShader = {}, fragmentShader = {};
-        {
-            // Create #defines based on material properties and vertex attributes 
-            DefineList defines = pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_defines + (*pAttributeDefines);
+        VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFPbrPass-vert.glsl", "main", &defines, &vertexShader);
+        VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFPbrPass-frag.glsl", "main", &defines, &fragmentShader);
 
-            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFPbrPass-vert.glsl", "main", &defines, &vertexShader);
-            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFPbrPass-frag.glsl", "main", &defines, &fragmentShader);
-        }
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader, fragmentShader };
 
-        /////////////////////////////////////////////
         // Create pipeline
+        //
 
         // vertex input state
-        //
+
         std::vector<VkVertexInputBindingDescription> vi_binding(layout.size());
         for (int i = 0; i < layout.size(); i++)
         {
@@ -491,15 +476,47 @@ namespace CAULDRON_VK
         rs.depthBiasSlopeFactor = 0;
         rs.lineWidth = 1.0f;
 
-        VkPipelineColorBlendAttachmentState att_state[1];
-        att_state[0].colorWriteMask = 0xf;
-        att_state[0].blendEnable = pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_defines.Has("DEF_alphaMode_BLEND");
-        att_state[0].colorBlendOp = VK_BLEND_OP_ADD;
-        att_state[0].srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-        att_state[0].dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-        att_state[0].alphaBlendOp = VK_BLEND_OP_ADD;
-        att_state[0].srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-        att_state[0].dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+
+        std::vector<VkPipelineColorBlendAttachmentState> att_states;
+        if (defines.Has("ID_FORWARD_RT"))
+        {
+            VkPipelineColorBlendAttachmentState att_state = {};
+            att_state.colorWriteMask = 0xf;
+            att_state.blendEnable = (defines.Has("DEF_alphaMode_BLEND"));
+            att_state.colorBlendOp = VK_BLEND_OP_ADD;
+            att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            att_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            att_state.alphaBlendOp = VK_BLEND_OP_ADD;
+            att_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            att_states.push_back(att_state);
+        }
+        if (defines.Has("ID_SPECULAR_ROUGHNESS_RT"))
+        {
+            VkPipelineColorBlendAttachmentState att_state = {};
+            att_state.colorWriteMask = 0xf;
+            att_state.blendEnable = VK_FALSE;
+            att_state.alphaBlendOp = VK_BLEND_OP_ADD;
+            att_state.colorBlendOp = VK_BLEND_OP_ADD;
+            att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            att_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            att_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            att_states.push_back(att_state);
+        }
+        if (defines.Has("ID_DIFFUSE_RT"))
+        {
+            VkPipelineColorBlendAttachmentState att_state = {};
+            att_state.colorWriteMask = 0xf;
+            att_state.blendEnable = VK_FALSE;
+            att_state.alphaBlendOp = VK_BLEND_OP_ADD;
+            att_state.colorBlendOp = VK_BLEND_OP_ADD;
+            att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            att_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            att_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            att_states.push_back(att_state);
+        }
 
         // Color blend state
 
@@ -507,8 +524,8 @@ namespace CAULDRON_VK
         cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         cb.flags = 0;
         cb.pNext = NULL;
-        cb.attachmentCount = 1;
-        cb.pAttachments = att_state;
+        cb.attachmentCount = static_cast<uint32_t>(att_states.size());
+        cb.pAttachments = att_states.data();
         cb.logicOpEnable = VK_FALSE;
         cb.logicOp = VK_LOGIC_OP_NO_OP;
         cb.blendConstants[0] = 1.0f;
@@ -597,6 +614,7 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &pPrimitive->m_pipeline);
         assert(res == VK_SUCCESS);
+        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)pPrimitive->m_pipeline, "GltfPbrPass P");
     }
 
     //--------------------------------------------------------------------------------------
@@ -634,6 +652,8 @@ namespace CAULDRON_VK
             // skinning matrices constant buffer
             VkDescriptorBufferInfo *pPerSkeleton = m_pGLTFTexturesAndBuffers->GetSkinningMatricesBuffer(pNode->skinIndex);
 
+            XMMATRIX mModelViewProj = pNodesMatrices[i] * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraViewProj;
+
             // loop through primitives
             //
             PBRMesh *pMesh = &m_meshes[pNode->meshIndex];
@@ -644,13 +664,20 @@ namespace CAULDRON_VK
                 if (pPrimitive->m_pipeline == VK_NULL_HANDLE)
                     continue;
 
+                // do frustrum culling
+                //
+                tfPrimitives boundingBox = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p];
+                if (FrustumCulled(mModelViewProj, boundingBox.m_center, boundingBox.m_radius))
+                    continue;
+
+                PBRMaterialParameters *pPbrParams = &pPrimitive->m_pMaterial->m_pbrMaterialParameters;
+
                 // Set per Object constants from material
                 //
                 per_object *cbPerObject;
                 VkDescriptorBufferInfo perObjectDesc;
                 m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), (void **)&cbPerObject, &perObjectDesc);
                 cbPerObject->mWorld = pNodesMatrices[i];
-                PBRMaterialParameters *pPbrParams = &pPrimitive->m_pMaterial->m_pbrMaterialParameters;
                 cbPerObject->m_pbrParams = pPbrParams->m_params;
 
 

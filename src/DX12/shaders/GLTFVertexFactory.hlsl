@@ -21,6 +21,49 @@
 #include "Skinning.hlsl"
 
 //--------------------------------------------------------------------------------------
+//  For VS input struct
+//--------------------------------------------------------------------------------------
+
+struct VS_INPUT_SCENE
+{
+    float3 Position : POSITION; // vertex position
+#ifdef HAS_NORMAL
+    float3 Normal       :    NORMAL;        // this normal comes in per-vertex
+#endif
+#ifdef HAS_TANGENT
+    float4 Tangent      :    TANGENT;       // this normal comes in per-vertex
+#endif
+#ifdef HAS_TEXCOORD_0
+    float2 UV0          :    TEXCOORD0;    // vertex texture coords
+#endif
+#ifdef HAS_TEXCOORD_1
+    float2 UV1          :    TEXCOORD1;    // vertex texture coords
+#endif
+
+#ifdef HAS_COLOR_0
+    float4 Color0       :    COLOR0;
+#endif
+
+    // joints weights
+    //
+#ifdef HAS_WEIGHTS_0
+    float4 Weights0     :    WEIGHTS0;
+#endif
+#ifdef HAS_WEIGHTS_1
+    float4 Weights1     :    WEIGHTS1;
+#endif
+
+    // joints indices
+    //
+#ifdef HAS_JOINTS_0
+    uint4 Joints0       :    JOINTS0;
+#endif
+#ifdef HAS_JOINTS_1
+    uint4 Joints1       :    JOINTS1;
+#endif
+};
+
+//--------------------------------------------------------------------------------------
 // mainVS
 //--------------------------------------------------------------------------------------
 VS_OUTPUT_SCENE gltfVertexFactory(VS_INPUT_SCENE input)

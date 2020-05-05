@@ -70,7 +70,7 @@ namespace CAULDRON_VK
         m_ColorConversion.OnCreate(m_pDevice, renderPass, "ColorConversionPS.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
 
         m_descriptorIndex = 0;
-        for(int i=0;i< s_descriptorBuffers;i++)
+        for (int i = 0; i < s_descriptorBuffers; i++)
             m_pResourceViewHeaps->AllocDescriptor(m_descriptorSetLayout, &m_descriptorSet[i]);
     }
 
@@ -99,16 +99,21 @@ namespace CAULDRON_VK
             m_colorConversionConsts.m_displayMinLuminancePerNits = (float)pHDRMetatData->minLuminance / 80.0f; // RGB(1, 1, 1) maps to 80 nits in scRGB;
             m_colorConversionConsts.m_displayMaxLuminancePerNits = (float)pHDRMetatData->maxLuminance / 80.0f; // This means peak white equals RGB(m_maxLuminanace/80.0f, m_maxLuminanace/80.0f, m_maxLuminanace/80.0f) in scRGB;
 
-            SetupGamutMapperMatrices(
+            FillDisplaySpecificPrimaries(
                 pHDRMetatData->whitePoint.x, pHDRMetatData->whitePoint.y,
                 pHDRMetatData->displayPrimaryRed.x, pHDRMetatData->displayPrimaryRed.y,
                 pHDRMetatData->displayPrimaryGreen.x, pHDRMetatData->displayPrimaryGreen.y,
-                pHDRMetatData->displayPrimaryBlue.x, pHDRMetatData->displayPrimaryBlue.y,                
+                pHDRMetatData->displayPrimaryBlue.x, pHDRMetatData->displayPrimaryBlue.y
+            );
+
+            SetupGamutMapperMatrices(
+                ColorSpace_REC709,
+                ColorSpace_Display,
                 &m_colorConversionConsts.m_contentToMonitorRecMatrix);
         }
     }
 
-    void ColorConversionPS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper, bool applyGamma)
+    void ColorConversionPS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV)
     {
         SetPerfMarkerBegin(cmd_buf, "ColorConversion");
 

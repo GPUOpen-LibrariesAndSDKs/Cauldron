@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
 set(CMAKE_GENERATOR_PLATFORM x64)
 
-project (Framework_${GFX_API})
+project (Cauldron_${GFX_API})
 
 list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} )
 

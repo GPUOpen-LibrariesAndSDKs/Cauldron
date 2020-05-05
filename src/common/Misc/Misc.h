@@ -30,6 +30,7 @@ void Trace(const std::string &str);
 void Trace(const char* pFormat, ...);
 bool LaunchProcess(const std::string &commandLine, const std::string &filenameErr);
 void GetXYZ(float *, XMVECTOR v);
+bool FrustumCulled(const XMMATRIX mCameraViewProj, const XMVECTOR center, const XMVECTOR extent);
 
 // align uLocation to the next multiple of uAlign
 inline SIZE_T AlignOffset(SIZE_T uOffset, SIZE_T uAlign) { return ((uOffset + (uAlign - 1)) & ~(uAlign - 1)); }

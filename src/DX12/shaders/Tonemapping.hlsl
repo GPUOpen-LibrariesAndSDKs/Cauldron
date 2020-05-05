@@ -24,8 +24,8 @@
 //--------------------------------------------------------------------------------------
 cbuffer cbPerFrame : register(b0)
 {
-    float u_exposure         : packoffset(c0.x);
-    int   u_toneMapper       : packoffset(c0.y);    
+    float u_exposure : packoffset(c0.x);
+    int   u_toneMapper : packoffset(c0.y);
 }
 
 //--------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ float3 Pattern(float2 vTexcoord)
         return float3(.5, .5, .5);
 
     uint y = vTexcoord.y * 720;
-    if ((y&1)==1)
+    if ((y & 1) == 1)
         return float3(1.0, 1.0, 1.0);
 
 
@@ -58,7 +58,7 @@ float3 Pattern(float2 vTexcoord)
 
 float3 ApplyGamma(float3 color)
 {
-    return pow(abs(color.rgb), 1.0f / 2.2f);    
+    return pow(abs(color.rgb), 1.0f / 2.2f);
 }
 
 float3 Tonemap(float3 color, float exposure, int tonemapper)
@@ -83,7 +83,7 @@ float3 Tonemap(float3 color, float exposure, int tonemapper)
 
 float4 mainPS(VERTEX Input) : SV_Target
 {
-    if (u_exposure<0)
+    if (u_exposure < 0)
     {
         return HDR.Sample(samLinearWrap, Input.vTexcoord);
     }

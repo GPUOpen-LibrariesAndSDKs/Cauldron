@@ -36,7 +36,7 @@ namespace CAULDRON_VK
 
     struct DepthPrimitives
     {
-        Geometry m_Geometry;
+        Geometry m_geometry;
 
         DepthMaterial *m_pMaterial = NULL;
 
@@ -87,14 +87,14 @@ namespace CAULDRON_VK
 
         DepthMaterial m_defaultMaterial;
 
-        Device* m_pDevice;
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
+        Device* m_pDevice;
         VkRenderPass m_renderPass;
         VkSampler m_sampler;
         VkDescriptorBufferInfo m_perFrameDesc;
 
         void CreateDescriptors(Device* pDevice, int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive);
-        void CreatePipeline(Device* pDevice, std::vector<VkVertexInputAttributeDescription> layout, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive);
+        void CreatePipeline(Device* pDevice, std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, DepthPrimitives *pPrimitive);
     };
 }
 

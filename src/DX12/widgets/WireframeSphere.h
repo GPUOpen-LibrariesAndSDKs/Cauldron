@@ -23,7 +23,7 @@
 
 namespace CAULDRON_DX12
 {
-    class WireframeBox : public Wireframe
+    class WireframeSphere : public Wireframe
     {
         // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
         uint32_t m_NumIndices;

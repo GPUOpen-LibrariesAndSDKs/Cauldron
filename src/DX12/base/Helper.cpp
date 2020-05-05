@@ -36,16 +36,19 @@ namespace CAULDRON_DX12
     void SetName(ID3D12Object *pObj, const char * name)
     {
         if (name != NULL)
+        {
             SetName(pObj, std::string(name));
+        }
     }
 
     void SetName(ID3D12Object *pObj, const std::string &name)
     {
         assert(pObj != NULL);
 
-        wchar_t  uniName[1024];
+        //wchar_t  uniName[1024];        
+        wchar_t  *uniName = (wchar_t  *)malloc(256); //yes, this will be causing leaks!
         swprintf(uniName, 1024, L"%S", name.c_str());
         pObj->SetName(uniName);
-        //Trace(format("Create: %p %s\n", pObj, name.c_str()));
+        Trace(format("Create: %p %S\n", pObj, uniName));
     }
 }

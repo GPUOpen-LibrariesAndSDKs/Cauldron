@@ -42,7 +42,6 @@ layout (std140, binding = ID_PER_OBJECT) uniform perObject
     mat4 u_ModelMatrix;
 } myPerObject;
 
-
 mat4 GetWorldMatrix()
 {
     return myPerObject.u_ModelMatrix;

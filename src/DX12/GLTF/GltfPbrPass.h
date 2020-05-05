@@ -61,6 +61,17 @@ namespace CAULDRON_DX12
             PBRMaterialParametersConstantBuffer m_pbrParams;
         };
 
+        struct BatchList
+        {
+            float m_depth;
+            PBRPrimitives *m_pPrimitive;
+            D3D12_GPU_VIRTUAL_ADDRESS m_perFrameDesc;
+            D3D12_GPU_VIRTUAL_ADDRESS m_perObjectDesc;
+            D3D12_GPU_VIRTUAL_ADDRESS m_pPerSkeleton;
+            operator float() { return -m_depth; }
+        };
+
+
         void OnCreate(
             Device *pDevice,
             UploadHeap *pUploadHeap,
@@ -70,10 +81,13 @@ namespace CAULDRON_DX12
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
             bool bUseShadowMask,
-            DXGI_FORMAT outFormat,
+            DXGI_FORMAT outForwardFormat,
+            DXGI_FORMAT outSpecularRoughnessFormat,
+            DXGI_FORMAT outDiffuseColor,
             uint32_t sampleDescCount);
 
         void OnDestroy();
+        void BuildLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
         void Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
@@ -91,12 +105,14 @@ namespace CAULDRON_DX12
 
         Texture m_BrdfLut;
 
-        DXGI_FORMAT m_outFormat;
+        bool m_doLighting;
+
+        std::vector<DXGI_FORMAT> m_outFormats;
         uint32_t m_sampleCount;
 
-        void CreateGPUMaterialData(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome);
-        void CreateDescriptors(ID3D12Device* pDevice, bool bUsingSkinning, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
-        void CreatePipeline(ID3D12Device* pDevice, std::vector<std::string> semanticName, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
+        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, bool bUseShadowMask);
+        void CreateDescriptors(ID3D12Device* pDevice, bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive);
+        void CreatePipeline(ID3D12Device* pDevice, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };
 }
 

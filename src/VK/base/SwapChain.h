@@ -80,8 +80,8 @@ namespace CAULDRON_VK
         std::vector<VkSemaphore>   m_RenderFinishedSemaphores;
 
         uint32_t m_imageIndex = 0;
-        uint32_t m_prevImageIndex = 0;
         uint32_t m_backBufferCount;
+        uint32_t m_semaphoreIndex, m_prevSemaphoreIndex;
 
         // fullscreen/windowed vars
         bool m_isFullScreen = false;

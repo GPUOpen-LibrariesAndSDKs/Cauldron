@@ -40,8 +40,8 @@ namespace CAULDRON_DX12
         const std::string &shaderFilename,
         const std::string &shaderEntryPoint,
         uint32_t UAVTableSize,
-		uint32_t SRVTableSize, 
-		uint32_t dwWidth, uint32_t dwHeight, uint32_t dwDepth,
+        uint32_t SRVTableSize,
+        uint32_t dwWidth, uint32_t dwHeight, uint32_t dwDepth,
         DefineList* userDefines,
         uint32_t numStaticSamplers,
         D3D12_STATIC_SAMPLER_DESC* pStaticSamplers
@@ -53,14 +53,14 @@ namespace CAULDRON_DX12
 
         // Compile shaders
         //
-		D3D12_SHADER_BYTECODE shaderByteCode = {};
+        D3D12_SHADER_BYTECODE shaderByteCode = {};
         DefineList defines;
         if (userDefines)
             defines = *userDefines;
         defines["WIDTH"] = std::to_string(dwWidth);
         defines["HEIGHT"] = std::to_string(dwHeight);
         defines["DEPTH"] = std::to_string(dwDepth);
-        CompileShaderFromFile(shaderFilename.c_str(), &defines, shaderEntryPoint.c_str(), "cs_5_0", 0, &shaderByteCode);
+        bool bCompile = CompileShaderFromFile(shaderFilename.c_str(), &defines, shaderEntryPoint.c_str(), "cs_6_0", 0, &shaderByteCode);
 
         // Create root signature
         //
@@ -70,20 +70,20 @@ namespace CAULDRON_DX12
 
             // we'll always have a constant buffer
             int parameterCount = 0;
-            DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);             
+            DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
             RTSlot[parameterCount++].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL);
 
             // if we have a UAV table
             if (UAVTableSize > 0)
             {
-                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, UAVTableSize, 0);  
+                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, UAVTableSize, 0);
                 RTSlot[parameterCount++].InitAsDescriptorTable(1, &DescRange[1], D3D12_SHADER_VISIBILITY_ALL);
             }
 
             // if we have a SRV table
             if (SRVTableSize > 0)
             {
-                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, SRVTableSize, 0);  
+                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, SRVTableSize, 0);
                 RTSlot[parameterCount++].InitAsDescriptorTable(1, &DescRange[2], D3D12_SHADER_VISIBILITY_ALL);
             }
 
@@ -111,12 +111,12 @@ namespace CAULDRON_DX12
 
         {
             D3D12_COMPUTE_PIPELINE_STATE_DESC descPso = {};
-			descPso.CS = shaderByteCode;
+            descPso.CS = shaderByteCode;
             descPso.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
             descPso.pRootSignature = m_pRootSignature;
             descPso.NodeMask = 0;
 
-            pDevice->GetDevice()->CreateComputePipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline));
+            ThrowIfFailed(pDevice->GetDevice()->CreateComputePipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline)));
             SetName(m_pRootSignature, std::string("PostProcCS::m_pPipeline::") + shaderFilename);
         }
     }
@@ -141,11 +141,11 @@ namespace CAULDRON_DX12
         // Bind Descriptor the descriptor sets
         //                
         int params = 0;
-		pCommandList->SetComputeRootConstantBufferView(params++, constantBuffer);
+        pCommandList->SetComputeRootConstantBufferView(params++, constantBuffer);
         if (pUAVTable)
             pCommandList->SetComputeRootDescriptorTable(params++, pUAVTable->GetGPU());
-        if (pSRVTable)        
-		    pCommandList->SetComputeRootDescriptorTable(params++, pSRVTable->GetGPU());
+        if (pSRVTable)
+            pCommandList->SetComputeRootDescriptorTable(params++, pSRVTable->GetGPU());
 
         // Bind Pipeline
         //
