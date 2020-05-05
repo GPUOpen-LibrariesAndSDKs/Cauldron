@@ -28,7 +28,7 @@
 
 namespace CAULDRON_VK
 {
-    void SkyDome::OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, char *pDiffuseCubemap, char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount)
+    void SkyDome::OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount)
     {
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;

@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "ShaderCompilerHelper.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/ExtDebugMarkers.h"
 #include "Imgui.h"
 
@@ -91,6 +92,7 @@ namespace CAULDRON_VK
 
             res = vkBindImageMemory(pDevice->GetDevice(), m_pTexture2D, m_deviceMemory, 0);
             assert(res == VK_SUCCESS);
+            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE, (uint64_t)m_pTexture2D, "ImGUI tex");
         }
 
         // Create the Image View
@@ -166,9 +168,9 @@ namespace CAULDRON_VK
         {
             VkSamplerCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-            info.magFilter = VK_FILTER_LINEAR;
-            info.minFilter = VK_FILTER_LINEAR;
-            info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+            info.magFilter = VK_FILTER_NEAREST;
+            info.minFilter = VK_FILTER_NEAREST;
+            info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
             info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
             info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
             info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -202,7 +204,7 @@ namespace CAULDRON_VK
 
         // Pixel shader
         //
-        const char *fragShaderTextGLSL =
+        const char* fragShaderTextGLSL =
             "#version 400\n"
             "#extension GL_ARB_separate_shader_objects : enable\n"
             "#extension GL_ARB_shading_language_420pack : enable\n"
@@ -217,6 +219,8 @@ namespace CAULDRON_VK
             "void main() {\n"
             "#if 1\n"
             "   outColor = inColor * texture(sampler2D(sTexture, sSampler), inTexCoord.st);\n"
+            "   const float gamma = 2.2f;\n"
+            "   outColor.xyz = pow(outColor.xyz, vec3(gamma, gamma, gamma));\n"
             "#else\n"
             "   outColor = inColor;\n"
             "#endif\n"
@@ -233,7 +237,10 @@ namespace CAULDRON_VK
             ": SV_Target\n"
             "{\n"
             "#if 1\n"
-            "   return col * texture0.Sample(sampler0, uv.xy); \n"
+            "   float4 color = col * texture0.Sample(sampler0, uv.xy); \n"
+            "   const float gamma = 2.2f;\n"
+            "   color.xyz = pow(color.xyz, float3(gamma, gamma, gamma);\n"
+            "   return color;\n"
             "#else\n"
             "   return col;\n"
             "#endif\n"
@@ -289,7 +296,6 @@ namespace CAULDRON_VK
         descriptor_layout.bindingCount = 3;
         descriptor_layout.pBindings = layout_bindings;
 
-
         res = vkCreateDescriptorSetLayout(pDevice->GetDevice(), &descriptor_layout, NULL, &m_desc_layout);
         assert(res == VK_SUCCESS);
 
@@ -304,6 +310,7 @@ namespace CAULDRON_VK
 
         res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &m_pipelineLayout);
         assert(res == VK_SUCCESS);
+        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)m_pipelineLayout, "ImGUI PL");
 
         // Create descriptor pool, allocate and update the descriptors
         std::vector<VkDescriptorPoolSize> type_count = { { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 128 },{ VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 128 }, { VK_DESCRIPTOR_TYPE_SAMPLER, 128 } };
@@ -539,6 +546,7 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
         assert(res == VK_SUCCESS);
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_pipeline, "ImGUI P");
     }
 
     //--------------------------------------------------------------------------------------
@@ -721,7 +729,7 @@ namespace CAULDRON_VK
             }
             vtx_offset += cmd_list->VtxBuffer.Size;
         }
-        
+
         SetPerfMarkerEnd(cmd_buf);
     }
 }

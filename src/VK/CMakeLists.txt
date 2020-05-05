@@ -1,4 +1,4 @@
-project (Framework_VK)
+project (Cauldron_VK)
 
 add_compile_options(/MP)
 
@@ -13,6 +13,8 @@ set(GLTF_src
     GLTF/glTFHelpers.h
     GLTF/GltfPbrPass.cpp
     GLTF/GltfPbrPass.h
+    GLTF/GltfMotionVectorsPass.cpp
+    GLTF/GltfMotionVectorsPass.h
     GLTF/GLTFTexturesAndBuffers.cpp
     GLTF/GLTFTexturesAndBuffers.h)
 
@@ -52,14 +54,16 @@ set(Base_src
     base/GPUTimestamps.h
     base/FreeSync2.cpp
     base/FreeSync2.h
-    base/ExtDebugMarkers.cpp
-    base/ExtDebugMarkers.h
-    base/ExtValidation.cpp
-    base/ExtValidation.h
     base/ExtFreeSync2.cpp
     base/ExtFreeSync2.h
     base/ExtFp16.cpp
     base/ExtFp16.h
+    base/ExtValidation.cpp
+    base/ExtValidation.h
+    base/ExtDebugMarkers.cpp
+    base/ExtDebugMarkers.h
+    base/ExtDebugUtils.cpp
+    base/ExtDebugUtils.h
     base/Helper.cpp
     base/Helper.h
     base/Imgui.cpp
@@ -95,13 +99,15 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blend.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blur.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/DownSamplePS.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTF_VS2PS_IO.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-vert.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTF_VS2PS_IO.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-vert.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPBRLighting.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFMotionVectorsPass-frag.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFMotionVectorsPass-vert.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skinning.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.hlsl
@@ -113,6 +119,9 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/functions.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textures.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/PixelParams.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
     )
 
 set(media_src
@@ -124,7 +133,7 @@ copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
 
 add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src})
 
-target_link_libraries (${PROJECT_NAME} Framework_Common Vulkan::Vulkan NJSON)
+target_link_libraries (${PROJECT_NAME} Cauldron_Common NJSON Vulkan::Vulkan)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("GLTF"            FILES ${GLTF_src})

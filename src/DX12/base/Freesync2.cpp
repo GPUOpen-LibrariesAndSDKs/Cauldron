@@ -209,7 +209,6 @@ namespace CAULDRON_DX12
                 s_AGSDisplayInfo.chromaticityBlueY = 0.06;
                 s_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
                 s_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
-
                 agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_SDR;
                 agsDisplaySettings.flags = 0; // Local dimming always enabled for SDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
                 break;

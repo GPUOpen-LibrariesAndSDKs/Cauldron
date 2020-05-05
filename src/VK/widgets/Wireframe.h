@@ -33,25 +33,16 @@ namespace CAULDRON_VK
             ResourceViewHeaps *pHeaps,
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
-            std::vector<float> *pVertices,
-            std::vector<short> *pIndices,
             VkSampleCountFlagBits sampleDescCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
-    protected:
+        void Draw(VkCommandBuffer cmd_buf, int numIndices, VkDescriptorBufferInfo IBV, VkDescriptorBufferInfo VBV, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
 
+    private:
         Device* m_pDevice;
 
         DynamicBufferRing *m_pDynamicBufferRing;
-        StaticBufferPool *m_pStaticBufferPool;
         ResourceViewHeaps *m_pResourceViewHeaps;
-
-        // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
-        uint32_t m_NumIndices;
-        VkIndexType m_indexType;
-        VkDescriptorBufferInfo m_IBV;
-        VkDescriptorBufferInfo m_VBV;
 
         VkPipeline m_pipeline;
         VkPipelineLayout m_pipelineLayout;

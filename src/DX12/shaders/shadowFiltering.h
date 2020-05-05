@@ -51,9 +51,9 @@ float DoSpotShadow(in float3 vPosition, Light light)
 {
 #ifdef ID_shadowMap
     if (light.shadowMapIndex < 0)
-        return 1.0;
+        return 1.0f;
 
-    if (light.type != LightType_Spot)
+    if (light.type != LightType_Spot && light.type != LightType_Directional)
         return 1.0; // no other light types cast shadows for now
 
     float4 shadowTexCoord = mul(light.mLightViewProj, float4(vPosition, 1));
@@ -63,8 +63,21 @@ float DoSpotShadow(in float3 vPosition, Light light)
     shadowTexCoord.x = (1.0 + shadowTexCoord.x) * 0.25;
     shadowTexCoord.y = (1.0 - shadowTexCoord.y) * 0.25;
 
-    if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 0;
-    if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 0;
+    if (light.type == LightType_Spot)
+    {
+        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 0;
+        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 0;
+        if (shadowTexCoord.z < 0.0f) return 0.0f;
+        if (shadowTexCoord.z > 1.0f) return 1.0f;
+    }
+    else if (light.type == LightType_Directional)
+    {
+        // This is the sun, so outside of the volume we do have light
+        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 1.0f;
+        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 1.0f;
+        if (shadowTexCoord.z < 0.0f) return 1.0f;
+        if (shadowTexCoord.z > 1.0f) return 1.0f;
+    }
 
     // offsets of the center of the shadow map atlas
     float offsetsX[4] = { 0.0, 1.0, 0.0, 1.0 };
@@ -116,4 +129,5 @@ float CalcShadows(in float3 worldPos, in int2 screenPos, Light light)
 #ifdef ID_shadowMap
     return DoSpotShadow(worldPos, light);
 #endif
+    return 0;
 }

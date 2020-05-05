@@ -28,7 +28,7 @@ namespace CAULDRON_DX12
     void ToneMappingCS::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing)
     {
         m_pDynamicBufferRing = pDynamicBufferRing;
-        m_toneMapping.OnCreate(pDevice, pResourceViewHeaps, "TonemappingCS.hlsl", "main",1, 0, 8, 8, 1);
+        m_toneMapping.OnCreate(pDevice, pResourceViewHeaps, "TonemappingCS.hlsl", "main", 1, 0, 8, 8, 1);
     }
 
     void ToneMappingCS::OnDestroy()
@@ -36,7 +36,7 @@ namespace CAULDRON_DX12
         m_toneMapping.OnDestroy();
     }
 
-    void ToneMappingCS::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper,int width, int height)
+    void ToneMappingCS::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, int width, int height)
     {
         UserMarker marker(pCommandList, "Tonemapping");
 
@@ -46,6 +46,6 @@ namespace CAULDRON_DX12
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
 
-        m_toneMapping.Draw(pCommandList, cbTonemappingHandle, pHDRSRV, NULL, (width + 7) / 8, (height + 7) / 8,1);
+        m_toneMapping.Draw(pCommandList, cbTonemappingHandle, pHDRSRV, NULL, (width + 7) / 8, (height + 7) / 8, 1);
     }
 }

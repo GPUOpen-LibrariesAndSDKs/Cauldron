@@ -54,6 +54,7 @@ namespace CAULDRON_VK
 #endif
         VkPhysicalDeviceMemoryProperties GetPhysicalDeviceMemoryProperties() { return m_memoryProperties; }
         VkPhysicalDeviceProperties GetPhysicalDeviceProperries() { return m_deviceProperties; }
+        VkPhysicalDeviceSubgroupProperties GetPhysicalDeviceSubgroupProperties() { return m_subgroupProperties; }
 
         bool IsFp16Supported() { return m_usingFp16; };
 
@@ -74,6 +75,8 @@ namespace CAULDRON_VK
         VkPhysicalDevice m_physicaldevice;
         VkPhysicalDeviceMemoryProperties m_memoryProperties;
         VkPhysicalDeviceProperties m_deviceProperties;
+        VkPhysicalDeviceProperties2 m_deviceProperties2;
+        VkPhysicalDeviceSubgroupProperties m_subgroupProperties;
         VkSurfaceKHR m_surface;
 
         VkQueue present_queue;

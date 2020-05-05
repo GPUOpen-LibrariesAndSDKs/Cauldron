@@ -22,6 +22,118 @@
 
 namespace CAULDRON_VK
 {
+    // this is when you need to clear the attachment, for example when you are not rendering the full screen.
+    //
+    void AttachClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription *pAttachDesc)
+    {
+        pAttachDesc->format = format;
+        pAttachDesc->samples = sampleCount;
+        pAttachDesc->loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        pAttachDesc->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pAttachDesc->stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pAttachDesc->initialLayout = initialLayout;
+        pAttachDesc->finalLayout = finalLayout;
+        pAttachDesc->flags = 0;
+    }
+
+    // No clear, attachment will keep data that was not written (if this is the first pass make sure you are filling the whole screen)
+    void AttachNoClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription *pAttachDesc)
+    {
+        pAttachDesc->format = format;
+        pAttachDesc->samples = sampleCount;
+        pAttachDesc->loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pAttachDesc->stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pAttachDesc->initialLayout = initialLayout;
+        pAttachDesc->finalLayout = finalLayout;
+        pAttachDesc->flags = 0;
+    }
+
+    // Attanchment where we will be using alpha blending, this means we care about the previous contents
+    void AttachBlending(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription *pAttachDesc)
+    {
+        pAttachDesc->format = format;
+        pAttachDesc->samples = sampleCount;
+        pAttachDesc->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        pAttachDesc->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pAttachDesc->stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pAttachDesc->initialLayout = initialLayout;
+        pAttachDesc->finalLayout = finalLayout;
+        pAttachDesc->flags = 0;
+    }
+
+
+    VkRenderPass CreateRenderPassOptimal(VkDevice device, uint32_t colorAttachments, VkAttachmentDescription *pColorAttachments, VkAttachmentDescription *pDepthAttachment)
+    {
+        // we need to put all the color and the depth attachments in the same buffer
+        //
+        VkAttachmentDescription attachments[10];
+        assert(colorAttachments < 10); // make sure we don't overflow the scratch buffer above
+
+        memcpy(attachments, pColorAttachments, sizeof(VkAttachmentDescription) * colorAttachments);
+        if (pDepthAttachment!=NULL)
+            memcpy(&attachments[colorAttachments], pDepthAttachment, sizeof(VkAttachmentDescription));
+
+        //create references for the attachments
+        //
+        VkAttachmentReference color_reference[10];
+        for(uint32_t i=0;i< colorAttachments;i++)
+            color_reference[i] = { i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+        VkAttachmentReference depth_reference = { colorAttachments, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+
+        // Create subpass
+        //
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.flags = 0;
+        subpass.inputAttachmentCount = 0;
+        subpass.pInputAttachments = NULL;
+        subpass.colorAttachmentCount = colorAttachments;
+        subpass.pColorAttachments = color_reference;
+        subpass.pResolveAttachments = NULL;
+        subpass.pDepthStencilAttachment = (pDepthAttachment)? &depth_reference : NULL;
+        subpass.preserveAttachmentCount = 0;
+        subpass.pPreserveAttachments = NULL;
+
+		VkSubpassDependency dep = {};
+		dep.dependencyFlags = 0;
+		dep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT |
+			((colorAttachments) ? VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : 0) |
+			((pDepthAttachment) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : 0);
+		dep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+			((colorAttachments) ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) |
+			((pDepthAttachment) ? VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : 0);
+		dep.dstSubpass = VK_SUBPASS_EXTERNAL;
+		dep.srcAccessMask = ((colorAttachments) ? VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : 0) |
+			((pDepthAttachment) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : 0);
+		dep.srcStageMask = ((colorAttachments) ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) |
+			((pDepthAttachment) ? VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : 0);
+		dep.srcSubpass = 0;
+
+        // Create render pass
+        //
+        VkRenderPassCreateInfo rp_info = {};
+        rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        rp_info.pNext = NULL;
+        rp_info.attachmentCount = colorAttachments;
+        if (pDepthAttachment != NULL)
+            rp_info.attachmentCount++;
+        rp_info.pAttachments = attachments;
+        rp_info.subpassCount = 1;
+        rp_info.pSubpasses = &subpass;
+        rp_info.dependencyCount = 1;
+        rp_info.pDependencies = &dep;
+
+        VkRenderPass render_pass;
+        VkResult res = vkCreateRenderPass(device, &rp_info, NULL, &render_pass);
+        assert(res == VK_SUCCESS);
+        return render_pass;
+    }
+
     VkRenderPass SimpleColorWriteRenderPass(VkDevice device, VkImageLayout initialLayout, VkImageLayout passLayout, VkImageLayout finalLayout)
     {
 
@@ -154,9 +266,9 @@ namespace CAULDRON_VK
     void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkSampler *pSampler, VkDescriptorSet descriptorSet)
     {
         VkDescriptorImageInfo desc_image;
-        desc_image.sampler = (pSampler==NULL)?VK_NULL_HANDLE: *pSampler;
+        desc_image.sampler = (pSampler == NULL) ? VK_NULL_HANDLE : *pSampler;
         desc_image.imageView = imageView;
-        desc_image.imageLayout = (pSampler == NULL) ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        desc_image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkWriteDescriptorSet write;
         write = {};
@@ -164,7 +276,28 @@ namespace CAULDRON_VK
         write.pNext = NULL;
         write.dstSet = descriptorSet;
         write.descriptorCount = 1;
-        write.descriptorType = (pSampler==NULL) ? VK_DESCRIPTOR_TYPE_STORAGE_IMAGE : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.pImageInfo = &desc_image;
+        write.dstBinding = index;
+        write.dstArrayElement = 0;
+
+        vkUpdateDescriptorSets(device, 1, &write, 0, NULL);
+    }
+
+    void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkDescriptorSet descriptorSet)
+    {
+        VkDescriptorImageInfo desc_image;
+        desc_image.sampler = VK_NULL_HANDLE;
+        desc_image.imageView = imageView;
+        desc_image.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+        VkWriteDescriptorSet write;
+        write = {};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.pNext = NULL;
+        write.dstSet = descriptorSet;
+        write.descriptorCount = 1;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         write.pImageInfo = &desc_image;
         write.dstBinding = index;
         write.dstArrayElement = 0;

@@ -26,7 +26,7 @@ namespace CAULDRON_DX12
         PostProcCS();
         ~PostProcCS();
 
-		void OnCreate(
+        void OnCreate(
             Device *pDevice,
             ResourceViewHeaps *pResourceViewHeaps,
             const std::string &shaderFilename,
@@ -37,14 +37,14 @@ namespace CAULDRON_DX12
             DefineList* userDefines = 0,
             uint32_t numStaticSamplers = 0,
             D3D12_STATIC_SAMPLER_DESC* pStaticSamplers = 0
-		);
+        );
         void OnDestroy();
-		void Draw(ID3D12GraphicsCommandList* pCommandList, D3D12_GPU_VIRTUAL_ADDRESS constantBuffer, CBV_SRV_UAV *pUAVTable, CBV_SRV_UAV *pSRVTable, uint32_t ThreadX, uint32_t ThreadY, uint32_t ThreadZ);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, D3D12_GPU_VIRTUAL_ADDRESS constantBuffer, CBV_SRV_UAV *pUAVTable, CBV_SRV_UAV *pSRVTable, uint32_t ThreadX, uint32_t ThreadY, uint32_t ThreadZ);
     private:
         Device                      *m_pDevice;
         ResourceViewHeaps           *m_pResourceViewHeaps;
 
         ID3D12RootSignature	        *m_pRootSignature;
-		ID3D12PipelineState	        *m_pPipeline = NULL;
+        ID3D12PipelineState	        *m_pPipeline = NULL;
     };
 }

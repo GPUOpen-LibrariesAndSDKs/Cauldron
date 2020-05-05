@@ -67,14 +67,18 @@ namespace CAULDRON_DX12
             m_colorConversionConsts.m_displayMinLuminancePerNits = (float)agsDisplayInfo->minLuminance / 80.0f; // RGB(1, 1, 1) maps to 80 nits in scRGB;
             m_colorConversionConsts.m_displayMaxLuminancePerNits = (float)agsDisplayInfo->maxLuminance / 80.0f; // This means peak white equals RGB(m_maxLuminanace/80.0f, m_maxLuminanace/80.0f, m_maxLuminanace/80.0f) in scRGB;
 
-            SetupGamutMapperMatrices(
+            FillDisplaySpecificPrimaries(
                 (float)agsDisplayInfo->chromaticityWhitePointX, (float)agsDisplayInfo->chromaticityWhitePointY,
                 (float)agsDisplayInfo->chromaticityRedX, (float)agsDisplayInfo->chromaticityRedY,
                 (float)agsDisplayInfo->chromaticityGreenX, (float)agsDisplayInfo->chromaticityGreenY,
-                (float)agsDisplayInfo->chromaticityBlueX, (float)agsDisplayInfo->chromaticityBlueY,
+                (float)agsDisplayInfo->chromaticityBlueX, (float)agsDisplayInfo->chromaticityBlueY
+            );
+
+            SetupGamutMapperMatrices(
+                ColorSpace_REC709,
+                ColorSpace_Display,
                 &m_colorConversionConsts.m_contentToMonitorRecMatrix);
         }
-
     }
 
     void ColorConversionPS::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV)

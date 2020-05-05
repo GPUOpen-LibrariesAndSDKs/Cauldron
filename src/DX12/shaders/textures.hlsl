@@ -76,6 +76,9 @@ Texture2D        specularGlossinessTexture     :register(TEX(ID_specularGlossine
 SamplerState     samSpecularGlossiness         :register(SMP(ID_specularGlossinessTexture));
 #endif
 
+//------------------------------------------------------------
+// UV getters
+//------------------------------------------------------------
 
 float2 getNormalUV(VS_OUTPUT_SCENE Input)
 {
@@ -129,8 +132,8 @@ float2 getBaseColorUV(VS_OUTPUT_SCENE Input)
 float2 getMetallicRoughnessUV(VS_OUTPUT_SCENE Input)
 {
     float3 uv = float3(0.0, 0.0, 1.0);
-#ifdef ID_metallicRoughnessTextCoord
-    uv.xy = TEXCOORD(ID_metallicRoughnessTextCoord);
+#ifdef ID_metallicRoughnessTexCoord
+    uv.xy = TEXCOORD(ID_metallicRoughnessTexCoord);
     #ifdef HAS_METALLICROUGHNESS_UV_TRANSFORM
     uv *= u_MetallicRoughnessUVTransform;
     #endif
@@ -141,8 +144,8 @@ float2 getMetallicRoughnessUV(VS_OUTPUT_SCENE Input)
 float2 getSpecularGlossinessUV(VS_OUTPUT_SCENE Input)
 {
     float3 uv = float3(0.0, 0.0, 1.0);
-#ifdef ID_specularGlossinessTextCoord
-    uv.xy = TEXCOORD(ID_specularGlossinessTextCoord);
+#ifdef ID_specularGlossinessTexCoord
+    uv.xy = TEXCOORD(ID_specularGlossinessTexCoord);
 #ifdef HAS_SPECULARGLOSSINESS_UV_TRANSFORM
     uv *= u_SpecularGlossinessUVTransform;
 #endif
@@ -153,8 +156,8 @@ float2 getSpecularGlossinessUV(VS_OUTPUT_SCENE Input)
 float2 getDiffuseUV(VS_OUTPUT_SCENE Input)
 {
     float3 uv = float3(0.0, 0.0, 1.0);
-#ifdef ID_diffuseTextCoord
-    uv.xy = TEXCOORD(ID_diffuseTextCoord);
+#ifdef ID_diffuseTexCoord
+    uv.xy = TEXCOORD(ID_diffuseTexCoord);
 #ifdef HAS_DIFFUSE_UV_TRANSFORM
     uv *= u_DiffuseUVTransform;
 #endif
@@ -162,12 +165,16 @@ float2 getDiffuseUV(VS_OUTPUT_SCENE Input)
     return uv.xy;
 }
 
+//------------------------------------------------------------
+// Texture getters
+//------------------------------------------------------------
+
 float4 getBaseColorTexture(VS_OUTPUT_SCENE Input)
 {
 #ifdef ID_baseColorTexture
     return baseColorTexture.Sample(samBaseColor, getBaseColorUV(Input));
 #else 
-    return float4(0, 0, 0, 1); //OPAQUE
+    return float4(1, 1, 1, 1); //OPAQUE
 #endif
 }
 
@@ -176,23 +183,35 @@ float3 getNormalTexture(VS_OUTPUT_SCENE Input)
 #ifdef ID_normalTexture
     return normalTexture.Sample(samNormal, getNormalUV(Input)).rgb;
 #else 
-    return float3(0, 0, 0); //OPAQUE
+    return float3(0, 0, 0); 
 #endif
 }
 
-void discardPixelIfAlphaCutOff(VS_OUTPUT_SCENE Input)
+float4 getDiffuseTexture(VS_OUTPUT_SCENE Input)
 {
-#ifdef ID_baseColorTexture
-    float4 baseColor = getBaseColorTexture(Input);
-
-#if defined(DEF_alphaMode_BLEND)
-        if (baseColor.a == 0)
-            discard;
-#elif defined(DEF_alphaMode_MASK) && defined(DEF_alphaCutoff)
-        if (baseColor.a < DEF_alphaCutoff)
-            discard;
+#ifdef ID_diffuseTexture
+    return (diffuseTexture.Sample(samDiffuse, getDiffuseUV(Input)));
 #else
-        //OPAQUE
-#endif
-#endif
+    return float4(1, 1, 1, 1); 
+#endif 
 }
+
+float4 getMetallicRoughnessTexture(VS_OUTPUT_SCENE Input)
+{
+#ifdef ID_metallicRoughnessTexture
+    return metallicRoughnessTexture.Sample(samMetallicRoughness, getMetallicRoughnessUV(Input));
+#else 
+    return float4(1, 1, 1, 1);
+#endif   
+}
+
+float4 getSpecularGlossinessTexture(VS_OUTPUT_SCENE Input)
+{
+#ifdef ID_specularGlossinessTexture    
+    return specularGlossinessTexture.Sample(samSpecularGlossiness, getSpecularGlossinessUV(Input));
+#else 
+    return float4(1, 1, 1, 1);
+#endif   
+}
+
+

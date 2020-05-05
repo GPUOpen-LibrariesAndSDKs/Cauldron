@@ -23,6 +23,7 @@
 #include "Misc/Misc.h"
 #include "Misc/DDSLoader.h"
 #include "Misc/DxgiFormatHelper.h"
+#include "ExtDebugUtils.h"
 
 namespace CAULDRON_VK
 {
@@ -33,7 +34,7 @@ namespace CAULDRON_VK
     // initializes all members
     //--------------------------------------------------------------------------------------
     Texture::Texture() {}
-    
+
     //--------------------------------------------------------------------------------------
     // Destructor of the Texture class
     //--------------------------------------------------------------------------------------
@@ -79,7 +80,9 @@ namespace CAULDRON_VK
         imageAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
         imageAllocCreateInfo.pUserData = name;
         VmaAllocationInfo gpuImageAllocInfo = {};
-        vmaCreateImage(m_pDevice->GetAllocator(), pCreateInfo, &imageAllocCreateInfo, &m_pResource, &m_ImageAlloc, &gpuImageAllocInfo);
+        VkResult res = vmaCreateImage(m_pDevice->GetAllocator(), pCreateInfo, &imageAllocCreateInfo, &m_pResource, &m_ImageAlloc, &gpuImageAllocInfo);
+        assert(res == VK_SUCCESS);
+        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE, (uint64_t)m_pResource, name);
 #else
         /* Create image */
         VkResult res = vkCreateImage(m_pDevice->GetDevice(), pCreateInfo, NULL, &m_pResource);
@@ -111,7 +114,7 @@ namespace CAULDRON_VK
         return 0;
     }
 
-    INT32 Texture::InitRendertarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name)
+    INT32 Texture::InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name)
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -313,7 +316,9 @@ namespace CAULDRON_VK
             imageAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
             imageAllocCreateInfo.pUserData = (char *)pName;
             VmaAllocationInfo gpuImageAllocInfo = {};
-            vmaCreateImage(pDevice->GetAllocator(), &info, &imageAllocCreateInfo, &tex, &m_ImageAlloc, &gpuImageAllocInfo);
+            VkResult res = vmaCreateImage(pDevice->GetAllocator(), &info, &imageAllocCreateInfo, &tex, &m_ImageAlloc, &gpuImageAllocInfo);
+            assert(res == VK_SUCCESS);
+            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE, (uint64_t)tex, pName);
 #else
             VkResult res = vkCreateImage(pDevice->GetDevice(), &info, NULL, &tex);
             assert(res == VK_SUCCESS);
@@ -379,7 +384,7 @@ namespace CAULDRON_VK
                 uint32_t dwHeight = std::max<uint32_t>(m_header.height >> mip, 1);
 
                 UINT8* pixels = NULL;
-                UINT64 UplHeapSize = dwWidth*dwHeight * 4;
+                UINT64 UplHeapSize = dwWidth * dwHeight * 4;
                 pixels = pUploadHeap->Suballocate(UplHeapSize, 512);
                 if (pixels == NULL)
                 {
@@ -452,23 +457,23 @@ namespace CAULDRON_VK
     {
         switch (format)
         {
-            case DXGI_FORMAT_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
-            case DXGI_FORMAT_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
-            case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
-            case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
-            case DXGI_FORMAT_BC1_UNORM: return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
-            case DXGI_FORMAT_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
-            case DXGI_FORMAT_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
-            case DXGI_FORMAT_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
-            case DXGI_FORMAT_BC4_SNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
-            case DXGI_FORMAT_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
-            case DXGI_FORMAT_BC5_SNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
-            case DXGI_FORMAT_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
-            case DXGI_FORMAT_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
-            case DXGI_FORMAT_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
-            case DXGI_FORMAT_R10G10B10A2_UNORM: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-            case DXGI_FORMAT_R16G16B16A16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;            
-            default: assert(false);  return VK_FORMAT_UNDEFINED;
+        case DXGI_FORMAT_B8G8R8A8_UNORM: return VK_FORMAT_B8G8R8A8_UNORM;
+        case DXGI_FORMAT_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
+        case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
+        case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
+        case DXGI_FORMAT_BC1_UNORM: return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+        case DXGI_FORMAT_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
+        case DXGI_FORMAT_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
+        case DXGI_FORMAT_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
+        case DXGI_FORMAT_BC4_SNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
+        case DXGI_FORMAT_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
+        case DXGI_FORMAT_BC5_SNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
+        case DXGI_FORMAT_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
+        case DXGI_FORMAT_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
+        case DXGI_FORMAT_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
+        case DXGI_FORMAT_R10G10B10A2_UNORM: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+        case DXGI_FORMAT_R16G16B16A16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;
+        default: assert(false);  return VK_FORMAT_UNDEFINED;
         }
     }
 }

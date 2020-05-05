@@ -58,9 +58,9 @@ layout (set=1, binding = ID_brdfTexture) uniform sampler2D u_brdfLUT;
 #endif
 
 #define CONCAT(a,b) a ## b
-#define TEXCOORD(id) CONCAT(v_UV, id)
+#define TEXCOORD(id) CONCAT(Input.UV, id)
 
-vec2 getNormalUV()
+vec2 getNormalUV(VS2PS Input)
 {
     vec3 uv = vec3(0.0, 0.0, 1.0);
 #ifdef ID_normalTexCoord
@@ -72,7 +72,7 @@ vec2 getNormalUV()
     return uv.xy;
 }
 
-vec2 getEmissiveUV()
+vec2 getEmissiveUV(VS2PS Input)
 {
     vec3 uv = vec3(0.0, 0.0, 1.0);
 #ifdef ID_emissiveTexCoord
@@ -85,7 +85,7 @@ vec2 getEmissiveUV()
     return uv.xy;
 }
 
-vec2 getOcclusionUV()
+vec2 getOcclusionUV(VS2PS Input)
 {
     vec3 uv = vec3(0.0, 0.0, 1.0);
 #ifdef ID_occlusionTexCoord
@@ -97,7 +97,7 @@ vec2 getOcclusionUV()
     return uv.xy;
 }
 
-vec2 getBaseColorUV()
+vec2 getBaseColorUV(VS2PS Input)
 {
     vec3 uv = vec3(0.0, 0.0, 1.0);
 #ifdef ID_baseTexCoord
@@ -109,11 +109,11 @@ vec2 getBaseColorUV()
     return uv.xy;
 }
 
-vec2 getMetallicRoughnessUV()
+vec2 getMetallicRoughnessUV(VS2PS Input)
 {
     vec3 uv = vec3(0.0, 0.0, 1.0);
-#ifdef ID_metallicRoughnessTextCoord
-    uv.xy = TEXCOORD(ID_metallicRoughnessTextCoord);
+#ifdef ID_metallicRoughnessTexCoord
+    uv.xy = TEXCOORD(ID_metallicRoughnessTexCoord);
     #ifdef HAS_METALLICROUGHNESS_UV_TRANSFORM
     uv *= u_MetallicRoughnessUVTransform;
     #endif
@@ -121,11 +121,11 @@ vec2 getMetallicRoughnessUV()
     return uv.xy;    
 }
 
-vec2 getSpecularGlossinessUV()
+vec2 getSpecularGlossinessUV(VS2PS Input)
 {
     vec3 uv = vec3(0.0, 0.0, 1.0);
 #ifdef ID_specularGlossinessTexture
-    uv.xy = TEXCOORD(ID_specularGlossinessTextCoord);
+    uv.xy = TEXCOORD(ID_specularGlossinessTexCoord);
     #ifdef HAS_SPECULARGLOSSINESS_UV_TRANSFORM
     uv *= u_SpecularGlossinessUVTransform;
     #endif
@@ -133,11 +133,11 @@ vec2 getSpecularGlossinessUV()
     return uv.xy;
 }
 
-vec2 getDiffuseUV()
+vec2 getDiffuseUV(VS2PS Input)
 {
     vec3 uv = vec3(0.0, 0.0, 1.0);
 #ifdef ID_diffuseTexture
-    uv.xy = TEXCOORD(ID_diffuseTextCoord);
+    uv.xy = TEXCOORD(ID_diffuseTexCoord);
     #ifdef HAS_DIFFUSE_UV_TRANSFORM
     uv *= u_DiffuseUVTransform;
     #endif
@@ -145,37 +145,47 @@ vec2 getDiffuseUV()
     return uv.xy;
 }
 
-vec4 getBaseColorTexture()
+vec4 getBaseColorTexture(VS2PS Input)
 {
 #ifdef ID_baseColorTexture
-    return texture(u_BaseColorSampler, getBaseColorUV());
+    return texture(u_BaseColorSampler, getBaseColorUV(Input));
 #else
-    return vec4(0, 0, 0, 1); //OPAQUE
+    return vec4(1, 1, 1, 1); //OPAQUE
 #endif
 }
 
-vec3 getNormalTexture()
+vec3 getNormalTexture(VS2PS Input)
 {
 #ifdef ID_normalTexture
-    return texture(u_NormalSampler, getNormalUV()).rgb;
+    return texture(u_NormalSampler, getNormalUV(Input)).rgb;
 #else
     return vec3(0, 0, 0); //OPAQUE
 #endif
 }
 
-void discardPixelIfAlphaCutOff()
+vec4 getDiffuseTexture(VS2PS Input)
 {
-#ifdef ID_baseColorTexture
-    vec4 baseColor = getBaseColorTexture();
-
-#if defined(DEF_alphaMode_BLEND)
-        if (baseColor.a == 0)
-            discard;
-#elif defined(DEF_alphaMode_MASK) && defined(DEF_alphaCutoff)
-        if (baseColor.a < DEF_alphaCutoff)
-            discard;
+#ifdef ID_diffuseTexture
+    return texture(u_diffuseSampler, getDiffuseUV(Input));
 #else
-        //OPAQUE
-#endif
-#endif
+    return vec4(1, 1, 1, 1); 
+#endif 
+}
+
+vec4 getMetallicRoughnessTexture(VS2PS Input)
+{
+#ifdef ID_metallicRoughnessTexture
+    return texture(u_MetallicRoughnessSampler, getMetallicRoughnessUV(Input));
+#else 
+    return vec4(1, 1, 1, 1);
+#endif   
+}
+
+vec4 getSpecularGlossinessTexture(VS2PS Input)
+{
+#ifdef ID_specularGlossinessTexture    
+    return texture(u_specularGlossinessSampler, getSpecularGlossinessUV(Input));
+#else 
+    return vec4(1, 1, 1, 1);
+#endif   
 }

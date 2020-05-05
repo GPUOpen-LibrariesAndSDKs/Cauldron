@@ -22,3 +22,5 @@
 #define UA(v) CONCAT(u,v)
 #define TEX(v) CONCAT(T,v)
 #define SMP(v) CONCAT(s,v)
+#define TARGET(v) CONCAT(SV_Target,v)
+

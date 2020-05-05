@@ -40,7 +40,9 @@ namespace CAULDRON_DX12
         uint32_t psoSampleDescCount,
         D3D12_BLEND_DESC *pBlendDesc,
         D3D12_DEPTH_STENCIL_DESC *pDepthStencilDesc,
-        uint32_t numRenderTargets
+        uint32_t numRenderTargets,
+        const char *pVSTarget,
+        const char *pPSTarget
     )
     {
         m_pDevice = pDevice;
@@ -77,8 +79,8 @@ namespace CAULDRON_DX12
         //
         {
             DefineList defines;
-            CompileShaderFromString(vertexShader, &defines, "mainVS", "vs_5_0", 0, 0, &m_shaderVert);
-            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", "ps_5_0", 0, &m_shaderPixel);
+            CompileShaderFromString(vertexShader, &defines, "mainVS", pVSTarget, 0, 0, &m_shaderVert);
+            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", pPSTarget, 0, &m_shaderPixel);
         }
 
         // Create root signature

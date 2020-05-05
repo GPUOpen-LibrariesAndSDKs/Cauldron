@@ -78,6 +78,12 @@ namespace CAULDRON_DX12
         ThrowIfFailed(pSwapChain->QueryInterface(__uuidof(IDXGISwapChain3), (void**)&m_pSwapChain));
         pSwapChain->Release();
 
+        // if SDR, convert add gamma for the swapchain format so blending is correct
+        if (m_displayMode == DISPLAYMODE_SDR)
+        {
+            m_swapChainFormat = ConvertIntoGammaFormat(m_swapChainFormat);
+        }
+
         //
         // create RTV heaps
         //

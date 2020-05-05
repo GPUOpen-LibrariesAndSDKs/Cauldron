@@ -78,16 +78,19 @@ struct tfMesh
 
 struct Transform
 {
-    XMVECTOR m_translation;
-    XMMATRIX m_rotation;
-    XMVECTOR m_scale;
+    XMMATRIX    m_rotation = XMMatrixIdentity();
+    XMVECTOR m_translation = XMVectorSet(0, 0, 0, 0);
+    XMVECTOR       m_scale = XMVectorSet(1, 1, 1, 0);
 
+    void LookAt(XMVECTOR source, XMVECTOR target) { m_rotation = XMMatrixInverse(NULL, XMMatrixLookAtRH(source, target, XMVectorSet(0, 1, 0, 0))); m_translation = m_rotation.r[3];  m_rotation.r[3] = XMVectorSet(0, 0, 0, 1); }
     XMMATRIX GetWorldMat() { return XMMatrixScalingFromVector(m_scale)  * m_rotation  * XMMatrixTranslationFromVector(m_translation); }
 };
 
+typedef int tfNodeIdx;
+
 struct tfNode
 {
-    std::vector<tfNode *> m_children;
+    std::vector<tfNodeIdx> m_children;
 
     int skinIndex = -1;
     int meshIndex = -1;
@@ -106,7 +109,7 @@ struct NodeMatrixPostTransform
 
 struct tfScene
 {
-    std::vector<tfNode *> m_nodes;
+    std::vector<tfNodeIdx> m_nodes;
 };
 
 struct tfSkins
@@ -174,13 +177,13 @@ struct tfLight
 
     LightType m_type = LIGHT_DIRECTIONAL;
 
-    int m_nodeIndex = -1;
+    tfNodeIdx m_nodeIndex = -1;
 
     XMVECTOR m_color;
     float m_range;
-    float m_intensity;
-    float m_innerConeAngle;
-    float m_outerConeAngle;
+    float m_intensity = 0.0f;
+    float m_innerConeAngle = 0.0f;
+    float m_outerConeAngle = 0.0f;
 };
 
 struct tfCamera
@@ -188,5 +191,5 @@ struct tfCamera
     enum LightType { CAMERA_PERSPECTIVE };
     float yfov, zfar, znear;
 
-    int m_nodeIndex = -1;
+    tfNodeIdx m_nodeIndex = -1;
 };

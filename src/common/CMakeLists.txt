@@ -1,8 +1,10 @@
-project (Framework_Common)
+project (Cauldron_Common)
 
 add_compile_options(/MP)
 
 set(base_src
+    "base/Benchmark.cpp"
+    "base/Benchmark.h"
     "base/ImGuiHelper.cpp"
     "base/ImGuiHelper.h"
     "base/ShaderCompiler.cpp"

@@ -21,6 +21,8 @@
 #include "Base/Device.h"
 #include "Base/ShaderCompiler.h"
 
+class Sync;
+
 namespace CAULDRON_VK
 {
     enum ShaderSourceType
@@ -32,7 +34,6 @@ namespace CAULDRON_VK
     void CreateShaderCache();
     void DestroyShaderCache(Device *pDevice);
 
-    class Sync;
 
     // Does as the function name says and uses a cache
     VkResult VKCompileFromString(VkDevice device, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pShaderCode, const char *pEntryPoint, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader);

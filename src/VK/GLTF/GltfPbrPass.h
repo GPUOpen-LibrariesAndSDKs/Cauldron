@@ -75,6 +75,9 @@ namespace CAULDRON_VK
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
             VkImageView ShadowMapView,
+            bool bExportForwardPass,
+            bool bExportSpecularRoughness,
+            bool bExportDiffuseColor,
             VkSampleCountFlagBits sampleCount
         );
 
@@ -104,9 +107,9 @@ namespace CAULDRON_VK
         VkImageView m_brdfLutView;
         VkSampler m_brdfLutSampler;
 
-        void CreateGPUMaterialData(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, VkImageView ShadowMapView);
+        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, VkImageView ShadowMapView);
         void CreateDescriptors(Device *pDevice, int inverseMatrixBufferSize, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
-        void CreatePipeline(Device *pDevice, std::vector<VkVertexInputAttributeDescription> layout, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
+        void CreatePipeline(Device *pDevice, std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };
 }
 

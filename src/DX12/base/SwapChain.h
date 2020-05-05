@@ -43,7 +43,6 @@ namespace CAULDRON_DX12
         void Present();
         void WaitForSwapChain();
 
-
         ID3D12Resource *GetCurrentBackBufferResource();
         D3D12_CPU_DESCRIPTOR_HANDLE *GetCurrentBackBufferRTV();
         DXGI_FORMAT GetFormat();

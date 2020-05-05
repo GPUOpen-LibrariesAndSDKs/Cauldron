@@ -49,10 +49,10 @@ namespace CAULDRON_VK
 
         m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_descriptorSetLayout);
 
-        m_toneMapping.OnCreate(m_pDevice, "ToneMappingCS.glsl", "main", m_descriptorSetLayout, 8, 8, 1 , NULL);
+        m_toneMapping.OnCreate(m_pDevice, "ToneMappingCS.glsl", "main", m_descriptorSetLayout, 8, 8, 1, NULL);
 
         m_descriptorIndex = 0;
-        for(int i=0;i< s_descriptorBuffers;i++)
+        for (int i = 0; i < s_descriptorBuffers; i++)
             m_pResourceViewHeaps->AllocDescriptor(m_descriptorSetLayout, &m_descriptorSet[i]);
     }
 
@@ -82,7 +82,7 @@ namespace CAULDRON_VK
         m_descriptorIndex = (m_descriptorIndex + 1) % s_descriptorBuffers;
 
         // modify Descriptor set
-        SetDescriptorSet(m_pDevice->GetDevice(), 1, HDRSRV, NULL, descriptorSet);
+        SetDescriptorSet(m_pDevice->GetDevice(), 1, HDRSRV, descriptorSet);
         m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ToneMappingConsts), descriptorSet);
 
         // Draw!

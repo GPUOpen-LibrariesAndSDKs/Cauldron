@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// textures.glsl needs to be included
+#include "textures.hlsl"
 
 float4 getPixelColor(VS_OUTPUT_SCENE Input)
 {
    float4 color = float4(1.0, 1.0, 1.0, 1.0);
-   
+
 #ifdef HAS_COLOR_0
     color = Input.Color0;
 #endif
@@ -28,7 +28,7 @@ float4 getPixelColor(VS_OUTPUT_SCENE Input)
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.
 float3 getPixelNormal(VS_OUTPUT_SCENE Input)
-{    
+{
     float2 UV = getNormalUV(Input);
 
     // Retrieve the tangent space matrix
@@ -38,7 +38,7 @@ float3 getPixelNormal(VS_OUTPUT_SCENE Input)
     float3 tex_dx = ddx(float3(UV, 0.0));
     float3 tex_dy = ddy(float3(UV, 0.0));
     float3 t = (tex_dy.y * pos_dx - tex_dx.y * pos_dy) / (tex_dx.x * tex_dy.y - tex_dy.x * tex_dx.y);
-    
+
 #ifdef HAS_NORMAL
     float3 ng = normalize(Input.Normal);
 #else
@@ -63,3 +63,116 @@ float3 getPixelNormal(VS_OUTPUT_SCENE Input)
     return n;
 }
 
+//------------------------------------------------------------
+// PBR getters
+//------------------------------------------------------------
+
+struct PBRFactors
+{
+    float4 myPerObject_u_EmissiveFactor;   
+    
+    // pbrMetallicRoughness
+    float4 baseColorFactor;
+    float metallicFactor;
+    float roughnessFactor;
+
+    float2 u_padding;
+
+    // KHR_materials_pbrSpecularGlossiness
+    float4 diffuseFactor;
+    float3 specularFactor;
+    float glossinessFactor;
+};
+
+float4 getBaseColor(VS_OUTPUT_SCENE Input)
+{
+    float4 baseColor = float4(0.0, 0.0, 0.0, 1.0);
+#ifdef MATERIAL_SPECULARGLOSSINESS
+    baseColor = getDiffuseTexture(Input);
+#endif
+
+#ifdef MATERIAL_METALLICROUGHNESS
+    // The albedo may be defined from a base texture or a flat color
+    baseColor = getBaseColorTexture(Input);
+#endif
+    return baseColor;
+}
+
+float4 getBaseColor(VS_OUTPUT_SCENE Input, PBRFactors params)
+{
+    float4 baseColor = getBaseColor(Input);
+
+#ifdef MATERIAL_SPECULARGLOSSINESS
+    baseColor *= params.diffuseFactor;
+#endif
+
+#ifdef MATERIAL_METALLICROUGHNESS
+    baseColor *= params.baseColorFactor;
+#endif
+
+    baseColor *= getPixelColor(Input);
+    return baseColor;
+}
+
+void discardPixelIfAlphaCutOff(VS_OUTPUT_SCENE Input)
+{
+#ifdef ID_baseColorTexture
+    float4 baseColor = getBaseColor(Input);
+
+#if defined(DEF_alphaMode_BLEND)
+        if (baseColor.a == 0)
+            discard;
+#elif defined(DEF_alphaMode_MASK) && defined(DEF_alphaCutoff)
+        if (baseColor.a < DEF_alphaCutoff)
+            discard;
+#else
+        //OPAQUE
+#endif
+#endif
+}
+
+void getPBRParams(VS_OUTPUT_SCENE Input, PBRFactors params, out float3 diffuseColor, out float3 specularColor, out float perceptualRoughness, out float alpha)
+{
+    // Metallic and Roughness material properties are packed together
+    // In glTF, these factors can be specified by fixed scalar values
+    // or from a metallic-roughness map
+    alpha = 0.0;
+    perceptualRoughness = 0.0;
+    diffuseColor = float3(0.0, 0.0, 0.0);
+    specularColor = float3(0.0, 0.0, 0.0);
+    float metallic = 0.0;
+    float3 f0 = float3(0.04, 0.04, 0.04);
+
+    float4 baseColor = getBaseColor(Input, params);
+
+#ifdef MATERIAL_SPECULARGLOSSINESS
+    float4 sgSample = getSpecularGlossinessTexture(Input);
+    perceptualRoughness = (1.0 - sgSample.a * params.glossinessFactor); // glossiness to roughness
+    f0 = sgSample.rgb * params.specularFactor; // specular
+
+    // f0 = specular
+    specularColor = f0;
+    float oneMinusSpecularStrength = 1.0 - max(max(f0.r, f0.g), f0.b);
+    diffuseColor = baseColor.rgb * oneMinusSpecularStrength;
+
+#ifdef DEBUG_METALLIC
+    // do conversion between metallic M-R and S-G metallic
+    metallic = solveMetallic(baseColor.rgb, specularColor, oneMinusSpecularStrength);
+#endif // ! DEBUG_METALLIC
+#endif // ! MATERIAL_SPECULARGLOSSINESS
+
+#ifdef MATERIAL_METALLICROUGHNESS
+    // Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
+    // This layout intentionally reserves the 'r' channel for (optional) occlusion map data
+    float4 mrSample = getMetallicRoughnessTexture(Input);
+    perceptualRoughness = mrSample.g * params.roughnessFactor;
+    metallic = mrSample.b * params.metallicFactor;
+
+    diffuseColor = baseColor.rgb * (float3(1.0, 1.0, 1.0) - f0) * (1.0 - metallic);
+    specularColor = lerp(f0, baseColor.rgb, metallic);
+#endif // ! MATERIAL_METALLICROUGHNESS
+
+    perceptualRoughness = clamp(perceptualRoughness, 0.0, 1.0);
+
+    alpha = baseColor.a;
+}

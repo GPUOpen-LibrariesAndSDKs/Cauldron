@@ -18,6 +18,7 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
+#include "ColorConversion.h"
 
 XMMATRIX AmdCalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag)
 {
@@ -61,10 +62,37 @@ XMMATRIX AmdCalculateXYZToRGBMatrix(float xw, float yw, float xr, float yr, floa
     return XMMatrixInverse(nullptr, RGBToXYZ);
 }
 
-void SetupGamutMapperMatrices(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, XMMATRIX* contentToMonitorRecMatrix)
+void FillDisplaySpecificPrimaries(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb)
 {
-    XMMATRIX Rec709_To_XYZ = AmdCalculateRGBToXYZMatrix(0.3127f, 0.3290f, 0.64f, 0.33f, 0.30f, 0.60f, 0.15f, 0.06f, false);
-    XMMATRIX XYZ_To_MonitorRec = AmdCalculateXYZToRGBMatrix(xw, yw, xr, yr, xg, yg, xb, yb, false);
-    XMMATRIX rec709_To_Display = XYZ_To_MonitorRec * Rec709_To_XYZ;
-    *contentToMonitorRecMatrix = XMMatrixTranspose(rec709_To_Display);
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_WHITE][ColorPrimariesCoordinates_X] = xw;
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_WHITE][ColorPrimariesCoordinates_Y] = yw;
+
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_RED][ColorPrimariesCoordinates_X] = xr;
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_RED][ColorPrimariesCoordinates_Y] = yr;
+
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_GREEN][ColorPrimariesCoordinates_X] = xg;
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_GREEN][ColorPrimariesCoordinates_Y] = yg;
+
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_BLUE][ColorPrimariesCoordinates_X] = xb;
+    ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_BLUE][ColorPrimariesCoordinates_Y] = yb;
+}
+
+void SetupGamutMapperMatrices(ColorSpace gamutIn, ColorSpace gamutOut, XMMATRIX* inputToOutputRecMatrix)
+{
+    XMMATRIX intputGamut_To_XYZ = AmdCalculateRGBToXYZMatrix(
+        ColorSpacePrimaries[gamutIn][ColorPrimaries_WHITE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_WHITE][ColorPrimariesCoordinates_Y],
+        ColorSpacePrimaries[gamutIn][ColorPrimaries_RED][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_RED][ColorPrimariesCoordinates_Y],
+        ColorSpacePrimaries[gamutIn][ColorPrimaries_GREEN][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_GREEN][ColorPrimariesCoordinates_Y],
+        ColorSpacePrimaries[gamutIn][ColorPrimaries_BLUE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_BLUE][ColorPrimariesCoordinates_Y],
+        false);
+
+    XMMATRIX XYZ_To_OutputGamut = AmdCalculateXYZToRGBMatrix(
+        ColorSpacePrimaries[gamutOut][ColorPrimaries_WHITE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_WHITE][ColorPrimariesCoordinates_Y],
+        ColorSpacePrimaries[gamutOut][ColorPrimaries_RED][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_RED][ColorPrimariesCoordinates_Y],
+        ColorSpacePrimaries[gamutOut][ColorPrimaries_GREEN][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_GREEN][ColorPrimariesCoordinates_Y],
+        ColorSpacePrimaries[gamutOut][ColorPrimaries_BLUE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_BLUE][ColorPrimariesCoordinates_Y],
+        false);
+
+    XMMATRIX intputGamut_To_OutputGamut = XYZ_To_OutputGamut * intputGamut_To_XYZ;
+    *inputToOutputRecMatrix = XMMatrixTranspose(intputGamut_To_OutputGamut);
 }

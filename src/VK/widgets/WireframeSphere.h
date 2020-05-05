@@ -25,28 +25,33 @@ namespace CAULDRON_VK
 {
     class WireframeSphere : public Wireframe
     {
+        // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
+        uint32_t m_NumIndices;
+        VkDescriptorBufferInfo m_IBV;
+        VkDescriptorBufferInfo m_VBV;
     public:
         void OnCreate(
             Device* pDevice,
-            VkRenderPass renderPass,
             ResourceViewHeaps *pResourceViewHeaps,
             DynamicBufferRing *pDynamicBufferRing,
-            StaticBufferPool *pStaticBufferPool,
-            VkSampleCountFlagBits sampleDescCount)
+            StaticBufferPool *pStaticBufferPool)
         {
             std::vector<short> indices;
             std::vector<float> vertices;
 
             GenerateSphere(16, indices, vertices);
 
-            Wireframe::OnCreate(pDevice,
-                renderPass,
-                pResourceViewHeaps,
-                pDynamicBufferRing,
-                pStaticBufferPool,
-                &vertices,
-                &indices,
-                sampleDescCount);
+            // set indices
+            m_NumIndices = (uint32_t)indices.size();
+            pStaticBufferPool->AllocBuffer(m_NumIndices, sizeof(short), indices.data(), &m_IBV);
+            pStaticBufferPool->AllocBuffer((uint32_t)(vertices.size() / 3), (uint32_t)(3 * sizeof(float)), vertices.data(), &m_VBV);
+        }
+
+        void OnDestroy() {}
+
+        void Draw(VkCommandBuffer cmd_buf, Wireframe *pWireframe, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
+        {
+            pWireframe->Draw(cmd_buf, m_NumIndices, m_IBV, m_VBV, worldMatrix, vCenter, vRadius, vColor);
         }
     };
 }

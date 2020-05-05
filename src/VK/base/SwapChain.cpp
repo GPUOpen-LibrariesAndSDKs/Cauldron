@@ -38,13 +38,17 @@ namespace CAULDRON_VK
         m_pDevice = pDevice;
         m_isFullScreen = false;
         m_backBufferCount = numberBackBuffers;
+        m_semaphoreIndex = 0;
+        m_prevSemaphoreIndex = 0;
+
         m_presentQueue = pDevice->GetPresentQueue();
 
         // Init FS2
         fs2Init(pDevice->GetDevice(), pDevice->GetSurface(), pDevice->GetPhysicalDevice(), hWnd);
 
         // set some safe format to start with
-        m_swapChainFormat = fs2GetFormat(DISPLAYMODE_SDR);
+        m_displayMode = DISPLAYMODE_SDR;
+        m_swapChainFormat = fs2GetFormat(m_displayMode);
 
         VkDevice device = m_pDevice->GetDevice();
 
@@ -71,6 +75,13 @@ namespace CAULDRON_VK
             assert(res == VK_SUCCESS);
             res = vkCreateSemaphore(device, &imageAcquiredSemaphoreCreateInfo, NULL, &m_RenderFinishedSemaphores[i]);
             assert(res == VK_SUCCESS);
+        }
+
+        // if SDR then use a gamma corrected swapchain so the blending is correct
+        if (m_displayMode == DISPLAYMODE_SDR)
+        {
+            assert(m_swapChainFormat.format == VK_FORMAT_B8G8R8A8_UNORM);
+            m_swapChainFormat.format = VK_FORMAT_B8G8R8A8_SRGB;
         }
 
         CreateRenderPass();
@@ -134,21 +145,25 @@ namespace CAULDRON_VK
 
     uint32_t SwapChain::WaitForSwapChain()
     {
-        m_prevImageIndex = m_imageIndex;
+        vkAcquireNextImageKHR(m_pDevice->GetDevice(), m_swapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_semaphoreIndex], VK_NULL_HANDLE, &m_imageIndex);
 
-        vkAcquireNextImageKHR(m_pDevice->GetDevice(), m_swapChain, UINT64_MAX, m_ImageAvailableSemaphores[m_imageIndex], VK_NULL_HANDLE, &m_imageIndex);
+        m_prevSemaphoreIndex = m_semaphoreIndex;
+        m_semaphoreIndex++;
+        if (m_semaphoreIndex >= m_backBufferCount)
+            m_semaphoreIndex = 0;
 
-        vkWaitForFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_imageIndex], VK_TRUE, UINT64_MAX);
-        vkResetFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_imageIndex]);
+        vkWaitForFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_prevSemaphoreIndex], VK_TRUE, UINT64_MAX);
+        vkResetFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_prevSemaphoreIndex]);
+
 
         return m_imageIndex;
     }
 
     void SwapChain::GetSemaphores(VkSemaphore *pImageAvailableSemaphore, VkSemaphore *pRenderFinishedSemaphores, VkFence *pCmdBufExecutedFences)
     {
-        *pImageAvailableSemaphore = m_ImageAvailableSemaphores[m_prevImageIndex];
-        *pRenderFinishedSemaphores = m_RenderFinishedSemaphores[m_imageIndex];
-        *pCmdBufExecutedFences = m_cmdBufExecutedFences[m_imageIndex];
+        *pImageAvailableSemaphore = m_ImageAvailableSemaphores[m_prevSemaphoreIndex];
+        *pRenderFinishedSemaphores = m_RenderFinishedSemaphores[m_semaphoreIndex];
+        *pCmdBufExecutedFences = m_cmdBufExecutedFences[m_semaphoreIndex];
     }
 
     void SwapChain::Present()
@@ -157,7 +172,7 @@ namespace CAULDRON_VK
         present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         present.pNext = NULL;
         present.waitSemaphoreCount = 1;
-        present.pWaitSemaphores = &(m_RenderFinishedSemaphores[m_imageIndex]);
+        present.pWaitSemaphores = &(m_RenderFinishedSemaphores[m_semaphoreIndex]);
         present.swapchainCount = 1;
         present.pSwapchains = &m_swapChain;
         present.pImageIndices = &m_imageIndex;
@@ -169,10 +184,15 @@ namespace CAULDRON_VK
 
     void SwapChain::SetFullScreen(bool fullscreen)
     {
-        m_isFullScreen = fullscreen;
-
-        if (m_isFullScreen)
+        // save window pos when switching to fullscreen
+        if (m_isFullScreen == false && fullscreen == true)
         {
+            m_windowedState.Style = GetWindowLongPtr(m_hWnd, GWL_STYLE);
+            m_windowedState.ExStyle = GetWindowLongPtr(m_hWnd, GWL_EXSTYLE);
+            GetWindowRect(m_hWnd, &m_windowedState.WindowRect);
+
+            m_isFullScreen = fullscreen;
+
             m_windowedState.IsMaximized = (bool)::IsZoomed(m_hWnd);
             if (m_windowedState.IsMaximized)
             {
@@ -193,12 +213,19 @@ namespace CAULDRON_VK
                 monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left,
                 monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
                 SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+
+            if (ExtFreeSync2AreAllExtensionsPresent())
+            {
+                fs2SetFullscreenState(fullscreen, m_swapChain);
+            }
         }
-        else
+        else if (m_isFullScreen == true && fullscreen == false)
         {
             // Back to windowed mode, set the original window style and size.  
             SetWindowLongPtr(m_hWnd, GWL_STYLE, m_windowedState.Style);
             SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, m_windowedState.ExStyle);
+
+            m_isFullScreen = fullscreen;
 
             // Set the original window position and size.
             SetWindowPos(m_hWnd, NULL,
@@ -212,11 +239,11 @@ namespace CAULDRON_VK
             {
                 ::SendMessage(m_hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
             }
-        }
 
-        if (ExtFreeSync2AreAllExtensionsPresent())
-        {
-            fs2SetFullscreenState(fullscreen, m_swapChain);
+            if (ExtFreeSync2AreAllExtensionsPresent())
+            {
+                fs2SetFullscreenState(fullscreen, m_swapChain);
+            }
         }
     }
 
@@ -242,7 +269,7 @@ namespace CAULDRON_VK
 
         // if SDR then use a gamma corrected swapchain so the blending is correct
         if (m_displayMode == DISPLAYMODE_SDR)
-        {            
+        {
             assert(m_swapChainFormat.format == VK_FORMAT_B8G8R8A8_UNORM);
             m_swapChainFormat.format = VK_FORMAT_B8G8R8A8_SRGB;
         }
@@ -386,14 +413,6 @@ namespace CAULDRON_VK
         CreateRTV();
         CreateFramebuffers(dwWidth, dwHeight);
 
-        // keep track of the window size, so when we know switch from fullscreen mode into windowed
-        if (m_isFullScreen == false)
-        {
-            m_windowedState.Style = GetWindowLongPtr(m_hWnd, GWL_STYLE);
-            m_windowedState.ExStyle = GetWindowLongPtr(m_hWnd, GWL_EXSTYLE);
-            GetWindowRect(m_hWnd, &m_windowedState.WindowRect);
-        }
-
         m_imageIndex = 0;
     }
 
@@ -433,6 +452,15 @@ namespace CAULDRON_VK
         subpass.preserveAttachmentCount = 0;
         subpass.pPreserveAttachments = NULL;
 
+		VkSubpassDependency dep = {};
+		dep.dependencyFlags = 0;
+		dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dep.dstSubpass = 0;
+		dep.srcAccessMask = 0;
+		dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dep.srcSubpass = VK_SUBPASS_EXTERNAL;
+
         VkRenderPassCreateInfo rp_info = {};
         rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
         rp_info.pNext = NULL;
@@ -440,8 +468,8 @@ namespace CAULDRON_VK
         rp_info.pAttachments = attachments;
         rp_info.subpassCount = 1;
         rp_info.pSubpasses = &subpass;
-        rp_info.dependencyCount = 0;
-        rp_info.pDependencies = NULL;
+        rp_info.dependencyCount = 1;
+        rp_info.pDependencies = &dep;
 
         VkResult res = vkCreateRenderPass(m_pDevice->GetDevice(), &rp_info, NULL, &m_render_pass_swap_chain);
         assert(res == VK_SUCCESS);

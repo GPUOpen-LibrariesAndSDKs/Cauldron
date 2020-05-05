@@ -185,12 +185,12 @@ namespace CAULDRON_DX12
         {
             pCommandList->OMSetRenderTargets(1, &m_horizontalMip[mipLevel].m_RTV.GetCPU(), true, NULL);
 
-            BlurPS::cbBlur *data;
-            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;
-            m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), (void **)&data, &constantBuffer);
-            data->dirX = 1.0f / (float)(m_Width >> mipLevel);
-            data->dirY = 0.0f / (float)(m_Height >> mipLevel);
-            data->mipLevel = mipLevel;
+            BlurPS::cbBlur data;
+            data.mipLevel = mipLevel;
+            data.dirX = 1.0f / (float)(m_Width >> mipLevel);
+            data.dirY = 0.0f / (float)(m_Height >> mipLevel);
+            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), (void **)&data);
+
             m_directionalBlur.Draw(pCommandList, 1, &m_horizontalMip[mipLevel].m_SRV, constantBuffer);
         }
 
@@ -205,12 +205,12 @@ namespace CAULDRON_DX12
         {
             pCommandList->OMSetRenderTargets(1, &m_verticalMip[mipLevel].m_RTV.GetCPU(), true, NULL);
 
-            BlurPS::cbBlur *data;
-            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;
-            m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), (void **)&data, &constantBuffer);
-            data->dirX = 0.0f / (float)(m_Width >> mipLevel);
-            data->dirY = 1.0f / (float)(m_Height >> mipLevel);
-            data->mipLevel = mipLevel;
+            BlurPS::cbBlur data;
+            data.mipLevel = mipLevel;
+            data.dirX = 0.0f / (float)(m_Width >> mipLevel);
+            data.dirY = 1.0f / (float)(m_Height >> mipLevel);            
+            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), &data);
+
             m_directionalBlur.Draw(pCommandList, 1, &m_verticalMip[mipLevel].m_SRV, constantBuffer);
         }
 

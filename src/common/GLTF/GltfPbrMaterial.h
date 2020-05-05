@@ -37,14 +37,8 @@ struct PBRMaterialParametersConstantBuffer
 
 struct PBRMaterialParameters
 {
-    enum PBRType { MATERIAL_METALLIC_ROUGHNESS, MATERIAL_SPECULAR_GLOSSINESS };
-
-    PBRType m_pbrType;
-
     bool     m_doubleSided = false;
     bool     m_blending = false;
-
-    XMVECTOR m_DiffuseFactor;
 
     DefineList m_defines;
 
@@ -54,5 +48,7 @@ struct PBRMaterialParameters
 
 // Read GLTF material and store it in our structure
 //
+void SetDefaultMaterialParamters(PBRMaterialParameters *pPbrMaterialParameters);
 void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfmat, std::map<std::string, int> &textureIds);
-
+bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName);
+void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, bool *pSrgbOut, float *pCutoff);

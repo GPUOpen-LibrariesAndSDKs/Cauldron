@@ -40,16 +40,18 @@ namespace CAULDRON_DX12
         ID3D12Device *GetDevice() { return m_pDevice; }
         IDXGIAdapter *GetAdapter() { return m_pAdapter; }
         ID3D12CommandQueue *GetGraphicsQueue() { return m_pDirectQueue; }
-        ID3D12CommandQueue* GetComputeQueue() { return m_pComputeQueue; }
+        ID3D12CommandQueue *GetComputeQueue() { return m_pComputeQueue; }
 
         AGSContext *GetAGSContext() { return m_agsContext; }
         AGSGPUInfo *GetAGSGPUInfo() { return &m_agsGPUInfo; }
 
         bool IsFp16Supported() { return m_fp16Supported; };
+
         void CreatePipelineCache();
         void DestroyPipelineCache();
 
-        void GPUFlush();
+        void GPUFlush(D3D12_COMMAND_LIST_TYPE queueType);
+        void GPUFlush();  // flushes all queues
 
     private:
         ID3D12Device         *m_pDevice;

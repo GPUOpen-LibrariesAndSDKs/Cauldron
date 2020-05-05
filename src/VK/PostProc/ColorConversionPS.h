@@ -31,7 +31,7 @@ namespace CAULDRON_VK
 
         void UpdatePipelines(VkRenderPass renderPass, DisplayModes displayMode);
 
-        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper, bool applyGamma = true);
+        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV);
 
     private:
         Device* m_pDevice;
@@ -59,3 +59,4 @@ namespace CAULDRON_VK
         ColorConversionConsts m_colorConversionConsts;
     };
 }
+

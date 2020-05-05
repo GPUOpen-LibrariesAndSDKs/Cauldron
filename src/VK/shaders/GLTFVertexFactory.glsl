@@ -1,31 +1,58 @@
-// AMD Cauldron code
-// 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files(the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions :
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
 
 #include "skinning.h"
 
+//--------------------------------------------------------------------------------------
+//  For VS layout
+//--------------------------------------------------------------------------------------
+
+#ifdef ID_POSITION
+    layout (location = ID_POSITION) in vec3 a_Position;
+#endif
+
+#ifdef ID_COLOR_0
+    layout (location = ID_COLOR_0) in  vec3 a_Color0;
+#endif
+
+#ifdef ID_TEXCOORD_0
+    layout (location = ID_TEXCOORD_0) in  vec2 a_UV0;
+#endif
+
+#ifdef ID_TEXCOORD_1
+    layout (location = ID_TEXCOORD_1) in  vec2 a_UV1;
+#endif
+
+#ifdef ID_NORMAL
+    layout (location = ID_NORMAL) in  vec3 a_Normal;
+#endif
+
+#ifdef ID_TANGENT
+    layout (location = ID_TANGENT) in vec4 a_Tangent;
+#endif
+
+#ifdef ID_WEIGHTS_0
+    layout (location = ID_WEIGHTS_0) in  vec4 a_Weights0;
+#endif
+
+#ifdef ID_WEIGHTS_1
+    layout (location = ID_WEIGHTS_1) in  vec4 a_Weights1;
+#endif
+
+#ifdef ID_JOINTS_0
+    layout (location = ID_JOINTS_0) in  uvec4 a_Joints0;
+#endif
+
+#ifdef ID_JOINTS_1
+    layout (location = ID_JOINTS_1) in  uvec4 a_Joints1;
+#endif
+
+layout (location = 0) out VS2PS Output;
 
 void gltfVertexFactory()
 {
-#ifdef ID_4VS_WEIGHTS_0
+#ifdef ID_WEIGHTS_0
     mat4 skinningMatrix;
     skinningMatrix  = GetSkinningMatrix(a_Weights0, a_Joints0);
-#ifdef ID_4VS_WEIGHTS_1
+#ifdef ID_WEIGHTS_1
     skinningMatrix += GetSkinningMatrix(a_Weights1, a_Joints1);
 #endif
 #else
@@ -38,34 +65,38 @@ void gltfVertexFactory()
     };
 #endif
 
-  mat4 transMatrix = GetWorldMatrix() * skinningMatrix;
-  vec4 pos = transMatrix * a_Position;
+	mat4 transMatrix = GetWorldMatrix() * skinningMatrix;
+	vec4 pos = transMatrix * vec4(a_Position,1);
+	Output.WorldPos = vec3(pos.xyz) / pos.w;
+	gl_Position = GetCameraViewProj() * pos; // needs w for proper perspective correction
 
-  #ifdef ID_4PS_WORLDPOS
-  v_WorldPos = vec3(pos.xyz) / pos.w;
-  #endif
+#ifdef HAS_MOTION_VECTORS
+	Output.CurrPosition = gl_Position; // current's frame vertex position 
 
-  #ifdef ID_4VS_NORMAL
-  v_Normal = normalize(vec3(transMatrix * vec4(a_Normal.xyz, 0.0)));
+	mat4 prevTransMatrix = GetPrevWorldMatrix() * skinningMatrix;
+	vec3 worldPrevPos = (prevTransMatrix * vec4(a_Position, 1)).xyz;
+	Output.PrevPosition = GetPrevCameraViewProj() * vec4(worldPrevPos, 1);
+#endif
 
-  #ifdef ID_4VS_TANGENT
-    v_Tangent = normalize(vec3(transMatrix * vec4(a_Tangent.xyz, 0.0)));
-    v_Binormal = cross(v_Normal, v_Tangent) * a_Tangent.w;
-  #endif
-  #endif
+#ifdef ID_NORMAL
+	Output.Normal = normalize(vec3(transMatrix * vec4(a_Normal.xyz, 0.0)));
+#endif
 
-  #ifdef ID_4VS_COLOR_0
-    v_Color0 = a_Color0;
-  #endif
+#ifdef ID_TANGENT
+	Output.Tangent = normalize(vec3(transMatrix * vec4(a_Tangent.xyz, 0.0)));
+	Output.Binormal = cross(Output.Normal, Output.Tangent) * a_Tangent.w;
+#endif
 
-  #ifdef ID_4VS_TEXCOORD_0
-    v_UV0 = a_UV0;
-  #endif
+#ifdef ID_COLOR_0
+	Output.Color0 = a_Color0;
+#endif
 
-  #ifdef ID_4VS_TEXCOORD_1
-    v_UV1 = a_UV1;
-  #endif
+#ifdef ID_TEXCOORD_0
+	Output.UV0 = a_UV0;
+#endif
 
-  gl_Position = GetCameraViewProj() * pos; // needs w for proper perspective correction
+#ifdef ID_TEXCOORD_1
+	Output.UV1 = a_UV1;
+#endif  
 }
 

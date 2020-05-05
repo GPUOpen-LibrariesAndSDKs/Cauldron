@@ -35,7 +35,7 @@ namespace CAULDRON_DX12
 
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
-        struct ColorConversionConsts 
+        struct ColorConversionConsts
         {
             XMMATRIX m_contentToMonitorRecMatrix;
             DisplayModes m_displayMode;

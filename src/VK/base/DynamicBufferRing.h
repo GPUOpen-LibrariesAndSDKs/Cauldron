@@ -44,6 +44,7 @@ namespace CAULDRON_VK
         VkResult OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize, char *name = NULL);
         void OnDestroy();
         bool AllocConstantBuffer(uint32_t size, void **pData, VkDescriptorBufferInfo *pOut);
+        VkDescriptorBufferInfo AllocConstantBuffer(uint32_t size, void *pData);
         bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, VkDescriptorBufferInfo *pOut);
         bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, VkDescriptorBufferInfo *pOut);
         void OnBeginFrame();

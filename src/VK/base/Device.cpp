@@ -24,6 +24,7 @@
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
+#include "ExtDebugUtils.h"
 #include "ExtDebugMarkers.h"
 #include "ExtFreeSync2.h"
 #include "ExtFp16.h"
@@ -85,6 +86,16 @@ namespace CAULDRON_VK
 
         vkGetPhysicalDeviceMemoryProperties(m_physicaldevice, &m_memoryProperties);
         vkGetPhysicalDeviceProperties(m_physicaldevice, &m_deviceProperties);
+
+        // Get subgroup properties to check if subgroup operations are supported
+        //
+        m_subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+        m_subgroupProperties.pNext = NULL;
+
+        m_deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        m_deviceProperties2.pNext = &m_subgroupProperties;
+
+        vkGetPhysicalDeviceProperties2(m_physicaldevice, &m_deviceProperties2);
 
         // Crate a Win32 Surface
         //
@@ -155,6 +166,7 @@ namespace CAULDRON_VK
         //
         void *pNext = NULL;
         m_usingFp16 = ExtFp16CheckExtensions(&dp, &pNext);
+        ExtDebugUtilsCheckDeviceExtensions(&dp);
         ExtFreeSync2CheckDeviceExtensions(&dp);
         ExtDebugMarkerCheckDeviceExtensions(&dp);
         dp.Add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -188,14 +200,26 @@ namespace CAULDRON_VK
         physicalDeviceFeatures.shaderImageGatherExtended = true;
         physicalDeviceFeatures.wideLines = true; //needed for drawing lines with a specific width.
 
+        // enable feature to support fp16 with subgroup operations
+        //
+        VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR shaderSubgroupExtendedType = {};
+        shaderSubgroupExtendedType.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR;
+        shaderSubgroupExtendedType.pNext = pNext; //used to be pNext of VkDeviceCreateInfo
+        shaderSubgroupExtendedType.shaderSubgroupExtendedTypes = VK_TRUE;
+
+        VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = {};
+        physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        physicalDeviceFeatures2.features = physicalDeviceFeatures;
+        physicalDeviceFeatures2.pNext = &shaderSubgroupExtendedType;
+
         VkDeviceCreateInfo device_info = {};
         device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        device_info.pNext = pNext;
+        device_info.pNext = &physicalDeviceFeatures2;
         device_info.queueCreateInfoCount = 2;
         device_info.pQueueCreateInfos = queue_info;
         device_info.enabledExtensionCount = (uint32_t)extension_names.size();
         device_info.ppEnabledExtensionNames = device_info.enabledExtensionCount ? extension_names.data() : NULL;
-        device_info.pEnabledFeatures = &physicalDeviceFeatures;
+        device_info.pEnabledFeatures = NULL;
         res = vkCreateDevice(gpus[0], &device_info, NULL, &m_device);
         assert(res == VK_SUCCESS);
 
@@ -225,6 +249,7 @@ namespace CAULDRON_VK
         // Init the extensions (if they have been enabled successfuly)
         //
         ExtDebugMarkersGetProcAddresses(m_device);
+        ExtDebugUtilsGetProcAddresses(m_device);
         ExtFreeSync2GetProcAddresses(m_instance, m_device);
     }
 

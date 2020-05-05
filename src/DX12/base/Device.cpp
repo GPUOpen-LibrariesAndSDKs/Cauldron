@@ -43,31 +43,20 @@ namespace CAULDRON_DX12
     {
         // Enable the D3D12 debug layer
         //
-        // Note that it turns out the validation and debug layer are know to cause 
-        // deadlocks in certain circumstances, for example when the vsync interval 
+        // Note that it turns out the validation and debug layer are know to cause
+        // deadlocks in certain circumstances, for example when the vsync interval
         // is 0 and full screen is used
         if (bValidationEnabled)
         {
             ID3D12Debug1 *pDebugController;
             if (D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController)) == S_OK)
             {
-                pDebugController->EnableDebugLayer();               
-                pDebugController->SetEnableGPUBasedValidation(TRUE);
+                pDebugController->EnableDebugLayer();
+                //pDebugController->SetEnableGPUBasedValidation(TRUE);
 
                 pDebugController->SetEnableSynchronizedCommandQueueValidation(TRUE);
                 pDebugController->Release();
             }
-        }
-
-        // Create Device
-        //
-        AGSReturnCode result = agsInit(&m_agsContext, nullptr, &m_agsGPUInfo);
-
-        // if AGS got initialized because the AMD driver is installed but the HW is not AMD then deinit.
-        if ((result == AGS_SUCCESS) && m_agsContext && (m_agsGPUInfo.devices[0].vendorId != 0x1002))
-        {
-            agsDeInit(m_agsContext);
-            m_agsContext = NULL;
         }
 
         UINT factoryFlags = 0;
@@ -77,36 +66,48 @@ namespace CAULDRON_DX12
         IDXGIFactory *pFactory;
         CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&pFactory));
 
+        // Detect if this GPU is an AMD one so we can use AGS
         pFactory->EnumAdapters(0, &m_pAdapter);
+        DXGI_ADAPTER_DESC AdapterDesc;
+        m_pAdapter->GetDesc(&AdapterDesc);
+        const bool bAMDGPU = (AdapterDesc.VendorId == 0x1002);
         pFactory->Release();
+        m_pDevice = NULL;
 
-
-        if (m_agsContext)
+        // Create to create an AGS Device
+        //
+        if (bAMDGPU)
         {
-            UserMarker::SetAgsContext(m_agsContext);
-
-            AGSDX12DeviceCreationParams creationParams = {};
-            creationParams.pAdapter = m_pAdapter;
-            creationParams.iid = __uuidof(m_pDevice);
-            creationParams.FeatureLevel = D3D_FEATURE_LEVEL_12_0;
-
-            AGSDX12ExtensionParams extensionParams = {};
-            AGSDX12ReturnedParams returnedParams = {};
-
-            // Create AGS Device
-            //
-            AGSReturnCode rc = agsDriverExtensionsDX12_CreateDevice(m_agsContext, &creationParams, &extensionParams, &returnedParams);
-            if (rc == AGS_SUCCESS)
+            AGSReturnCode result = agsInit(&m_agsContext, nullptr, &m_agsGPUInfo);
+            if (result == AGS_SUCCESS)
             {
-                m_pDevice = returnedParams.pDevice;
-                SetName(m_pDevice, "device");
+                UserMarker::SetAgsContext(m_agsContext);
+
+                AGSDX12DeviceCreationParams creationParams = {};
+                creationParams.pAdapter = m_pAdapter;
+                creationParams.iid = __uuidof(m_pDevice);
+                creationParams.FeatureLevel = D3D_FEATURE_LEVEL_12_0;
+
+                AGSDX12ExtensionParams extensionParams = {};
+                AGSDX12ReturnedParams returnedParams = {};
+
+                // Create AGS Device
+                //
+                AGSReturnCode rc = agsDriverExtensionsDX12_CreateDevice(m_agsContext, &creationParams, &extensionParams, &returnedParams);
+                if (rc == AGS_SUCCESS)
+                {
+                    m_pDevice = returnedParams.pDevice;
+                }
             }
         }
-        else
+
+        // If the AGS device wasn't created then try using a regular device
+        //
+        if (m_pDevice==NULL)
         {
             ThrowIfFailed(D3D12CreateDevice(m_pAdapter, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pDevice)));
-            SetName(m_pDevice, "device");
         }
+        SetName(m_pDevice, "device");
 
         // Check for FP16 support
         //
@@ -114,7 +115,7 @@ namespace CAULDRON_DX12
         m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &featureDataOptions, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS));
         m_fp16Supported = (featureDataOptions.MinPrecisionSupport & D3D12_SHADER_MIN_PRECISION_SUPPORT_16_BIT) != 0;
 
-        // create queues
+        // create direct and compute queues
         //
         {
             D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -132,6 +133,7 @@ namespace CAULDRON_DX12
             m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pComputeQueue));
             SetName(m_pComputeQueue, "ComputeQueue");
         }
+
     }
 
     void Device::CreatePipelineCache()
@@ -144,8 +146,8 @@ namespace CAULDRON_DX12
 
     void Device::OnDestroy()
     {
-        m_pDirectQueue->Release();
         m_pComputeQueue->Release();
+        m_pDirectQueue->Release();
         m_pAdapter->Release();
 
         if (m_agsContext)
@@ -172,35 +174,26 @@ namespace CAULDRON_DX12
 #endif
     }
 
+    void Device::GPUFlush(D3D12_COMMAND_LIST_TYPE queueType)
+    {
+        ID3D12Fence *pFence;
+        ThrowIfFailed(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
+
+        ID3D12CommandQueue* queue = (queueType == D3D12_COMMAND_LIST_TYPE_COMPUTE) ? GetComputeQueue() : GetGraphicsQueue();
+
+        ThrowIfFailed(queue->Signal(pFence, 1));
+
+        HANDLE mHandleFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
+        pFence->SetEventOnCompletion(1, mHandleFenceEvent);
+        WaitForSingleObject(mHandleFenceEvent, INFINITE);
+        CloseHandle(mHandleFenceEvent);
+
+        pFence->Release();
+    }
+
     void Device::GPUFlush()
     {
-        // sync direct queue
-        {
-            ID3D12Fence* pFence;
-            ThrowIfFailed(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
-
-            ThrowIfFailed(m_pDirectQueue->Signal(pFence, 1));
-
-            HANDLE mHandleFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-            pFence->SetEventOnCompletion(1, mHandleFenceEvent);
-            WaitForSingleObject(mHandleFenceEvent, INFINITE);
-            CloseHandle(mHandleFenceEvent);
-
-            pFence->Release();
-        }
-        // sync compute queue
-        {
-            ID3D12Fence* pFence;
-            ThrowIfFailed(m_pDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&pFence)));
-
-            ThrowIfFailed(m_pComputeQueue->Signal(pFence, 1));
-
-            HANDLE mHandleFenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-            pFence->SetEventOnCompletion(1, mHandleFenceEvent);
-            WaitForSingleObject(mHandleFenceEvent, INFINITE);
-            CloseHandle(mHandleFenceEvent);
-
-            pFence->Release();
-        }
+        GPUFlush(D3D12_COMMAND_LIST_TYPE_COMPUTE);
+        GPUFlush(D3D12_COMMAND_LIST_TYPE_DIRECT);
     }
 }
