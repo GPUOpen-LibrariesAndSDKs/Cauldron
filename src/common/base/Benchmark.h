@@ -18,8 +18,11 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <vector>
-#include <string>
+#include "../json/json.h"
+#include "../common/Misc/Camera.h"
+#include "../common/GLTF/GltfCommon.h"
+
+using json = nlohmann::json;
 
 struct TimeStamp
 {
@@ -27,4 +30,5 @@ struct TimeStamp
     float       m_microseconds;
 };
 
-float Benchmark(const std::vector<TimeStamp> &timeStamps, float time, float duration);
+void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoader, const std::string& deviceName = "not set", const std::string& driverVersion = "not set");
+float BenchmarkLoop(const std::vector<TimeStamp> &timeStamps, Camera *pCam, const std::string **pScreenShotName);

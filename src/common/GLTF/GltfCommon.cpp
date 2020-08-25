@@ -169,7 +169,9 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
 
             int lightIdx = GetElementInt(node, "extensions/KHR_lights_punctual/light", -1);
             if (lightIdx >= 0)
-                m_lights[lightIdx].m_nodeIndex = i;
+            {
+                m_lightInstances.push_back({ lightIdx, i});
+            }
 
             tfnode->m_tranform.m_translation = GetElementVector(node, "translation", XMVectorSet(0, 0, 0, 0));
             tfnode->m_tranform.m_scale = GetElementVector(node, "scale", XMVectorSet(1, 1, 1, 0));
@@ -302,7 +304,7 @@ void GLTFCommon::Unload()
 {
     for (int i = 0; i < m_buffersData.size(); i++)
     {
-        delete (m_buffersData[i]);
+        delete[] m_buffersData[i];
     }
     m_buffersData.clear();
 
@@ -373,7 +375,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
     }
 }
 
-void GLTFCommon::GetBufferDetails(int accessor, tfAccessor *pAccessor)
+void GLTFCommon::GetBufferDetails(int accessor, tfAccessor *pAccessor) const
 {
     const json &inAccessor = m_pAccessors->at(accessor);
 
@@ -401,7 +403,7 @@ void GLTFCommon::GetBufferDetails(int accessor, tfAccessor *pAccessor)
     pAccessor->m_count = inAccessor["count"];
 }
 
-void GLTFCommon::GetAttributesAccessors(const json &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors)
+void GLTFCommon::GetAttributesAccessors(const json &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors) const
 {
     int streamIndex = 0;
     for (int s = 0; s < pStreamNames->size(); s++)
@@ -419,7 +421,7 @@ void GLTFCommon::GetAttributesAccessors(const json &gltfAttributes, std::vector<
 //
 // Given a mesh find the skin it belongs to
 //
-int GLTFCommon::FindMeshSkinId(int meshId)
+int GLTFCommon::FindMeshSkinId(int meshId) const
 {
     for (int i = 0; i < m_nodes.size(); i++)
     {
@@ -435,7 +437,7 @@ int GLTFCommon::FindMeshSkinId(int meshId)
 //
 // given a skinId return the size of the skeleton matrices (vulkan needs this to compute the offsets into the uniform buffers)
 //
-int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id)
+int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id) const
 {
     if (id == -1 || (id >= m_skins.size()))
         return -1;
@@ -446,7 +448,7 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id)
 //
 // Transforms a node hierarchy recursively 
 //
-void GLTFCommon::TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNodeIdx> *pNodes, GLTFCommonTransformed *pTransformed)
+void GLTFCommon::TransformNodes(const tfNode *pRootNode, XMMATRIX world, const std::vector<tfNodeIdx> *pNodes, GLTFCommonTransformed *pTransformed) const
 {
     pTransformed->m_worldSpaceMats.resize(m_nodes.size());
 
@@ -467,15 +469,15 @@ void GLTFCommon::TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<t
 void GLTFCommon::InitTransformedData()
 {
     // we need to init 2 frames, the current and the previous one, this is needed for the MVs
-    for (int frames = 0; frames < 2; frames++)
+    for (int frame = 0; frame < 2; frame++)
     {
         // initializes matrix buffers to have the same dimension as the nodes
-        m_transformedData[frames].m_worldSpaceMats.resize(m_nodes.size());
+        m_transformedData[frame].m_worldSpaceMats.resize(m_nodes.size());
 
         // same thing for the skinning matrices but using the size of the InverseBindMatrices
         for (uint32_t i = 0; i < m_skins.size(); i++)
         {
-            m_transformedData[frames].m_worldSpaceSkeletonMats[i].resize(m_skins[i].m_InverseBindMatrices.m_count);
+            m_transformedData[frame].m_worldSpaceSkeletonMats[i].resize(m_skins[i].m_InverseBindMatrices.m_count);
         }
     }
 
@@ -513,7 +515,7 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
         tfSkins &skin = m_skins[i];
 
         //pick the matrices that affect the skin and multiply by the inverse of the bind         
-        XMMATRIX *pM = (XMMATRIX *)skin.m_InverseBindMatrices.m_data;
+        const XMMATRIX *pM = (const XMMATRIX *)skin.m_InverseBindMatrices.m_data;
         std::vector<XMMATRIX> &skinningMats = m_pCurrentFrameTransformedData->m_worldSpaceSkeletonMats[i];
         for (int j = 0; j < skin.m_InverseBindMatrices.m_count; j++)
         {
@@ -522,11 +524,10 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
     }
 }
 
-bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam)
+bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam) const
 {
     if (cameraIdx < 0 || cameraIdx >= m_cameras.size())
     {
-        pCam = NULL;
         return false;
     }
 
@@ -553,33 +554,36 @@ per_frame *GLTFCommon::SetPerFrameData(const Camera &cam)
     m_perFrameData.cameraPos = cam.GetPosition();
 
     // Process lights
-    m_perFrameData.lightCount = (int32_t)m_lights.size();
-    for (int i = 0; i < m_lights.size(); i++)
+    m_perFrameData.lightCount = (int32_t)m_lightInstances.size();
+    for (int i = 0; i < m_lightInstances.size(); i++)
     {
-        XMMATRIX lightMat = pMats[m_lights[i].m_nodeIndex];
-        XMMATRIX lightView = XMMatrixInverse(nullptr, lightMat);
-
         Light* pSL = &m_perFrameData.lights[i];
-        if (m_lights[i].m_type == LightType_Spot)
-            pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(m_lights[i].m_outerConeAngle * 2.0f, 1, .1f, 100.0f);
-        else if (m_lights[i].m_type == LightType_Directional)
+
+        // get light data and node trans
+        const tfLight &lightData = m_lights[m_lightInstances[i].m_lightId];
+        XMMATRIX lightMat = pMats[m_lightInstances[i].m_nodeIndex];
+
+        XMMATRIX lightView = XMMatrixInverse(nullptr, lightMat);
+        if (lightData.m_type == LightType_Spot)
+            pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(lightData.m_outerConeAngle * 2.0f, 1, .1f, 100.0f);
+        else if (lightData.m_type == LightType_Directional)
             pSL->mLightViewProj = lightView * XMMatrixOrthographicRH(30.0, 30.0, 0.1f, 100.0f);
 
         GetXYZ(pSL->direction, XMVector4Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMMatrixTranspose(lightView)));
-        GetXYZ(pSL->color, m_lights[i].m_color);
-        pSL->range = m_lights[i].m_range;
-        pSL->intensity = m_lights[i].m_intensity;
+        GetXYZ(pSL->color, lightData.m_color);
+        pSL->range = lightData.m_range;
+        pSL->intensity = lightData.m_intensity;
         GetXYZ(pSL->position, lightMat.r[3]);
-        pSL->outerConeCos = cosf(m_lights[i].m_outerConeAngle);
-        pSL->innerConeCos = cosf(m_lights[i].m_innerConeAngle);
-        pSL->type = m_lights[i].m_type;
+        pSL->outerConeCos = cosf(lightData.m_outerConeAngle);
+        pSL->innerConeCos = cosf(lightData.m_innerConeAngle);
+        pSL->type = lightData.m_type;
         pSL->depthBias = 0.0001f;
     }
     return &m_perFrameData;
 }
 
 
-tfNodeIdx GLTFCommon::AddNode(tfNode node)
+tfNodeIdx GLTFCommon::AddNode(const tfNode& node)
 {
     m_nodes.push_back(node);
     tfNodeIdx idx = (tfNodeIdx)(m_nodes.size() - 1);
@@ -590,8 +594,14 @@ tfNodeIdx GLTFCommon::AddNode(tfNode node)
     return idx;
 }
 
-int GLTFCommon::AddLight(tfLight light)
+int GLTFCommon::AddLight(const tfNode& node, const tfLight& light)
 {
-    m_lights.push_back(light);    
-    return (int)(m_lights.size() - 1);
+    int nodeID = AddNode(node);
+    m_lights.push_back(light);
+
+    int lightInstanceID = (int)(m_lights.size() - 1);
+
+    m_lightInstances.push_back({ lightInstanceID, (tfNodeIdx)nodeID});
+
+    return lightInstanceID;
 }

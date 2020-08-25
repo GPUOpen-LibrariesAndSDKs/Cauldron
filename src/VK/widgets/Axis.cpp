@@ -105,11 +105,11 @@ namespace CAULDRON_VK
         DefineList attributeDefines;
 
         VkPipelineShaderStageCreateInfo m_vertexShader;
-        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "main", &attributeDefines, &m_vertexShader);
+        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "main", "", &attributeDefines, &m_vertexShader);
         assert(res == VK_SUCCESS);
 
         VkPipelineShaderStageCreateInfo m_fragmentShader;
-        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_FRAGMENT_BIT, pixelShader, "main", &attributeDefines, &m_fragmentShader);
+        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_FRAGMENT_BIT, pixelShader, "main", "", &attributeDefines, &m_fragmentShader);
         assert(res == VK_SUCCESS);
 
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { m_vertexShader, m_fragmentShader };

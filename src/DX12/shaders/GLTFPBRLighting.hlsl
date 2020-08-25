@@ -12,6 +12,24 @@ struct MaterialInfo
     float3 specularColor; // color contribution from specular lighting
 };
 
+//
+//  Get SSAO from texture
+//
+#ifdef ID_SSAO
+Texture2D<float>  ssaoTexture                :register(TEX(ID_SSAO));
+SamplerState      ssaoSampler                :register(SMP(ID_SSAO));
+
+float GetSSAO(float2 coords)
+{
+    return ssaoTexture.Sample(ssaoSampler, coords);
+}
+#else
+float GetSSAO(float2 coords)
+{
+    return 1.0f;
+}
+#endif
+
 // Calculation of the lighting contribution from an optional Image Based Light source.
 // Precomputed Environment Maps are required uniform inputs and are computed as outlined in [1].
 // See our README.md on Environment Maps [3] for additional discussion.
@@ -215,7 +233,7 @@ float3 doPbrLighting(VS_OUTPUT_SCENE Input, in PerFrame perFrame, in float3 diff
         }
         else if (light.type == LightType_Point)
         {
-            color += applyPointLight(light, materialInfo, normal, worldPos, view);
+            color += applyPointLight(light, materialInfo, normal, worldPos, view) * shadowFactor;
         }
         else if (light.type == LightType_Spot)
         {
@@ -226,7 +244,7 @@ float3 doPbrLighting(VS_OUTPUT_SCENE Input, in PerFrame perFrame, in float3 diff
 
     // Calculate lighting contribution from image based lighting source (IBL)
 #ifdef USE_IBL
-    color += getIBLContribution(materialInfo, normal, view) * perFrame.u_iblFactor;
+    color += getIBLContribution(materialInfo, normal, view) * perFrame.u_iblFactor * GetSSAO(Input.svPosition.xy * perFrame.u_invScreenResolution);
 #endif
 
     float ao = 1.0;
@@ -239,8 +257,10 @@ float3 doPbrLighting(VS_OUTPUT_SCENE Input, in PerFrame perFrame, in float3 diff
     float3 emissive = float3(0, 0, 0);
 #ifdef ID_emissiveTexture
     emissive = (emissiveTexture.Sample(samEmissive, getEmissiveUV(Input))).rgb * u_pbrParams.myPerObject_u_EmissiveFactor.rgb * perFrame.u_EmissiveFactor;
-    color += emissive;
+#else        
+    emissive = u_pbrParams.myPerObject_u_EmissiveFactor.rgb * perFrame.u_EmissiveFactor;
 #endif
+    color += emissive;
 
 #ifndef DEBUG_OUTPUT // no debug
 

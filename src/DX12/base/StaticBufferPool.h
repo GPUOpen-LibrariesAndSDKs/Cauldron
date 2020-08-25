@@ -43,8 +43,8 @@ namespace CAULDRON_DX12
         bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, D3D12_INDEX_BUFFER_VIEW *pIndexView);
         bool AllocConstantBuffer(uint32_t size, void **pData, D3D12_CONSTANT_BUFFER_VIEW_DESC  *pViewDesc);
 
-        bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut);
-        bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut);
+        bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, const void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut);
+        bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, const void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut);
         bool AllocConstantBuffer(uint32_t size, void *pData, D3D12_CONSTANT_BUFFER_VIEW_DESC  *pViewDesc);
 
         void UploadData(ID3D12GraphicsCommandList *pCmdList);

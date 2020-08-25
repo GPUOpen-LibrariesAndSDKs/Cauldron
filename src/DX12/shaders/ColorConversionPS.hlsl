@@ -57,21 +57,22 @@ float4 mainPS(VERTEX Input) : SV_Target
             break;
 
         case 1:
-            // FS2_DisplayNative
+            // FSHDR_DisplayNative
             // Convert to display native colour space ie the value queried from AGS
             color.xyz = mul(u_contentToMonitorRecMatrix, color).xyz;
             // Apply gamma
-             color.xyz = pow(color.xyz, 1.0f / 2.2f);
+            color.xyz = pow(color.xyz, 1.0f / 2.2f);
             break;
 
         case 2:
-            // FS2_scRGB
+            // FSHDR_scRGB
             // Scale to maxdisplayLuminanace / 80
             // In this case luminanace value queried from AGS
             color.xyz = (color.xyz * (u_displayMaxLuminancePerNits - u_displayMinLuminancePerNits)) + float3(u_displayMinLuminancePerNits, u_displayMinLuminancePerNits, u_displayMinLuminancePerNits);
             break;
 
         case 3:
+        {
             // HDR10_ST2084
             // Convert to rec2020 colour space
             color.xyz = mul(u_contentToMonitorRecMatrix, color).xyz;
@@ -95,7 +96,7 @@ float4 mainPS(VERTEX Input) : SV_Target
             float3 cp = pow(abs(color.xyz), m1);
             color.xyz = pow((c1 + c2 * cp) / (1 + c3 * cp), m2);
             break;
-
+        }
         case 4:
             // HDR10_scRGB
             color.xyz = (color.xyz * (u_displayMaxLuminancePerNits - u_displayMinLuminancePerNits)) + float3(u_displayMinLuminancePerNits, u_displayMinLuminancePerNits, u_displayMinLuminancePerNits);

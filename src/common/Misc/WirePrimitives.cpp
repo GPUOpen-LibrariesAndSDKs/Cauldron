@@ -16,13 +16,11 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+#include "stdafx.h"
 #include "WirePrimitives.h"
-#include <DirectXMath.h>
-using namespace DirectX;
-
 #include "Misc/Camera.h"
 
-void GenerateSphere(int sides, std::vector<short> &outIndices, std::vector<float> &outVertices)
+void GenerateSphere(int sides, std::vector<unsigned short> &outIndices, std::vector<float> &outVertices)
 {
     int i = 0;
 
@@ -50,12 +48,12 @@ void GenerateSphere(int sides, std::vector<short> &outIndices, std::vector<float
     }
 }
 
-void GenerateBox(std::vector<short> &outIndices, std::vector<float> &outVertices)
+void GenerateBox(std::vector<unsigned short> &outIndices, std::vector<float> &outVertices)
 {
     outIndices.clear();
     outVertices.clear();
 
-    std::vector<short> indices =
+    std::vector<unsigned short> indices =
     {
         0,1, 1,2, 2,3, 3,0,
         4,5, 5,6, 6,7, 7,4,

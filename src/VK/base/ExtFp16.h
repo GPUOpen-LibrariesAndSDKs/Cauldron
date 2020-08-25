@@ -23,6 +23,6 @@
 
 namespace CAULDRON_VK
 {
-    bool ExtFp16CheckExtensions(DeviceProperties *pDP, void **pNext);
+    bool ExtFp16CheckExtensions(DeviceProperties *pDP);
 }
 

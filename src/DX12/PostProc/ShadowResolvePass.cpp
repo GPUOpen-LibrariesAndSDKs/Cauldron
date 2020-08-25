@@ -47,7 +47,7 @@ namespace CAULDRON_DX12
         defines["ID_shadowMap"] = "0";
         defines["TILE_SIZE"] = std::to_string(s_TileSize);
         D3D12_SHADER_BYTECODE shaderByteCode = {};
-        CompileShaderFromFile("ShadowResolve.hlsl", &defines, "mainCS", "cs_5_0", 0, &shaderByteCode);
+        CompileShaderFromFile("ShadowResolve.hlsl", &defines, "mainCS", "-T cs_5_0", &shaderByteCode);
 
         // Create root signature
         //

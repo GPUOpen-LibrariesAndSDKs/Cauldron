@@ -33,13 +33,13 @@ namespace CAULDRON_DX12
         virtual void            OnDestroy();
 
         // different ways to init a texture
-        virtual bool InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f);
-        INT32 Init(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue);
-        INT32 InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET, const FLOAT * clearColor = nullptr);
-        INT32 InitDepthStencil(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc);
-        bool InitBuffer(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, uint32_t structureSize, D3D12_RESOURCE_STATES state);     // structureSize needs to be 0 if using a valid DXGI_FORMAT
-        bool InitCounter(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pCounterDesc, uint32_t counterSize, D3D12_RESOURCE_STATES state);
-        bool InitFromData(Device* pDevice, const char *pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data);
+        virtual bool InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f, D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE);
+        INT32 Init(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue);
+        INT32 InitRenderTarget(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET, const FLOAT *clearColor = nullptr);
+        INT32 InitDepthStencil(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc);
+        bool InitBuffer(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, uint32_t structureSize, D3D12_RESOURCE_STATES state);     // structureSize needs to be 0 if using a valid DXGI_FORMAT
+        bool InitCounter(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pCounterDesc, uint32_t counterSize, D3D12_RESOURCE_STATES state);
+        bool InitFromData(Device *pDevice, const char *pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void *data);
 
         // explicit functions for creating RTVs, SRVs and UAVs
         void CreateRTV(uint32_t index, RTV *pRV, D3D12_RENDER_TARGET_VIEW_DESC *pRtvDesc);
@@ -63,8 +63,8 @@ namespace CAULDRON_DX12
         uint32_t GetArraySize() const { return m_header.arraySize; }
 
     protected:
-        void CreateTextureCommitted(Device* pDevice, const char *pDebugName, bool useSRGB = false);
-        void LoadAndUpload(Device* pDevice, UploadHeap* pUploadHeap, ImgLoader *pDds, ID3D12Resource *pRes);
+        void CreateTextureCommitted(Device *pDevice, const char *pDebugName, bool useSRGB = false, D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE);
+        void LoadAndUpload(Device *pDevice, UploadHeap *pUploadHeap, ImgLoader *pDds, ID3D12Resource *pRes);
 
         ID3D12Resource*         m_pResource = nullptr;
 

@@ -20,9 +20,7 @@
 #pragma once
 
 #include <functional>
-#include <vector>
 #include <thread>
-#include <mutex>
 #include <deque>
 #include <condition_variable>
 #include <functional>

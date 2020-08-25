@@ -52,19 +52,19 @@ namespace CAULDRON_VK
     VkValidationFeaturesEXT features = {};
 
     const char instanceExtensionName[] = VK_EXT_DEBUG_REPORT_EXTENSION_NAME;
-    const char instanceLayerName[] = "VK_LAYER_LUNARG_standard_validation";
+    const char instanceLayerName[] = "VK_LAYER_KHRONOS_validation";
 
-    bool ExtDebugReportCheckInstanceExtensions(InstanceProperties *pIP, void **pNext)
+    bool ExtDebugReportCheckInstanceExtensions(InstanceProperties *pIP)
     {
         s_bCanUseDebugReport = pIP->AddInstanceLayerName(instanceLayerName) && pIP->AddInstanceExtensionName(instanceExtensionName);
         if (s_bCanUseDebugReport)
         {
             features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
-            features.pNext = *pNext;
+            features.pNext = pIP->GetNext();
             features.enabledValidationFeatureCount = 1;
             features.pEnabledValidationFeatures = enables;
 
-            *pNext = &features;
+            pIP->SetNewNext(&features);
         }
 
         return s_bCanUseDebugReport;

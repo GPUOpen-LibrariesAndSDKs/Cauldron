@@ -30,14 +30,14 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void CommandListRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerBackBuffer, D3D12_COMMAND_QUEUE_DESC queueDesc)
+    void CommandListRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerBackBuffer, const D3D12_COMMAND_QUEUE_DESC& queueDesc)
     {
         m_numberOfAllocators = numberOfBackBuffers;
         m_commandListsPerBackBuffer = commandListsPerBackBuffer;
 
         m_pCommandBuffers = new CommandBuffersPerFrame[m_numberOfAllocators]();
 
-        // Create command allocators, for each frame in flight we wannt to have a single Command Allocator, and <commandListsPerBackBuffer> command buffers
+        // Create command allocators, for each frame in flight we want to have a single Command Allocator, and <commandListsPerBackBuffer> command buffers
         //
         for (uint32_t a = 0; a < m_numberOfAllocators; a++)
         {
@@ -46,16 +46,16 @@ namespace CAULDRON_DX12
             // Create allocator
             //
             ThrowIfFailed(pDevice->GetDevice()->CreateCommandAllocator(queueDesc.Type, IID_PPV_ARGS(&pCBPF->m_pCommandAllocator)));
-            SetName(pCBPF->m_pCommandAllocator, format("CommandAllocator %i", a));
+            SetName(pCBPF->m_pCommandAllocator, format("CommandAllocator %u", a));
 
             // Create command buffers
             //
-            pCBPF->m_ppCommandList = new ID3D12GraphicsCommandList2*[m_commandListsPerBackBuffer];
+            pCBPF->m_ppCommandLists = new ID3D12GraphicsCommandList2*[m_commandListsPerBackBuffer];
             for (uint32_t i = 0; i < m_commandListsPerBackBuffer; i++)
             {
-                ThrowIfFailed(pDevice->GetDevice()->CreateCommandList(0, queueDesc.Type, pCBPF->m_pCommandAllocator, nullptr, IID_PPV_ARGS(&pCBPF->m_ppCommandList[i])));
-                pCBPF->m_ppCommandList[i]->Close();
-                SetName(pCBPF->m_ppCommandList[i], format("CommandList %i, Allocator %i", i, a));
+                ThrowIfFailed(pDevice->GetDevice()->CreateCommandList(0, queueDesc.Type, pCBPF->m_pCommandAllocator, nullptr, IID_PPV_ARGS(&pCBPF->m_ppCommandLists[i])));
+                pCBPF->m_ppCommandLists[i]->Close();
+                SetName(pCBPF->m_ppCommandLists[i], format("CommandList %u, Allocator %u", i, a));
             }
             pCBPF->m_UsedCls = 0;
         }
@@ -65,7 +65,7 @@ namespace CAULDRON_DX12
         ID3D12CommandQueue* queue = (queueDesc.Type == D3D12_COMMAND_LIST_TYPE_COMPUTE) ? pDevice->GetComputeQueue() : pDevice->GetGraphicsQueue();
         for (uint32_t a = 0; a < m_numberOfAllocators; a++)
         {
-            queue->ExecuteCommandLists(m_commandListsPerBackBuffer, (ID3D12CommandList *const *)m_pCommandBuffers[a].m_ppCommandList);
+            queue->ExecuteCommandLists(m_commandListsPerBackBuffer, (ID3D12CommandList *const *)m_pCommandBuffers[a].m_ppCommandLists);
         }
 
         pDevice->GPUFlush();
@@ -86,10 +86,11 @@ namespace CAULDRON_DX12
         //release and delete command allocators
         for (uint32_t a = 0; a < m_numberOfAllocators; a++)
         {
-            m_pCommandBuffers[a].m_pCommandAllocator->Release();
-
             for (uint32_t i = 0; i < m_commandListsPerBackBuffer; i++)
-                m_pCommandBuffers[a].m_ppCommandList[i]->Release();
+                m_pCommandBuffers[a].m_ppCommandLists[i]->Release();
+
+            delete[] m_pCommandBuffers[a].m_ppCommandLists;
+            m_pCommandBuffers[a].m_pCommandAllocator->Release();
         }
 
         delete[] m_pCommandBuffers;
@@ -102,7 +103,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     ID3D12GraphicsCommandList2 *CommandListRing::GetNewCommandList()
     {
-        ID3D12GraphicsCommandList2 *pCL = m_pCurrentFrame->m_ppCommandList[m_pCurrentFrame->m_UsedCls++];
+        ID3D12GraphicsCommandList2 *pCL = m_pCurrentFrame->m_ppCommandLists[m_pCurrentFrame->m_UsedCls++];
 
         assert(m_pCurrentFrame->m_UsedCls < m_commandListsPerBackBuffer); //if hit increase commandListsPerBackBuffer
 

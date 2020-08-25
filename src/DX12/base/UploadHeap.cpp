@@ -82,17 +82,76 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     UINT8* UploadHeap::Suballocate(SIZE_T uSize, UINT64 uAlign)
     {
-        m_pDataCur = reinterpret_cast<UINT8*>(AlignOffset(reinterpret_cast<SIZE_T>(m_pDataCur), SIZE_T(uAlign)));
+        // wait until we are done flusing the heap
+        flushing.Wait();
 
-        // return NULL if we ran out of space in the heap
-        if (m_pDataCur >= m_pDataEnd || m_pDataCur + uSize >= m_pDataEnd)
+        UINT8* pRet = NULL;
+
         {
-            return NULL;
+            std::unique_lock<std::mutex> lock(m_mutex);
+
+            // make sure resource (and its mips) would fit the upload heap, if not please make the upload heap bigger
+            assert(uSize < (size_t)(m_pDataBegin - m_pDataEnd));
+
+            m_pDataCur = reinterpret_cast<UINT8*>(AlignUp(reinterpret_cast<SIZE_T>(m_pDataCur), SIZE_T(uAlign)));
+
+            // return NULL if we ran out of space in the heap
+            if (m_pDataCur >= m_pDataEnd || m_pDataCur + uSize >= m_pDataEnd)
+            {
+                return NULL;
+            }
+
+            pRet = m_pDataCur;
+            m_pDataCur += uSize;
+
+            //Trace("allocated: %i", m_pDataCur - m_pDataBegin);
         }
 
-        UINT8* pRet = m_pDataCur;
-        m_pDataCur += uSize;
         return pRet;
+    }
+
+    UINT8* UploadHeap::BeginSuballocate(SIZE_T uSize, UINT64 uAlign)
+    {
+        UINT8* pRes = NULL;
+
+        for (;;) {
+            pRes = Suballocate(uSize, uAlign);
+            if (pRes != NULL)
+            {
+                break;
+            }
+
+            FlushAndFinish();
+        }
+
+        allocating.Inc();
+
+        return pRes;
+    }
+
+    void UploadHeap::EndSuballocate()
+    {
+        allocating.Dec();
+    }
+
+    void UploadHeap::AddCopy(CD3DX12_TEXTURE_COPY_LOCATION Src, CD3DX12_TEXTURE_COPY_LOCATION Dst)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_copies.push_back({ Src, Dst });
+    }
+
+    void UploadHeap::AddBarrier(ID3D12Resource *pRes)
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+
+        D3D12_RESOURCE_BARRIER RBDesc = {};
+        RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        RBDesc.Transition.pResource = pRes;
+        RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        RBDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+        RBDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+        m_toBarrierIntoShaderResource.push_back(RBDesc);
     }
 
     //--------------------------------------------------------------------------------------
@@ -102,8 +161,33 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void UploadHeap::FlushAndFinish()
     {
-        // Close & submit
+        // make sure another thread is not already flushing
+        flushing.Wait();
 
+        // begins a critical section, and make sure no allocations happen while a thread is inside it
+        flushing.Inc();
+
+        // wait for pending allocations to finish
+        allocating.Wait();
+
+        std::unique_lock<std::mutex> lock(m_mutex);
+        Trace("flushing %i", m_copies.size());
+
+        //issue copies
+        for (COPY c : m_copies)
+        {
+            m_pCommandList->CopyTextureRegion(&c.Dst, 0, 0, 0, &c.Src, NULL);
+        }
+        m_copies.clear();
+
+        //apply barriers in one go
+        if (m_toBarrierIntoShaderResource.size() > 0)
+        {
+            m_pCommandList->ResourceBarrier((UINT)m_toBarrierIntoShaderResource.size(), m_toBarrierIntoShaderResource.data());
+            m_toBarrierIntoShaderResource.clear();
+        }
+
+        // Close & submit
         ThrowIfFailed(m_pCommandList->Close());
         m_pCommandQueue->ExecuteCommandLists(1, CommandListCast(&m_pCommandList));
 
@@ -115,5 +199,7 @@ namespace CAULDRON_DX12
         m_pCommandList->Reset(m_pCommandAllocator, nullptr);
 
         m_pDataCur = m_pDataBegin;
+
+        flushing.Dec();
     }
 }

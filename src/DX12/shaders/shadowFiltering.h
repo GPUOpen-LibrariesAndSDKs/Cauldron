@@ -50,12 +50,6 @@ float FilterShadow(Texture2D shadowMap, float3 uv)
 float DoSpotShadow(in float3 vPosition, Light light)
 {
 #ifdef ID_shadowMap
-    if (light.shadowMapIndex < 0)
-        return 1.0f;
-
-    if (light.type != LightType_Spot && light.type != LightType_Directional)
-        return 1.0; // no other light types cast shadows for now
-
     float4 shadowTexCoord = mul(light.mLightViewProj, float4(vPosition, 1));
     shadowTexCoord.xyz = shadowTexCoord.xyz / shadowTexCoord.w;
 
@@ -96,8 +90,6 @@ float DoSpotShadow(in float3 vPosition, Light light)
 float ReadShadows(in int2 screenPos, Light light)
 {
 #ifdef ID_shadowBuffer
-    if (light.shadowMapIndex < 0)
-        return 1.0f;
     int3 dims;
     shadowBuffer.GetDimensions(0, dims.x, dims.y, dims.z);
     const float2 uv = (screenPos + 0.5f) / float2(dims.xy);
@@ -123,6 +115,9 @@ float ReadShadows(in int2 screenPos, Light light)
 
 float CalcShadows(in float3 worldPos, in int2 screenPos, Light light)
 {
+    if (light.shadowMapIndex < 0)
+        return 1.0f;
+
 #ifdef ID_shadowBuffer
     return ReadShadows(screenPos, light);
 #endif

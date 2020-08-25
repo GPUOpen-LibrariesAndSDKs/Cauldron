@@ -194,8 +194,8 @@ namespace CAULDRON_DX12
 
         // Compile and create shaders
         //        
-        CompileShaderFromString(vertexShader, NULL, "main", "vs_5_0", 0, 0, &m_shaderVert);
-        CompileShaderFromString(pixelShader, NULL, "main", "ps_5_0", 0, 0, &m_shaderPixel);
+        CompileShaderFromString(vertexShader, NULL, "main", "-T vs_6_0", &m_shaderVert);
+        CompileShaderFromString(pixelShader, NULL, "main", "-T ps_6_0", &m_shaderPixel);
 
         // Create descriptor sets
         //

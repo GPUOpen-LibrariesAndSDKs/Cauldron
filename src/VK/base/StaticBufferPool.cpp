@@ -187,7 +187,9 @@ namespace CAULDRON_VK
 
     bool StaticBufferPool::AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void **pData, VkDescriptorBufferInfo *pOut)
     {
-        uint32_t size = (uint32_t)AlignOffset(numbeOfElements* strideInBytes, 256);
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        uint32_t size = AlignUp(numbeOfElements* strideInBytes, 256u);
         assert(m_memOffset + size < m_totalMemSize);
 
         *pData = (void *)(m_pData + m_memOffset);
@@ -201,7 +203,7 @@ namespace CAULDRON_VK
         return true;
     }
 
-    bool StaticBufferPool::AllocBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void *pInitData, VkDescriptorBufferInfo *pOut)
+    bool StaticBufferPool::AllocBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, const void *pInitData, VkDescriptorBufferInfo *pOut)
     {
         void *pData;
         if (AllocBuffer(numbeOfVertices, strideInBytes, &pData, pOut))

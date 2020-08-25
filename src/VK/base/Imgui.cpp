@@ -251,16 +251,16 @@ namespace CAULDRON_VK
         DefineList defines;
         VkPipelineShaderStageCreateInfo m_vertexShader, m_fragmentShader;
 
-        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertShaderTextGLSL, "main", &defines, &m_vertexShader);
+        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertShaderTextGLSL, "main", "", &defines, &m_vertexShader);
         assert(res == VK_SUCCESS);
 
 #define USE_GLSL 1
 #ifdef USE_GLSL 
-        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderTextGLSL, "main", &defines, &m_fragmentShader);
+        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderTextGLSL, "main", "", &defines, &m_fragmentShader);
         assert(res == VK_SUCCESS);
 #else
 
-        res = VKCompileFromString(pDevice->GetDevice(), SST_HLSL, VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderTextHLSL, "main", &defines, &m_fragmentShader);
+        res = VKCompileFromString(pDevice->GetDevice(), SST_HLSL, VK_SHADER_STAGE_FRAGMENT_BIT, fragShaderTextHLSL, "main", "", &defines, &m_fragmentShader);
         assert(res == VK_SUCCESS);
 #endif
         m_shaderStages.clear();

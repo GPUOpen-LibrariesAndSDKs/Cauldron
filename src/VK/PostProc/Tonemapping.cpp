@@ -65,7 +65,7 @@ namespace CAULDRON_VK
 
         m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_descriptorSetLayout);
 
-        m_toneMapping.OnCreate(m_pDevice, renderPass, "Tonemapping.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
+        m_toneMapping.OnCreate(m_pDevice, renderPass, "Tonemapping.glsl", "main", "", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
 
         m_descriptorIndex = 0;
         for (int i = 0; i < s_descriptorBuffers; i++)

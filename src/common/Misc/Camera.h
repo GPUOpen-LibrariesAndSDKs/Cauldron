@@ -19,7 +19,6 @@
 
 #pragma once
 
-
 class Camera
 {
 public:
@@ -54,7 +53,7 @@ public:
     void SetSpeed( float speed ) { m_speed = speed; }
     void SetProjectionJitter(float jitterX, float jitterY);
     void SetProjectionJitter(uint32_t width, uint32_t height, uint32_t &seed);
-    void UpdatePreviousMatrices();
+    void UpdatePreviousMatrices() { m_PrevView = m_View; }
 
 private:
     XMMATRIX            m_View;

@@ -38,7 +38,7 @@ namespace CAULDRON_VK
         return true;
     }
 
-    void GLTFTexturesAndBuffers::LoadTextures()
+    void GLTFTexturesAndBuffers::LoadTextures(AsyncPool *pAsyncPool)
     {
         // load textures and create views
         //
@@ -48,21 +48,89 @@ namespace CAULDRON_VK
             const json &images = m_pGLTFCommon->j3["images"];
             const json &materials = m_pGLTFCommon->j3["materials"];
 
+            std::vector<Async *> taskQueue(images.size());
+
             m_textures.resize(images.size());
             m_textureViews.resize(images.size());
             for (int imageIndex = 0; imageIndex < images.size(); imageIndex++)
             {
-                bool useSRGB;
-                float cutOff;
-                GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, &useSRGB, &cutOff);
+                Texture *pTex = &m_textures[imageIndex];
+                std::string filename = m_pGLTFCommon->m_path + images[imageIndex]["uri"].get<std::string>();
 
-                std::string filename = images[imageIndex]["uri"];
-                bool result = m_textures[imageIndex].InitFromFile(m_pDevice, m_pUploadHeap, (m_pGLTFCommon->m_path + filename).c_str(), useSRGB, cutOff);
-                assert(result != false);
+                ExecAsyncIfThereIsAPool(pAsyncPool, [imageIndex, pTex, this, filename, materials]()
+                {
+                    bool useSRGB;
+                    float cutOff;
+                    GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, &useSRGB, &cutOff);
 
-                m_textures[imageIndex].CreateSRV(&m_textureViews[imageIndex]);
+                    bool result = pTex->InitFromFile(m_pDevice, m_pUploadHeap, filename.c_str(), useSRGB, 0 /*VkImageUsageFlags*/, cutOff);
+                    assert(result != false);
+
+                    m_textures[imageIndex].CreateSRV(&m_textureViews[imageIndex]);
+                });
             }
+
+            LoadGeometry();
+
+            if (pAsyncPool)
+                pAsyncPool->Flush();
+
+            // copy textures and apply barriers, then flush the GPU
             m_pUploadHeap->FlushAndFinish();
+        }        
+    }
+
+    void GLTFTexturesAndBuffers::LoadGeometry()
+    {
+        if (m_pGLTFCommon->j3.find("meshes") != m_pGLTFCommon->j3.end())
+        {
+            for (const json &mesh : m_pGLTFCommon->j3["meshes"])
+            {
+                for (const json &primitive : mesh["primitives"])
+                {
+                    //
+                    //  Load vertex buffers
+                    //
+                    for (const json &attributeId : primitive["attributes"])
+                    {
+                        tfAccessor vertexBufferAcc;
+                        m_pGLTFCommon->GetBufferDetails(attributeId, &vertexBufferAcc);
+
+                        VkDescriptorBufferInfo vbv;
+                        m_pStaticBufferPool->AllocBuffer(vertexBufferAcc.m_count, vertexBufferAcc.m_stride, vertexBufferAcc.m_data, &vbv);
+
+                        m_vertexBufferMap[attributeId] = vbv;
+                    }
+
+                    //
+                    //  Load index buffers
+                    //
+                    int indexAcc = primitive.value("indices", -1);
+                    if (indexAcc >= 0)
+                    {
+                        tfAccessor indexBufferAcc;
+                        m_pGLTFCommon->GetBufferDetails(indexAcc, &indexBufferAcc);
+
+                        VkDescriptorBufferInfo ibv;
+
+                        // Some exporters use 1-byte indices, need to convert them to shorts since the GPU doesn't support 1-byte indices
+                        if (indexBufferAcc.m_stride == 1)
+                        {
+                            unsigned short *pIndices = (unsigned short *)malloc(indexBufferAcc.m_count * (2 * indexBufferAcc.m_stride));
+                            for (int i = 0; i < indexBufferAcc.m_count; i++)
+                                pIndices[i] = ((unsigned char *)indexBufferAcc.m_data)[i];
+                            m_pStaticBufferPool->AllocBuffer(indexBufferAcc.m_count, 2 * indexBufferAcc.m_stride, pIndices, &ibv);
+                            free(pIndices);
+                        }
+                        else
+                        {
+                            m_pStaticBufferPool->AllocBuffer(indexBufferAcc.m_count, indexBufferAcc.m_stride, indexBufferAcc.m_data, &ibv);
+                        }
+
+                        m_IndexBufferMap[indexAcc] = ibv;
+                    }
+                }
+            }
         }
     }
 
@@ -84,39 +152,29 @@ namespace CAULDRON_VK
     // Creates a Index Buffer from the accessor
     //
     //
-    void GLTFTexturesAndBuffers::CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, VkIndexType *pIndexType, VkDescriptorBufferInfo *pIBV)
+    void GLTFTexturesAndBuffers::CreateIndexBuffer(int indexBufferId, uint32_t *pNumIndices, VkIndexType *pIndexType, VkDescriptorBufferInfo *pIBV)
     {
+        tfAccessor indexBuffer;
+        m_pGLTFCommon->GetBufferDetails(indexBufferId, &indexBuffer);
+
         *pNumIndices = indexBuffer.m_count;
         *pIndexType = (indexBuffer.m_stride == 4) ? VK_INDEX_TYPE_UINT32 : VK_INDEX_TYPE_UINT16;
 
-        // Some exporters use 1-byte indices, need to convert them to shorts since the GPU doesn't support 1-byte indices
-        if (indexBuffer.m_stride == 1)
-        {
-            unsigned short *pIndices = (unsigned short *)malloc(indexBuffer.m_count * (2 * indexBuffer.m_stride));
-            for (int i = 0; i < indexBuffer.m_count; i++)
-                pIndices[i] = ((unsigned char *)indexBuffer.m_data)[i];
-            m_pStaticBufferPool->AllocBuffer(indexBuffer.m_count, 2 * indexBuffer.m_stride, pIndices, pIBV);
-            free(pIndices);
-        }
-        else
-        {
-            m_pStaticBufferPool->AllocBuffer(indexBuffer.m_count, indexBuffer.m_stride, indexBuffer.m_data, pIBV);
-        }
+        *pIBV = m_IndexBufferMap[indexBufferId];
     }
 
     // Creates Vertex Buffers from accessors and sets them in the Primitive struct.
     //
     //
-    void GLTFTexturesAndBuffers::CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry)
+    void GLTFTexturesAndBuffers::CreateGeometry(int indexBufferId, std::vector<int> &vertexBufferIds, Geometry *pGeometry)
     {
-        CreateIndexBuffer(indexBuffer, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
+        CreateIndexBuffer(indexBufferId, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
 
         // load the rest of the buffers onto the GPU
-        pGeometry->m_VBV.resize(vertexBuffers.size());
-        for (int i = 0; i < vertexBuffers.size(); i++)
+        pGeometry->m_VBV.resize(vertexBufferIds.size());
+        for (int i = 0; i < vertexBufferIds.size(); i++)
         {
-            tfAccessor *pVertexAccessor = &vertexBuffers[i];
-            m_pStaticBufferPool->AllocBuffer(pVertexAccessor->m_count, pVertexAccessor->m_stride, pVertexAccessor->m_data, &pGeometry->m_VBV[i]);
+            pGeometry->m_VBV[i] = m_vertexBufferMap[vertexBufferIds[i]];
         }
     }
 
@@ -124,12 +182,11 @@ namespace CAULDRON_VK
     //
     void GLTFTexturesAndBuffers::CreateGeometry(const json &primitive, const std::vector<std::string> requiredAttributes, std::vector<VkVertexInputAttributeDescription> &layout, DefineList &defines, Geometry *pGeometry)
     {
-        // Get Index and vertex buffer buffer accessors and create the geometry
+        // Get Index buffer view
         //
         tfAccessor indexBuffer;
-        int indexAcc = primitive.value("indices", -1);
-        m_pGLTFCommon->GetBufferDetails(indexAcc, &indexBuffer);
-        CreateIndexBuffer(indexBuffer, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
+        int indexBufferId = primitive.value("indices", -1);
+        CreateIndexBuffer(indexBufferId, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
 
         // Create vertex buffers and input layout
         //
@@ -139,12 +196,10 @@ namespace CAULDRON_VK
         const json &attributes = primitive.at("attributes");
         for (auto attrName : requiredAttributes)
         {
-            // get vertex buffer into static pool
+            // get vertex buffer view
             // 
-            tfAccessor acc;
             const int attr = attributes.find(attrName).value();
-            m_pGLTFCommon->GetBufferDetails(attr, &acc);
-            m_pStaticBufferPool->AllocBuffer(acc.m_count, acc.m_stride, acc.m_data, &pGeometry->m_VBV[cnt]);
+            pGeometry->m_VBV[cnt] = m_vertexBufferMap[attr];
 
             // let the compiler know we have this stream
             defines[std::string("ID_") + attrName] = std::to_string(cnt);

@@ -19,33 +19,45 @@
 
 #pragma once
 
-#include <string>
-
 double MillisecondsNow();
-size_t Hash(const void *ptr, size_t size, size_t result = 2166136261);
 std::string format(const char* format, ...);
 bool ReadFile(const char *name, char **data, size_t *size, bool isbinary);
 bool SaveFile(const char *name, void const*data, size_t size, bool isbinary);
 void Trace(const std::string &str);
 void Trace(const char* pFormat, ...);
-bool LaunchProcess(const std::string &commandLine, const std::string &filenameErr);
-void GetXYZ(float *, XMVECTOR v);
-bool FrustumCulled(const XMMATRIX mCameraViewProj, const XMVECTOR center, const XMVECTOR extent);
+bool LaunchProcess(const char* commandLine, const char* filenameErr);
+inline void GetXYZ(float *f, XMVECTOR v)
+{
+    f[0] = XMVectorGetX(v);
+    f[1] = XMVectorGetY(v);
+    f[2] = XMVectorGetZ(v);
+}
+bool CameraFrustumToBoxCollision(const XMMATRIX mCameraViewProj, const XMVECTOR boxCenter, const XMVECTOR boxExtent);
 
-// align uLocation to the next multiple of uAlign
-inline SIZE_T AlignOffset(SIZE_T uOffset, SIZE_T uAlign) { return ((uOffset + (uAlign - 1)) & ~(uAlign - 1)); }
+// align val to the next multiple of alignment
+template<typename T> inline T AlignUp(T val, T alignment)
+{
+    return (val + alignment - (T)1) & ~(alignment - (T)1);
+}
+// align val to the previous multiple of alignment
+template<typename T> inline T AlignDown(T val, T alignment)
+{
+    return val & ~(alignment - (T)1);
+}
+template<typename T> inline T DivideRoundingUp(T a, T b)
+{
+    return (x + y - (T)1) / y;
+}
 
 class Profile
 {
-    double m_time;
+    double m_startTime;
     const char *m_label;
 public:
     Profile(const char *label) {
-        m_time = MillisecondsNow(); m_label = label;
+        m_startTime = MillisecondsNow(); m_label = label;
     }
     ~Profile() {
-        Trace(format("*** %s  %f ms\n", m_label, (MillisecondsNow() - m_time)));
+        Trace(format("*** %s  %f ms\n", m_label, (MillisecondsNow() - m_startTime)));
     }
 };
-
-

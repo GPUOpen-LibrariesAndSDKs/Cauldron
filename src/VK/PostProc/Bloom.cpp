@@ -102,7 +102,7 @@ namespace CAULDRON_VK
             cb.blendConstants[2] = 1.0f;
             cb.blendConstants[3] = 1.0f;
 
-            m_blendAdd.OnCreate(pDevice, m_blendPass, "blend.glsl", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout, &cb);
+            m_blendAdd.OnCreate(pDevice, m_blendPass, "blend.glsl", "main", "", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout, &cb);
         }
 
         {

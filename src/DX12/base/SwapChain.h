@@ -22,7 +22,7 @@
 #include <dxgi1_4.h>
 #include "Fence.h"
 #include "Device.h"
-#include "FreeSync2.h"
+#include "FreeSyncHDR.h"
 
 namespace CAULDRON_DX12
 {

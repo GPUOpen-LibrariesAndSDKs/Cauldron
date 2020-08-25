@@ -20,29 +20,31 @@
 #include "stdafx.h"
 #include "ShaderCompilerHelper.h"
 #include "Base/ExtDebugUtils.h"
-
 #include "Misc/Misc.h"
-#include "Misc/Cache.h"
+#include "base/ShaderCompilerCache.h"
+#include "Misc/AsyncCache.h"
 
 namespace CAULDRON_VK
 {
-#define SHADER_LIB_DIR "ShaderLibVK"
-#define SHADER_CACHE_DIR SHADER_LIB_DIR"\\ShaderCacheVK"
-
     //
     // Compiles a shader into SpirV
     //
-    bool VKCompileToSpirv(size_t hash, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const std::string &shaderCode, const char *pEntryPoint, const DefineList *pDefines, char **outSpvData, size_t *outSpvSize)
+    bool VKCompileToSpirv(size_t hash, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const std::string &shaderCode, const char *pShaderEntryPoint, const char *shaderCompilerParams, const DefineList *pDefines, char **outSpvData, size_t *outSpvSize)
     {
-        std::string filenameSpv = format(SHADER_CACHE_DIR"\\%p.spv", hash);
-
         // create glsl file for shader compiler to compile
         //
+        std::string filenameSpv;
         std::string filenameGlsl;
         if (sourceType == SST_GLSL)
-            filenameGlsl = format(SHADER_CACHE_DIR"\\%p.glsl", hash);
+        {
+            filenameSpv = format("%s\\%p.spv", GetShaderCompilerCacheDir().c_str(), hash);
+            filenameGlsl = format("%s\\%p.glsl", GetShaderCompilerCacheDir().c_str(), hash);
+        }
         else if (sourceType == SST_HLSL)
-            filenameGlsl = format(SHADER_CACHE_DIR"\\%p.hlsl", hash);
+        {
+            filenameSpv = format("%s\\%p.dxo", GetShaderCompilerCacheDir().c_str(), hash);
+            filenameGlsl = format("%s\\%p.hlsl", GetShaderCompilerCacheDir().c_str(), hash);
+        }
         else
             assert(!"unknown shader extension");
 
@@ -66,13 +68,26 @@ namespace CAULDRON_VK
         for (auto it = pDefines->begin(); it != pDefines->end(); it++)
             defines += "-D" + it->first + "=" + it->second + " ";
 
-        std::string commandLine = format("glslc --target-env=vulkan1.1 -fshader-stage=%s -fentry-point=%s %s -o %s -I %s %s", stage, pEntryPoint, filenameGlsl.c_str(), filenameSpv.c_str(), SHADER_LIB_DIR, defines.c_str());
-        std::string filenameErr = format(SHADER_CACHE_DIR"\\%p.err", hash);
-
-        if (LaunchProcess(commandLine, filenameErr) == true)
+        std::string commandLine;
+        if (sourceType == SST_GLSL)
         {
-            ReadFile(filenameSpv.c_str(), outSpvData, outSpvSize, true);
+            commandLine = format("glslc --target-env=vulkan1.1 -fshader-stage=%s -fentry-point=%s %s %s -o %s -I %s %s", stage, pShaderEntryPoint, shaderCompilerParams, filenameGlsl.c_str(), filenameSpv.c_str(), GetShaderCompilerLibDir().c_str(), defines.c_str());
+
+            std::string filenameErr = format("%s\\%p.err", GetShaderCompilerCacheDir().c_str(), hash);
+
+            if (LaunchProcess(commandLine.c_str(), filenameErr.c_str()) == true)
+            {
+                ReadFile(filenameSpv.c_str(), outSpvData, outSpvSize, true);
+                assert(*outSpvSize != 0);
+                return true;
+            }
+        }
+        else
+        {
+            std::string scp = format("-spirv -fspv-target-env=vulkan1.1 -I %s %s %s", GetShaderCompilerLibDir().c_str(), defines.c_str(), shaderCompilerParams);
+            DXCompileToDXO(hash, shaderCode.c_str(), pDefines, pShaderEntryPoint, scp.c_str(), outSpvData, outSpvSize);
             assert(*outSpvSize != 0);
+
             return true;
         }
 
@@ -82,7 +97,7 @@ namespace CAULDRON_VK
     //
     // Generate sources from the input data
     //
-    std::string GenerateSource(ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pshader, const char *pEntryPoint, const DefineList *pDefines)
+    std::string GenerateSource(ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pshader, const char *shaderCompilerParams, const DefineList *pDefines)
     {
         std::string shaderCode(pshader);
         std::string code;
@@ -115,11 +130,10 @@ namespace CAULDRON_VK
 
     void DestroyShadersInTheCache(VkDevice device)
     {
-        auto *database = s_shaderCache.GetDatabase();
-        for (auto it = database->begin(); it != database->end(); it++)
+        s_shaderCache.ForEach([device](const Cache<VkShaderModule>::DatabaseType::iterator& it)
         {
             vkDestroyShaderModule(device, it->second.m_data, NULL);
-        }
+        });
     }
 
     VkResult CreateModule(VkDevice device, char *SpvData, size_t SpvSize, VkShaderModule* pShaderModule)
@@ -134,15 +148,15 @@ namespace CAULDRON_VK
     //
     // Compile a GLSL or a HLSL, will cache binaries to disk
     //
-    VkResult VKCompile(VkDevice device, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pshader, const char *pEntryPoint, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader)
+    VkResult VKCompile(VkDevice device, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pshader, const char *pShaderEntryPoint, const char *shaderCompilerParams, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader)
     {
         VkResult res = VK_SUCCESS;
 
         //compute hash
         //
         size_t hash;
-        hash = HashShaderString(SHADER_LIB_DIR"\\", pshader);
-        hash = Hash(pEntryPoint, strlen(pEntryPoint), hash);
+        hash = HashShaderString((GetShaderCompilerLibDir() + "\\").c_str(), pshader);
+        hash = Hash(shaderCompilerParams, strlen(shaderCompilerParams), hash);
         hash = Hash((char*)&shader_type, sizeof(shader_type), hash);
         if (pDefines != NULL)
         {
@@ -150,7 +164,7 @@ namespace CAULDRON_VK
         }
 
 #define USE_MULTITHREADED_CACHE 
-#define USE_SPIRV_FROM_DISK   
+//#define USE_SPIRV_FROM_DISK   
 
 #ifdef USE_MULTITHREADED_CACHE
         // Compile if not in cache
@@ -162,12 +176,12 @@ namespace CAULDRON_VK
             size_t SpvSize = 0;
 
 #ifdef USE_SPIRV_FROM_DISK
-            std::string filenameSpv = format(SHADER_CACHE_DIR"\\%p.spv", hash);
+            std::string filenameSpv = format("%s\\%p.spv", GetShaderCompilerCacheDir().c_str(), hash);
             if (ReadFile(filenameSpv.c_str(), &SpvData, &SpvSize, true) == false)
 #endif
             {
-                std::string &shader = GenerateSource(sourceType, shader_type, pshader, pEntryPoint, pDefines);
-                VKCompileToSpirv(hash, sourceType, shader_type, shader.c_str(), pEntryPoint, pDefines, &SpvData, &SpvSize);
+                std::string &shader = GenerateSource(sourceType, shader_type, pshader, shaderCompilerParams, pDefines);
+                VKCompileToSpirv(hash, sourceType, shader_type, shader.c_str(), pShaderEntryPoint, shaderCompilerParams, pDefines, &SpvData, &SpvSize);
             }
 
             assert(SpvSize != 0);
@@ -183,7 +197,7 @@ namespace CAULDRON_VK
         pShader->pSpecializationInfo = NULL;
         pShader->flags = 0;
         pShader->stage = shader_type;
-        pShader->pName = pEntryPoint;
+        pShader->pName = pShaderEntryPoint;
 
         return res;
     }
@@ -191,11 +205,11 @@ namespace CAULDRON_VK
     //
     // VKCompileFromString
     //
-    VkResult VKCompileFromString(VkDevice device, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pShaderCode, const char *pEntryPoint, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader)
+    VkResult VKCompileFromString(VkDevice device, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pShaderCode, const char *pShaderEntryPoint, const char *shaderCompilerParams, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader)
     {
         assert(strlen(pShaderCode) > 0);
 
-        VkResult res = VKCompile(device, sourceType, shader_type, pShaderCode, pEntryPoint, pDefines, pShader);
+        VkResult res = VKCompile(device, sourceType, shader_type, pShaderCode, pShaderEntryPoint, shaderCompilerParams, pDefines, pShader);
         assert(res == VK_SUCCESS);
 
         return res;
@@ -204,7 +218,7 @@ namespace CAULDRON_VK
     //
     // VKCompileFromFile
     //
-    VkResult VKCompileFromFile(VkDevice device, const VkShaderStageFlagBits shader_type, const char *pFilename, const char *pEntryPoint, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader)
+    VkResult VKCompileFromFile(VkDevice device, const VkShaderStageFlagBits shader_type, const char *pFilename, const char *pShaderEntryPoint, const char *shaderCompilerParams, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader)
     {
         char *pShaderCode;
         size_t size;
@@ -221,11 +235,11 @@ namespace CAULDRON_VK
 
         //append path
         char fullpath[1024];
-        sprintf_s(fullpath, SHADER_LIB_DIR"\\%s", pFilename);
+        sprintf_s(fullpath, "%s\\%s", GetShaderCompilerLibDir().c_str(), pFilename);
 
         if (ReadFile(fullpath, &pShaderCode, &size, false))
         {
-            VkResult res = VKCompileFromString(device, sourceType, shader_type, pShaderCode, pEntryPoint, pDefines, pShader);
+            VkResult res = VKCompileFromString(device, sourceType, shader_type, pShaderCode, pShaderEntryPoint, shaderCompilerParams, pDefines, pShader);
             SetResourceName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)pShader->module, pFilename);
             return res;
         }
@@ -238,8 +252,9 @@ namespace CAULDRON_VK
     //
     void CreateShaderCache()
     {
-        CreateDirectoryA(SHADER_LIB_DIR, 0);
-        CreateDirectoryA(SHADER_CACHE_DIR, 0);
+        InitShaderCompilerCache("ShaderLibVK", "ShaderLibVK\\ShaderCacheVK");
+        CreateDirectoryA(GetShaderCompilerLibDir().c_str(), 0);
+        CreateDirectoryA(GetShaderCompilerCacheDir().c_str(), 0);
     }
 
     //

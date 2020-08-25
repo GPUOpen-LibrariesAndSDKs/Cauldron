@@ -61,8 +61,8 @@ set(Base_src
     base/DynamicBufferRing.h
     base/Fence.cpp
     base/Fence.h
-    base/FreeSync2.cpp
-    base/FreeSync2.h
+    base/FreeSyncHDR.cpp
+    base/FreeSyncHDR.h
     base/GPUTimestamps.cpp
     base/GPUTimestamps.h
     base/Helper.cpp
@@ -77,10 +77,14 @@ set(Base_src
     base/StaticBufferPool.h
     base/StaticConstantBufferPool.cpp
     base/StaticConstantBufferPool.h
+    base/SaveTexture.cpp
+    base/SaveTexture.h
     base/SwapChain.cpp
     base/SwapChain.h
     base/Texture.cpp
     base/Texture.h
+    base/UploadHeapSimple.cpp
+    base/UploadHeapSimple.h
     base/UploadHeap.cpp
     base/UploadHeap.h
     base/UserMarkers.h
@@ -103,7 +107,7 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-PS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-VS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-IO.hlsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPBRLighting.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPBRLighting.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ShadowResolve.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFMotionVectorsPass.hlsl
@@ -120,8 +124,8 @@ set(Shaders_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/motionBlur.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/PixelParams.hlsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/BakeSkinning.hlsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/BakeSkinning.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
 )

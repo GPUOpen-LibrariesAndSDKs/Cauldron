@@ -27,6 +27,7 @@ namespace CAULDRON_VK
         Device* pDevice,
         const std::string &shaderFilename,
         const std::string &shaderEntryPoint,
+        const std::string &shaderCompilerParams,
         VkDescriptorSetLayout descriptorSetLayout,
         uint32_t dwWidth, uint32_t dwHeight, uint32_t dwDepth,
         DefineList* pUserDefines
@@ -47,7 +48,7 @@ namespace CAULDRON_VK
         if (pUserDefines != NULL)
             defines = *pUserDefines;
 
-        res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_COMPUTE_BIT, shaderFilename.c_str(), shaderEntryPoint.c_str(), &defines, &computeShader);
+        res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_COMPUTE_BIT, shaderFilename.c_str(), shaderEntryPoint.c_str(), shaderCompilerParams.c_str(), &defines, &computeShader);
         assert(res == VK_SUCCESS);
 
         // Create pipeline layout

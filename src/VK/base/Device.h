@@ -19,6 +19,8 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
+#include "DeviceProperties.h"
+#include "InstanceProperties.h"
 
 
 #define USE_VMA
@@ -38,7 +40,10 @@ namespace CAULDRON_VK
     public:
         Device();
         ~Device();
-        void OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd);
+        void OnCreate(const char *pAppName, const char *pEngineName, bool cpuValidationLayerEnabled, bool gpuValidationLayerEnabled, HWND hWnd);
+        void SetEssentialInstanceExtensions(bool cpuValidationLayerEnabled, bool gpuValidationLayerEnabled, InstanceProperties *pIp);
+        void SetEssentialDeviceExtensions(DeviceProperties *pDp);
+        void OnCreateEx(VkInstance vulkanInstance, VkPhysicalDevice physicalDevice, HWND hWnd, DeviceProperties *pDp);
         void OnDestroy();
         VkDevice GetDevice() { return m_device; }
         VkQueue GetGraphicsQueue() { return graphics_queue; }
@@ -49,6 +54,7 @@ namespace CAULDRON_VK
         uint32_t GetComputeQueueFamilyIndex() { return compute_queue_family_index; }
         VkPhysicalDevice GetPhysicalDevice() { return m_physicaldevice; }
         VkSurfaceKHR GetSurface() { return m_surface; }
+        void GetDeviceInfo(std::string *deviceName, std::string *driverVersion);
 #ifdef USE_VMA
         VmaAllocator GetAllocator() { return m_hAllocator; }
 #endif

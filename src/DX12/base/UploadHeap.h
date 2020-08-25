@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Device.h"
+#include "Misc/Async.h"
 
 namespace CAULDRON_DX12
 {
@@ -29,17 +30,30 @@ namespace CAULDRON_DX12
     //
     class UploadHeap
     {
+        Sync allocating, flushing;
+        struct COPY
+        {
+            CD3DX12_TEXTURE_COPY_LOCATION Src, Dst;
+        };
+        std::vector<COPY> m_copies;
+        std::vector<D3D12_RESOURCE_BARRIER> m_toBarrierIntoShaderResource;
+
+        std::mutex m_mutex;
     public:
         void OnCreate(Device *pDevice, SIZE_T uSize);
         void OnDestroy();
 
         UINT8* Suballocate(SIZE_T uSize, UINT64 uAlign);
-
+        UINT8* BeginSuballocate(SIZE_T uSize, UINT64 uAlign);
+        void EndSuballocate();
         UINT8* BasePtr() { return m_pDataBegin; }
         ID3D12Resource* GetResource() { return m_pUploadHeap; }
         ID3D12GraphicsCommandList* GetCommandList() { return m_pCommandList; }
         ID3D12CommandQueue* GetCommandQueue() { return m_pCommandQueue; }
+        void AddCopy(CD3DX12_TEXTURE_COPY_LOCATION Src, CD3DX12_TEXTURE_COPY_LOCATION Dst);
 
+        void BeginBarrier();
+        void AddBarrier(ID3D12Resource *pRes);
 
         void FlushAndFinish();
 

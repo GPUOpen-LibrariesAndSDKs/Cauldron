@@ -37,7 +37,7 @@ namespace CAULDRON_DX12
         // Compile shader
         //
         D3D12_SHADER_BYTECODE shaderByteCode = {};
-        CompileShaderFromFile("taa.hlsl", NULL, "main", "cs_5_0", 0, &shaderByteCode);
+        CompileShaderFromFile("taa.hlsl", NULL, "main", "-T cs_6_0", &shaderByteCode);
 
         // Create root signature
         //

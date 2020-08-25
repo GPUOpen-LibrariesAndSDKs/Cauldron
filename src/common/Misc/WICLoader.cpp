@@ -19,10 +19,17 @@
 
 #include "stdafx.h"
 #include "WICLoader.h"
-#include "wincodec.h"
 #include "Misc/Misc.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "../stb/stb_image.h"
+
+//#define USE_WIC
+
+#ifdef USE_WIC
+#include "wincodec.h"
 static IWICImagingFactory *m_pWICFactory = NULL;
+#endif
 
 WICLoader::~WICLoader()
 {
@@ -31,38 +38,42 @@ WICLoader::~WICLoader()
 
 bool WICLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
 {
+#ifdef USE_WIC
     HRESULT hr = S_OK;
 
     if (m_pWICFactory == NULL)
     {
         hr = CoInitialize(NULL);
+        assert(SUCCEEDED(hr));
         hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr,CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_pWICFactory));
+        assert(SUCCEEDED(hr));
     }
 
     IWICStream* pWicStream;
     hr = m_pWICFactory->CreateStream(&pWicStream);
+    assert(SUCCEEDED(hr));
 
     wchar_t  uniName[1024];
     swprintf(uniName, 1024, L"%S", pFilename);
     hr = pWicStream->InitializeFromFilename(uniName, GENERIC_READ);
     //assert(hr == S_OK);
-    if (hr != S_OK)
+    if (FAILED(hr))
         return false;
 
     IWICBitmapDecoder *pBitmapDecoder;
     hr = m_pWICFactory->CreateDecoderFromStream(pWicStream, NULL, WICDecodeMetadataCacheOnDemand, &pBitmapDecoder);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     IWICBitmapFrameDecode *pFrameDecode;
     hr = pBitmapDecoder->GetFrame(0, &pFrameDecode);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     IWICFormatConverter *pIFormatConverter;
     hr = m_pWICFactory->CreateFormatConverter(&pIFormatConverter);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     hr = pIFormatConverter->Initialize( pFrameDecode, GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, NULL, 100.0, WICBitmapPaletteTypeCustom);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     uint32_t width, height;
     pFrameDecode->GetSize(&width, &height);
@@ -71,19 +82,23 @@ bool WICLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
     int bufferSize = width * height * 4;
     m_pData = (char *)malloc(bufferSize);
     hr = pIFormatConverter->CopyPixels( NULL, width * 4, bufferSize, (BYTE*)m_pData);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
+#else
+    int32_t width, height, channels;
+    m_pData = (char*)stbi_load(pFilename, &width, &height, &channels, STBI_rgb_alpha);
+#endif
 
     // compute number of mips
     //
-    uint32_t _width  = width;
-    uint32_t _height = height;
+    uint32_t mipWidth  = width;
+    uint32_t mipHeight = height;
     uint32_t mipCount = 0;
     for(;;)
     {        
         mipCount++;
-        if (_width > 1) _width >>= 1;
-        if (_height > 1) _height >>= 1;
-        if (_width == 1 && _height == 1)
+        if (mipWidth > 1) mipWidth >>= 1;
+        if (mipHeight > 1) mipHeight >>= 1;
+        if (mipWidth == 1 && mipHeight == 1)
             break;
     }
 
@@ -106,10 +121,12 @@ bool WICLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
     else
         m_alphaTestCoverage = 1.0f;
 
+#ifdef USE_WIC
     pIFormatConverter->Release();
     pBitmapDecoder->Release();
     pWicStream->Release();
-
+#endif
+    
     return true;
 }
 
@@ -123,7 +140,7 @@ void WICLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, ui
     MipImage(bytesWidth / 4, height);
 }
 
-float WICLoader::GetAlphaCoverage(uint32_t width, uint32_t height, float scale, int cutoff)
+float WICLoader::GetAlphaCoverage(uint32_t width, uint32_t height, float scale, int cutoff) const
 {
     double val = 0;
 
@@ -167,7 +184,7 @@ void WICLoader::ScaleAlpha(uint32_t width, uint32_t height, float scale)
 
 void WICLoader::MipImage(uint32_t width, uint32_t height)
 {
-    //compute mip so next call gets the lower mip    
+    //compute mip so next call gets the lower mip
     int offsetsX[] = { 0,1,0,1 };
     int offsetsY[] = { 0,0,1,1 };
 

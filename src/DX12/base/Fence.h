@@ -47,7 +47,4 @@ namespace CAULDRON_DX12
         ID3D12Fence *m_pFence;
         UINT64       m_fenceCounter;
     };
-
-
-    void GPUFlush(ID3D12Device *pDevice, ID3D12CommandQueue *pQueue);
 }

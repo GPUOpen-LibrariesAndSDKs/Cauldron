@@ -34,7 +34,7 @@ namespace CAULDRON_VK
 
     bool ExtDebugMarkerCheckDeviceExtensions(DeviceProperties *pDP)
     {
-        s_bCanUseDebugMarker = pDP->Add(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
+        s_bCanUseDebugMarker = pDP->AddDeviceExtensionName(VK_EXT_DEBUG_MARKER_EXTENSION_NAME);
         return s_bCanUseDebugMarker;
     }
 

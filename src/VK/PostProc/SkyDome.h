@@ -35,6 +35,11 @@ namespace CAULDRON_VK
         void SetDescriptorDiff(uint32_t index, VkDescriptorSet descriptorSet);
         void SetDescriptorSpec(uint32_t index, VkDescriptorSet descriptorSet);
 
+        VkImageView GetCubeDiffuseTextureView() const;
+        VkImageView GetCubeSpecularTextureView() const;
+        VkSampler GetCubeDiffuseTextureSampler() const;
+        VkSampler GetCubeSpecularTextureSampler() const;
+
     private:
         Device* m_pDevice;
 

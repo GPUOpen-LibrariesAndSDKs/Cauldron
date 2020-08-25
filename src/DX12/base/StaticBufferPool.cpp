@@ -83,7 +83,7 @@ namespace CAULDRON_DX12
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        uint32_t size = (uint32_t)AlignOffset(numbeOfElements* strideInBytes, 256);
+        uint32_t size = AlignUp(numbeOfElements* strideInBytes, 256u);
         assert(m_memOffset + size < m_totalMemSize);
 
         *pData = (void *)(m_pData + m_memOffset);
@@ -115,7 +115,7 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    bool StaticBufferPool::AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut)
+    bool StaticBufferPool::AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, const void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut)
     {
         void *pData;
         if (AllocVertexBuffer(numbeOfVertices, strideInBytes, &pData, pOut))
@@ -134,7 +134,7 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    bool StaticBufferPool::AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut)
+    bool StaticBufferPool::AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, const void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut)
     {
         void *pData;
         if (AllocIndexBuffer(numbeOfIndices, strideInBytes, &pData, pOut))

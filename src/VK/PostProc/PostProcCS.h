@@ -28,8 +28,9 @@ namespace CAULDRON_VK
     public:
         void OnCreate(
             Device* pDevice,
-            const std::string &filename,
-            const std::string &entryPoint,
+            const std::string &shaderFilename,
+            const std::string &shaderEntryPoint,
+            const std::string &shaderCompilerParams,
             VkDescriptorSetLayout descriptorSetLayout,
             uint32_t dwWidth, uint32_t dwHeight, uint32_t dwDepth,
             DefineList* userDefines = 0

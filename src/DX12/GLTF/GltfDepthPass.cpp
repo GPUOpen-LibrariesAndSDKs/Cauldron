@@ -39,8 +39,10 @@ namespace CAULDRON_DX12
         ResourceViewHeaps *pHeaps,
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
-        GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers)
+        GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
+        AsyncPool *pAsyncPool)
     {
+        m_pDevice = pDevice;
         m_pResourceViewHeaps = pHeaps;
         m_pStaticBufferPool = pStaticBufferPool;
         m_pDynamicBufferRing = pDynamicBufferRing;
@@ -137,43 +139,46 @@ namespace CAULDRON_DX12
                     const json &primitive = primitives[p];
                     DepthPrimitives *pPrimitive = &tfmesh->m_pPrimitives[p];
 
-                    // Set Material
-                    //
-                    auto mat = primitive.find("material");
-                    pPrimitive->m_pMaterial = (mat != primitive.end()) ? &m_materialsData[mat.value()] : &m_defaultMaterial;
-
-                    // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things. 
-                    //
-                    std::vector<std::string > requiredAttributes;
-                    for (auto const & it : primitive["attributes"].items())
+                    ExecAsyncIfThereIsAPool(pAsyncPool, [this, i, &primitive, pPrimitive]()
                     {
-                        const std::string semanticName = it.key();
-                        if (
-                            (semanticName == "POSITION") ||
-                            (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
-                            (semanticName.substr(0, 6) == "JOINTS")  || // for skinning
-                            (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) // if there is transparency this will make sure we use the texture coordinates of that texture
-                           )
+                        // Set Material
+                        //
+                        auto mat = primitive.find("material");
+                        pPrimitive->m_pMaterial = (mat != primitive.end()) ? &m_materialsData[mat.value()] : &m_defaultMaterial;
+
+                        // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things. 
+                        //
+                        std::vector<std::string > requiredAttributes;
+                        for (auto const & it : primitive["attributes"].items())
                         {
-                            requiredAttributes.push_back(semanticName);
+                            const std::string semanticName = it.key();
+                            if (
+                                (semanticName == "POSITION") ||
+                                (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
+                                (semanticName.substr(0, 6) == "JOINTS") || // for skinning
+                                (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) // if there is transparency this will make sure we use the texture coordinates of that texture
+                                )
+                            {
+                                requiredAttributes.push_back(semanticName);
+                            }
                         }
-                    }
 
-                    // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
-                    //
-                    DefineList defines = pPrimitive->m_pMaterial->m_defines;
+                        // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
+                        //
+                        DefineList defines = pPrimitive->m_pMaterial->m_defines;
 
-                    // create an input layout from the required attributes
-                    // shader's can tell the slots from the #defines
-                    //
-                    std::vector<std::string> semanticNames;
-                    std::vector<D3D12_INPUT_ELEMENT_DESC> layout;
-                    pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, semanticNames, layout, defines, &pPrimitive->m_geometry);
+                        // create an input layout from the required attributes
+                        // shader's can tell the slots from the #defines
+                        //
+                        std::vector<std::string> semanticNames;
+                        std::vector<D3D12_INPUT_ELEMENT_DESC> layout;
+                        m_pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, semanticNames, layout, defines, &pPrimitive->m_geometry);
 
-                    // Create Pipeline
-                    //
-                    bool bUsingSkinning = pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i) != -1;
-                    CreatePipeline(pDevice->GetDevice(), bUsingSkinning, layout, defines, pPrimitive);
+                        // Create Pipeline
+                        //
+                        bool bUsingSkinning = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i) != -1;
+                        CreatePipeline(bUsingSkinning, layout, defines, pPrimitive);
+                    });
                 }
             }
         }
@@ -203,7 +208,7 @@ namespace CAULDRON_DX12
     // CreatePipeline
     //
     //--------------------------------------------------------------------------------------
-    void GltfDepthPass::CreatePipeline(ID3D12Device* pDevice, bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive)
+    void GltfDepthPass::CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive)
     {
         bool bUsingTransparency = (pPrimitive->m_pMaterial->m_pTransparency != NULL);
       
@@ -271,7 +276,7 @@ namespace CAULDRON_DX12
             }
 
             ThrowIfFailed(
-                pDevice->CreateRootSignature(
+                m_pDevice->GetDevice()->CreateRootSignature(
                     0,
                     pOutBlob->GetBufferPointer(),
                     pOutBlob->GetBufferSize(),
@@ -288,8 +293,8 @@ namespace CAULDRON_DX12
         // Compile and create shaders
 
         D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
-        CompileShaderFromFile("GLTFDepthPass.hlsl", &defines, "mainVS", "vs_5_0", 0, &shaderVert);
-        CompileShaderFromFile("GLTFDepthPass.hlsl", &defines, "mainPS", "ps_5_0", 0, &shaderPixel);
+        CompileShaderFromFile("GLTFDepthPass.hlsl", &defines, "mainVS", "-T vs_6_0", &shaderVert);
+        CompileShaderFromFile("GLTFDepthPass.hlsl", &defines, "mainPS", "-T ps_6_0", &shaderPixel);
 
         /////////////////////////////////////////////
         // Create a Pipeline 
@@ -311,7 +316,7 @@ namespace CAULDRON_DX12
         descPso.SampleDesc.Count = 1;
         descPso.NodeMask = 0;
         ThrowIfFailed(
-            pDevice->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_pipelineRender))
+            m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_pipelineRender))
         );
         SetName(pPrimitive->m_pipelineRender, "GltfDepthPass::m_PipelineRender");
     }

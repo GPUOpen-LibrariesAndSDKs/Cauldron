@@ -18,13 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <d3d12.h>
-
 namespace CAULDRON_DX12
 {
-    // Sets the viewport and the scissor to a fixed height and width
-    //
-    void SetViewportAndScissor(ID3D12GraphicsCommandList* pCommandList, uint32_t topX, uint32_t topY, uint32_t width, uint32_t height);
+    void SetViewportAndScissor(ID3D12GraphicsCommandList* pCommandList, uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height);
     void SetName(ID3D12Object *pObj, const char* name);
     void SetName(ID3D12Object *pObj, const std::string &name);
 }

@@ -40,40 +40,11 @@ enum ColorPrimariesCoordinates
     ColorPrimariesCoordinates_Y
 };
 
-static float ColorSpacePrimaries[4][4][2] = {
-    //Rec709
-    {
-        0.3127f,0.3290f, // White point
-        0.64f,0.33f, // Red point
-        0.30f,0.60f, // Green point
-        0.15f,0.06f, // Blue point
-    },
-    //P3
-    {
-        0.3127f,0.3290f, // White point
-        0.680f,0.320f, // Red point
-        0.265f,0.690f, // Green point
-        0.150f,0.060f, // Blue point
-    },
-    //Rec2020
-    {
-        0.3127f,0.3290f, // White point
-        0.708f,0.292f, // Red point
-        0.170f,0.797f, // Green point
-        0.131f,0.046f, // Blue point
-    },
-    //Display Specific zeroed out now Please fill them in once you query them and want to use them for matrix calculations
-    {
-        0.0f,0.0f, // White point
-        0.0f,0.0f, // Red point
-        0.0f,0.0f, // Green point
-        0.0f,0.0f // Blue point
-    }
-};
+extern float ColorSpacePrimaries[4][4][2];
 
 void FillDisplaySpecificPrimaries(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb);
 
-XMMATRIX AmdCalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag);
-XMMATRIX AmdCalculateXYZToRGBMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag);
+XMMATRIX CalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag);
+XMMATRIX CalculateXYZToRGBMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag);
 
 void SetupGamutMapperMatrices(ColorSpace gamutIn, ColorSpace gamutOut, XMMATRIX* inputToOutputRecMatrix);

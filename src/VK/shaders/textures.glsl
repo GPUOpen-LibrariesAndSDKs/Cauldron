@@ -17,6 +17,28 @@
 // Texture and samplers bindings
 //
 //--------------------------------------------------------------------------------------
+#define CONCAT(a,b) a ## b
+#define TEXCOORD(id) CONCAT(Input.UV, id)
+
+//disable texcoords that are not in the VS2PS structure
+#if defined(ID_TEXCOORD_0)==false
+    #if ID_normalTexCoord == 0
+        #undef ID_normalTexture
+        #undef ID_normalTexCoord
+    #endif
+    #if ID_emissiveTexCoord == 0
+        #undef ID_emissiveTexture
+        #undef ID_emissiveTexCoord
+    #endif
+    #if ID_baseTexCoord == 0
+        #undef ID_baseColorTexture
+        #undef ID_baseTexCoord
+    #endif
+    #if ID_metallicRoughnessTexCoord == 0
+        #undef ID_metallicRoughnessTexture
+        #undef ID_metallicRoughnessTexCoord
+    #endif
+#endif
 
 #ifdef ID_baseColorTexture
     layout (set=1, binding = ID_baseColorTexture) uniform sampler2D u_BaseColorSampler;
@@ -57,8 +79,9 @@ layout (set=1, binding = ID_specularCube) uniform samplerCube u_SpecularEnvSampl
 layout (set=1, binding = ID_brdfTexture) uniform sampler2D u_brdfLUT;
 #endif
 
-#define CONCAT(a,b) a ## b
-#define TEXCOORD(id) CONCAT(Input.UV, id)
+//------------------------------------------------------------
+// UV getters
+//------------------------------------------------------------
 
 vec2 getNormalUV(VS2PS Input)
 {

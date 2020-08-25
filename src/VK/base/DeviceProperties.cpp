@@ -47,7 +47,7 @@ namespace CAULDRON_VK
         return res;
     }
 
-    bool DeviceProperties::Add(const char *deviceExtensionName)
+    bool DeviceProperties::AddDeviceExtensionName(const char *deviceExtensionName)
     {
         if (IsExtensionPresent(deviceExtensionName))
         {

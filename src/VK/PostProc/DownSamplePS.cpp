@@ -95,7 +95,7 @@ namespace CAULDRON_VK
 
         // Use helper class to create the fullscreen pass
         //
-        m_downscale.OnCreate(pDevice, m_in, "DownSamplePS.glsl", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout);
+        m_downscale.OnCreate(pDevice, m_in, "DownSamplePS.glsl", "main", "", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout);
 
         // Allocate descriptors for the mip chain
         //

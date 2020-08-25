@@ -20,6 +20,8 @@
 #include "stdafx.h"
 #include "FrameworkWindows.h"
 
+static const char* const WINDOW_CLASS_NAME = "RadeonCauldron";
+
 LRESULT CALLBACK WindowProc(HWND hWnd,
     UINT message,
     WPARAM wParam,
@@ -32,7 +34,7 @@ static bool bIsMinimized = false;
 LONG lBorderedStyle = 0;
 LONG lBorderlessStyle = 0;
 
-int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, uint32_t Width, uint32_t Height, FrameworkWindows *pFramework)
+int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWindows *pFramework)
 {
     // create new DX sample
     dxSample = pFramework;
@@ -47,8 +49,12 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, uint32_t Wi
     windowClass.lpfnWndProc = WindowProc;
     windowClass.hInstance = hInstance;
     windowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-    windowClass.lpszClassName = "WindowClass1";
+    windowClass.lpszClassName = WINDOW_CLASS_NAME;
     RegisterClassEx(&windowClass);
+
+    uint32_t Width;
+    uint32_t Height;
+    pFramework->OnParseCommandLine(lpCmdLine, &Width, &Height, &bIsFullScreen);
 
     RECT windowRect = { 0, 0, (LONG)Width, (LONG)Height };
     AdjustWindowRect(&windowRect, WS_OVERLAPPEDWINDOW, FALSE);    // adjust the size
@@ -56,13 +62,13 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, uint32_t Wi
     // This makes sure that in a multimonitor setup with different resolutions, get monitor info returns correct dimensions
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-                                                                  // create the window and store a handle to it
+    // create the window and store a handle to it
     hWnd = CreateWindowEx(NULL,
-        "WindowClass1",    // name of the window class
+        WINDOW_CLASS_NAME,    // name of the window class
         dxSample ? dxSample->GetName() : "None",
         WS_OVERLAPPEDWINDOW,
-        100,
-        100,
+        CW_USEDEFAULT,
+        CW_USEDEFAULT,
         windowRect.right - windowRect.left,
         windowRect.bottom - windowRect.top,
         NULL,    // we have no parent window, NULL
@@ -77,6 +83,11 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, uint32_t Wi
     ShowWindow(hWnd, nCmdShow);
     lBorderedStyle = GetWindowLong(hWnd, GWL_STYLE);
     lBorderlessStyle = lBorderedStyle & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
+
+    if (bIsFullScreen)
+    {
+        dxSample->SetFullScreen(bIsFullScreen);
+    }
 
     // main loop
     MSG msg = { 0 };
@@ -123,7 +134,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     // When close button is clicked on window
     case WM_CLOSE:
     {
-        PostQuitMessage(0);
+        DestroyWindow(hWnd);
         return 0;
     }
 
@@ -131,7 +142,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
     {
         if (wParam == VK_ESCAPE)
         {
-            PostQuitMessage(0);
+            DestroyWindow(hWnd);
         }
         break;
     }

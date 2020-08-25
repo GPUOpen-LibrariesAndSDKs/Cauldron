@@ -19,8 +19,7 @@
 #pragma once
 
 #include "../Misc/Misc.h"
-
-#include <map>
+#include "../Misc/Hash.h"
 
 //
 // Hash a string of source code and recurse over its #include files
@@ -38,12 +37,12 @@ public:
         return find(str) != end();
     }
 
-    size_t Hash(size_t result = 2166136261) const
+    size_t Hash(size_t result = HASH_SEED) const
     {
         for (auto it = begin(); it != end(); it++)
         {
-            result = ::Hash(it->first.c_str(), it->first.size(), result);
-            result = ::Hash(it->second.c_str(), it->second.size(), result);
+            result = ::HashString(it->first, result);
+            result = ::HashString(it->second, result);
         }
         return result;
     }

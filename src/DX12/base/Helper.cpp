@@ -22,14 +22,14 @@
 
 namespace CAULDRON_DX12
 {
-    void SetViewportAndScissor(ID3D12GraphicsCommandList* pCommandList, uint32_t topX, uint32_t topY, uint32_t width, uint32_t height)
+    void SetViewportAndScissor(ID3D12GraphicsCommandList* pCommandList, uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height)
     {
         // Set the viewport
-        D3D12_VIEWPORT  viewPort = { static_cast<float>(topX), static_cast<float>(topY), static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+        D3D12_VIEWPORT viewPort = { static_cast<float>(topLeftX), static_cast<float>(topLeftY), static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
         pCommandList->RSSetViewports(1, &viewPort);
 
         // Create scissor rectangle
-        D3D12_RECT rectScissor = { (LONG)topX, (LONG)topY, (LONG)(topX + width), (LONG)(topY + height) };
+        D3D12_RECT rectScissor = { (LONG)topLeftX, (LONG)topLeftY, (LONG)(topLeftX + width), (LONG)(topLeftY + height) };
         pCommandList->RSSetScissorRects(1, &rectScissor);
     }
 
@@ -45,10 +45,11 @@ namespace CAULDRON_DX12
     {
         assert(pObj != NULL);
 
-        //wchar_t  uniName[1024];        
-        wchar_t  *uniName = (wchar_t  *)malloc(256); //yes, this will be causing leaks!
-        swprintf(uniName, 1024, L"%S", name.c_str());
+        size_t size = name.size() + 1;
+        wchar_t *uniName = (wchar_t*)malloc(size * sizeof(wchar_t));
+        swprintf(uniName, size, L"%S", name.c_str());
         pObj->SetName(uniName);
-        Trace(format("Create: %p %S\n", pObj, uniName));
+        //Trace(format("Create: %p %S\n", pObj, uniName));
+       free(uniName);
     }
 }

@@ -34,7 +34,7 @@ namespace CAULDRON_VK
         VkResult res;
         m_pDevice = pDevice;
 
-        m_memTotalSize = (uint32_t)AlignOffset(memTotalSize, 256);
+        m_memTotalSize = AlignUp(memTotalSize, 256u);
 
         m_mem.OnCreate(numberOfBackBuffers, m_memTotalSize);
 
@@ -121,7 +121,7 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     bool DynamicBufferRing::AllocConstantBuffer(uint32_t size, void **pData, VkDescriptorBufferInfo *pOut)
     {
-        size = (uint32_t)AlignOffset(size, 256);
+        size = AlignUp(size, 256u);
 
         uint32_t memOffset;
         if (m_mem.Alloc(size, &memOffset) == false)

@@ -16,7 +16,7 @@ Here lives all the DX12 specific code. It should be as similar as possible to th
     * PostProcCS/PostProcPS: Takes a shader and some inputs and draws a full screen quad (used by the effects below)
     * Bloom: Combines the DownsamplePS and the Blur passes to create a Bloom effect. (All the credits go to Jorge Jimenez!)
     * BlurPS: Takes a mip chain and blurs every mip element
-    * BakeSkinnin: Takes a vertex buffera and the skinning matrices and computes the skinned vertices into a UAV
+    * BakeSkinning: Takes a vertex buffer and the skinning matrices and computes the skinned vertices into a UAV
     * DownSamplePS: Takes a render target and generates a mip chain  
     * ShadowResolvePass: Takes an atlas of 4 shadowmaps and creates a shadow mask
     * Sharpen: Sharpens the render target, needed after applying TAA.

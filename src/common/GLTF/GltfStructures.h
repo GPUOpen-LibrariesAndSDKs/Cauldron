@@ -26,7 +26,7 @@
 class tfAccessor
 {
 public:
-    void *m_data = NULL;
+    const void *m_data = NULL;
     int m_count = 0;
     int m_stride;
     int m_dimension;
@@ -35,15 +35,15 @@ public:
     XMVECTOR m_min;
     XMVECTOR m_max;
 
-    void *Get(int i)
+    const void *Get(int i) const
     {
         if (i >= m_count)
             i = m_count - 1;
 
-        return (char*)m_data + m_stride*i;
+        return (const char*)m_data + m_stride*i;
     }
 
-    int FindClosestFloatIndex(float val)
+    int FindClosestFloatIndex(float val) const
     {
         int ini = 0;
         int fin = m_count - 1;
@@ -51,7 +51,7 @@ public:
         while (ini <= fin)
         {
             int mid = (ini + fin) / 2;
-            float v = *(float*)Get(mid);
+            float v = *(const float*)Get(mid);
 
             if (val < v)
                 fin = mid - 1;
@@ -83,7 +83,7 @@ struct Transform
     XMVECTOR       m_scale = XMVectorSet(1, 1, 1, 0);
 
     void LookAt(XMVECTOR source, XMVECTOR target) { m_rotation = XMMatrixInverse(NULL, XMMatrixLookAtRH(source, target, XMVectorSet(0, 1, 0, 0))); m_translation = m_rotation.r[3];  m_rotation.r[3] = XMVectorSet(0, 0, 0, 1); }
-    XMMATRIX GetWorldMat() { return XMMatrixScalingFromVector(m_scale)  * m_rotation  * XMMatrixTranslationFromVector(m_translation); }
+    XMMATRIX GetWorldMat() const { return XMMatrixScalingFromVector(m_scale)  * m_rotation  * XMMatrixTranslationFromVector(m_translation); }
 };
 
 typedef int tfNodeIdx;
@@ -125,7 +125,7 @@ public:
     tfAccessor m_time;
     tfAccessor m_value;
 
-    void SampleLinear(float time, float *frac, float **pCurr, float **pNext)
+    void SampleLinear(float time, float *frac, float **pCurr, float **pNext) const
     {
         int curr_index = m_time.FindClosestFloatIndex(time);
         int next_index = std::min<int>(curr_index + 1, m_time.m_count - 1);
@@ -177,13 +177,19 @@ struct tfLight
 
     LightType m_type = LIGHT_DIRECTIONAL;
 
-    tfNodeIdx m_nodeIndex = -1;
+    //tfNodeIdx m_nodeIndex = -1;
 
     XMVECTOR m_color;
     float m_range;
     float m_intensity = 0.0f;
     float m_innerConeAngle = 0.0f;
     float m_outerConeAngle = 0.0f;
+};
+
+struct LightInstance
+{
+    int m_lightId = -1;
+    tfNodeIdx m_nodeIndex = -1;
 };
 
 struct tfCamera

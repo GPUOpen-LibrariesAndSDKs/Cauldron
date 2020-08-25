@@ -34,7 +34,7 @@ Camera::Camera()
 //--------------------------------------------------------------------------------------
 void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane, float farPlane)
 {
-    m_aspectRatio = width *1.f / height;
+    m_aspectRatio = width * 1.f / height;
 
     m_near = nearPlane;
     m_far = farPlane;
@@ -105,21 +105,24 @@ void Camera::UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], d
 {   
     m_eyePos += XMVector4Transform(MoveWASD(keyDown) * m_speed * (float)deltaTime, XMMatrixTranspose(m_View));
     XMVECTOR dir = PolarToVector(yaw, pitch) * m_distance;   
-    LookAt(m_eyePos, m_eyePos - dir);
+    LookAt(GetPosition(), GetPosition() - dir);
 }
 
 void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance)
-{    
-    m_eyePos += GetSide() * x * distance / 10.0f;
-    m_eyePos += GetUp() * y * distance / 10.0f;
+{
+    pitch = std::max(-XM_PIDIV2 + 1e-6f, std::min(pitch, XM_PIDIV2 - 1e-6f));
 
-    XMVECTOR dir = GetDirection();    
+    XMVECTOR eyePos = m_eyePos;
+    eyePos += GetSide() * x * distance / 10.0f;
+    eyePos += GetUp() * y * distance / 10.0f;
+
+    XMVECTOR dir = GetDirection();
     XMVECTOR pol = PolarToVector(yaw, pitch);
 
     XMVECTOR at = m_eyePos - dir * m_distance;   
-    XMVECTOR m_eyePos = at + pol * distance;
+    eyePos = at + pol * distance;
 
-    LookAt(m_eyePos, at);
+    LookAt(eyePos, at);
 }
 
 //--------------------------------------------------------------------------------------
@@ -165,16 +168,6 @@ void Camera::SetProjectionJitter(uint32_t width, uint32_t height, uint32_t &samp
 
 //--------------------------------------------------------------------------------------
 //
-// UpdatePreviousMatrices
-//
-//--------------------------------------------------------------------------------------
-void Camera::UpdatePreviousMatrices()
-{
-    m_PrevView = m_View;
-}
-
-//--------------------------------------------------------------------------------------
-//
 // Get a vector pointing in the direction of yaw and pitch
 //
 //--------------------------------------------------------------------------------------
@@ -190,35 +183,33 @@ XMMATRIX LookAtRH(XMVECTOR eyePos, XMVECTOR lookAt)
 
 XMVECTOR MoveWASD(const bool keyDown[256])
 { 
+    float scale = keyDown[VK_SHIFT] ? 5.0f : 1.0f;
     float x = 0, y = 0, z = 0;
 
     if (keyDown['W'])
     {
-        z = -1;
+        z = -scale;
     }
     if (keyDown['S'])
     {
-        z = 1;
+        z = scale;
     }
     if (keyDown['A'])
     {
-        x = -1;
+        x = -scale;
     }
     if (keyDown['D'])
     {
-        x = 1;
+        x = scale;
     }
     if (keyDown['E'])
     {
-        y = 1;
+        y = scale;
     }
     if (keyDown['Q'])
     {
-        y = -1;
+        y = -scale;
     }
 
-    float scale = keyDown[VK_SHIFT] ? 5.0f : 1.0f;
-
-    return XMVectorSet(x, y, z, 0.0f) * scale;
+    return XMVectorSet(x, y, z, 0.0f);
 }
-

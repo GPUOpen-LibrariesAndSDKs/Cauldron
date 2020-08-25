@@ -5,7 +5,7 @@ project (Cauldron_${GFX_API})
 
 list( APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR} )
 
-# ouput exe to bin directory
+# output exe to bin directory
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
     string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
@@ -16,11 +16,12 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 add_subdirectory(src/Common)
 add_subdirectory(libs/json)
 add_subdirectory(libs/ImGUI)
+add_subdirectory(libs/stb)
+add_subdirectory(libs/DXC)
 
 if(GFX_API STREQUAL DX12)        
     add_subdirectory(libs/d3d12x)
     add_subdirectory(libs/ags)    
-    add_subdirectory(libs/dxc)
     add_subdirectory(src/DX12)   
 elseif(GFX_API STREQUAL VK)
     find_package(Vulkan REQUIRED)

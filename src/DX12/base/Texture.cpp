@@ -62,7 +62,7 @@ namespace CAULDRON_DX12
         return m_header.arraySize == 6;
     }
 
-    INT32 Texture::Init(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue)
+    INT32 Texture::Init(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE* pClearValue)
     {
         HRESULT hr = pDevice->GetDevice()->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -86,7 +86,7 @@ namespace CAULDRON_DX12
         return hr;
     }
 
-    INT32 Texture::InitRenderTarget(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const FLOAT * clearColor)
+    INT32 Texture::InitRenderTarget(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc, D3D12_RESOURCE_STATES initialState, const FLOAT* clearColor)
     {
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
@@ -111,7 +111,7 @@ namespace CAULDRON_DX12
         return 0;
     }
 
-    bool Texture::InitBuffer(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, uint32_t structureSize, D3D12_RESOURCE_STATES state)
+    bool Texture::InitBuffer(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc, uint32_t structureSize, D3D12_RESOURCE_STATES state)
     {
         assert(pDevice && pDesc);
         assert(pDesc->Dimension == D3D12_RESOURCE_DIMENSION_BUFFER && pDesc->Height == 1 && pDesc->MipLevels == 1);
@@ -157,12 +157,12 @@ namespace CAULDRON_DX12
         return hr == S_OK;
     }
 
-    bool Texture::InitCounter(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pCounterDesc, uint32_t counterSize, D3D12_RESOURCE_STATES state)
+    bool Texture::InitCounter(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pCounterDesc, uint32_t counterSize, D3D12_RESOURCE_STATES state)
     {
         return InitBuffer(pDevice, pDebugName, pCounterDesc, counterSize, state);
     }
 
-    void Texture::CreateRTV(uint32_t index, RTV *pRV, D3D12_RENDER_TARGET_VIEW_DESC *pRtvDesc)
+    void Texture::CreateRTV(uint32_t index, RTV* pRV, D3D12_RENDER_TARGET_VIEW_DESC* pRtvDesc)
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
@@ -172,7 +172,7 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, D3D12_SHADER_RESOURCE_VIEW_DESC *pSrvDesc)
+    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, D3D12_SHADER_RESOURCE_VIEW_DESC* pSrvDesc)
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
@@ -182,7 +182,7 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    void Texture::CreateUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC *pUavDesc)
+    void Texture::CreateUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC* pUavDesc)
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
@@ -192,7 +192,7 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    void Texture::CreateRTV(uint32_t index, RTV *pRV, int mipLevel, int arraySize, int firstArraySlice)
+    void Texture::CreateRTV(uint32_t index, RTV* pRV, int mipLevel, int arraySize, int firstArraySlice)
     {
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
         D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -223,7 +223,7 @@ namespace CAULDRON_DX12
         CreateRTV(index, pRV, &rtvDesc);
     }
 
-    bool Texture::InitFromData(Device* pDevice, const char *pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data)
+    bool Texture::InitFromData(Device* pDevice, const char* pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data)
     {
         assert(!m_pResource);
         assert(header.arraySize == 1 && header.mipMapCount == 1);
@@ -247,14 +247,8 @@ namespace CAULDRON_DX12
 
         // allocate memory for mip chain from upload heap
         //
-        UINT8 *pixels = uploadHeap.Suballocate(SIZE_T(UplHeapSize), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-        if (pixels == NULL)
-        {
-            // oh! We ran out of mem in the upload heap, flush it and try allocating mem from it again
-            uploadHeap.FlushAndFinish();
-            pixels = uploadHeap.Suballocate(SIZE_T(UplHeapSize), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-            assert(pixels);
-        }
+        UINT8 *pixels = uploadHeap.BeginSuballocate(SIZE_T(UplHeapSize), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+
 
         placedTex2D.Offset += UINT64(pixels - uploadHeap.BasePtr());
 
@@ -267,35 +261,37 @@ namespace CAULDRON_DX12
 
         CD3DX12_TEXTURE_COPY_LOCATION Dst(m_pResource, 0);
         CD3DX12_TEXTURE_COPY_LOCATION Src(uploadHeap.GetResource(), placedTex2D);
-        uploadHeap.GetCommandList()->CopyTextureRegion(&Dst, 0, 0, 0, &Src, NULL);
+        uploadHeap.AddCopy(Src, Dst);
 
-        // prepare to shader read
-        //
-        D3D12_RESOURCE_BARRIER RBDesc = {};
-        RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        RBDesc.Transition.pResource = m_pResource;
-        RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        RBDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        RBDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-
-        uploadHeap.GetCommandList()->ResourceBarrier(1, &RBDesc);
+        uploadHeap.EndSuballocate();
+        uploadHeap.AddBarrier(m_pResource);
 
         return true;
     }
 
-    void Texture::CreateUAV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel)
+    void Texture::CreateUAV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel)
     {
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
-        uavDesc.Format = texDesc.Format;
+        
+        // TODO: add view overrides and use defaults below if there's none
+        switch (texDesc.Format)
+        {
+        // Override TYPELESS resources to prevent device removed. 
+        case DXGI_FORMAT_R32_TYPELESS: uavDesc.Format = DXGI_FORMAT_R32_UINT; break;
+        case DXGI_FORMAT_R16_TYPELESS: uavDesc.Format = DXGI_FORMAT_R16_UINT; break;
+        default:
+            uavDesc.Format = texDesc.Format;
+            break;
+        }
         uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
         uavDesc.Texture2D.MipSlice = (mipLevel == -1) ? 0 : mipLevel;
 
         CreateUAV(index, NULL, pRV, &uavDesc);
     }
 
-    void Texture::CreateBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV)
+    void Texture::CreateBufferUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV)
     {
         D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
 
@@ -311,7 +307,7 @@ namespace CAULDRON_DX12
         CreateUAV(index, pCounterTex, pRV, &uavDesc);
     }
 
-    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel, int arraySize, int firstArraySlice)
+    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel, int arraySize, int firstArraySlice)
     {
         D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
 
@@ -328,14 +324,15 @@ namespace CAULDRON_DX12
         }
         else
         {
-            if (resourceDesc.Format == DXGI_FORMAT_R32_TYPELESS)
+            // TODO: add view overrides and use defaults below if there's none
+            switch (resourceDesc.Format)
             {
-                srvDesc.Format = DXGI_FORMAT_R32_FLOAT; //special case for the depth buffer
-            }
-            else
-            {
-                D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
-                srvDesc.Format = desc.Format;
+            // Override TYPELESS resources to prevent device removed.
+            case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
+            case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_FLOAT; break;
+            default:
+                srvDesc.Format = m_pResource->GetDesc().Format;
+                break;
             }
 
             if (resourceDesc.SampleDesc.Count == 1)
@@ -384,7 +381,7 @@ namespace CAULDRON_DX12
         CreateSRV(index, pRV, &srvDesc);
     }
 
-    void Texture::CreateCubeSRV(uint32_t index, CBV_SRV_UAV *pRV)
+    void Texture::CreateCubeSRV(uint32_t index, CBV_SRV_UAV* pRV)
     {
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
         D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
@@ -399,7 +396,7 @@ namespace CAULDRON_DX12
         CreateSRV(index, pRV, &srvDesc);
     }
 
-    void Texture::CreateDSV(uint32_t index, DSV *pRV, int arraySlice)
+    void Texture::CreateDSV(uint32_t index, DSV* pRV, int arraySlice)
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
@@ -433,7 +430,7 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    INT32 Texture::InitDepthStencil(Device* pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc)
+    INT32 Texture::InitDepthStencil(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc)
     {
         // depth buffers need to be created as typeless! That way we can create different views out of them
         assert(pDesc->Format == DXGI_FORMAT_R32_TYPELESS);
@@ -472,12 +469,12 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     // create a comitted resource using m_header
     //--------------------------------------------------------------------------------------
-    void Texture::CreateTextureCommitted(Device *pDevice, const char *pDebugName, bool useSRGB)
+    void Texture::CreateTextureCommitted(Device* pDevice, const char* pDebugName, bool useSRGB, D3D12_RESOURCE_FLAGS resourceFlags)
     {
         m_header.format = SetFormatGamma((DXGI_FORMAT)m_header.format, useSRGB);
 
         CD3DX12_RESOURCE_DESC RDescs;
-        RDescs = CD3DX12_RESOURCE_DESC::Tex2D((DXGI_FORMAT)m_header.format, m_header.width, m_header.height, m_header.arraySize, m_header.mipMapCount);
+        RDescs = CD3DX12_RESOURCE_DESC::Tex2D((DXGI_FORMAT)m_header.format, m_header.width, m_header.height, m_header.arraySize, m_header.mipMapCount, 1, 0, resourceFlags);
 
         pDevice->GetDevice()->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
@@ -491,7 +488,7 @@ namespace CAULDRON_DX12
         SetName(m_pResource, pDebugName);
     }
 
-    void Texture::LoadAndUpload(Device *pDevice, UploadHeap* pUploadHeap, ImgLoader *pDds, ID3D12Resource *pRes)
+    void Texture::LoadAndUpload(Device* pDevice, UploadHeap* pUploadHeap, ImgLoader* pDds, ID3D12Resource* pRes)
     {
         // Get mip footprints (if it is an array we reuse the mip footprints for all the elements of the array)
         //
@@ -504,64 +501,53 @@ namespace CAULDRON_DX12
 
         //compute pixel size
         //
-        UINT32 bytePP = m_header.bitCount / 8;
+        UINT32 bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
+        UINT32 pixelsPerBlock = 1;
         if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
         {
-            bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format);
+            pixelsPerBlock = (4 * 4); // BC formats have 4*4 pixels per block
+            pixelsPerBlock /= 4; // we need to divide by 4 because GetCopyableFootprints introduces a *2 stride divides the rows /4 
         }
 
         for (uint32_t a = 0; a < m_header.arraySize; a++)
         {
             // allocate memory for mip chain from upload heap
             //
-            UINT8 *pixels = pUploadHeap->Suballocate(SIZE_T(UplHeapSize), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-            if (pixels == NULL)
-            {
-                // oh! We ran out of mem in the upload heap, flush it and try allocating mem from it again
-                pUploadHeap->FlushAndFinish();
-                pixels = pUploadHeap->Suballocate(SIZE_T(UplHeapSize), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
-                assert(pixels != NULL);
-            }
+            UINT8 *pixels = pUploadHeap->BeginSuballocate(SIZE_T(UplHeapSize), D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
 
             // copy all the mip slices into the offsets specified by the footprint structure
             //
             for (uint32_t mip = 0; mip < m_header.mipMapCount; mip++)
             {
-                pDds->CopyPixels(pixels + placedTex2D[mip].Offset, placedTex2D[mip].Footprint.RowPitch, placedTex2D[mip].Footprint.Width * bytePP, num_rows[mip]);
+                pDds->CopyPixels(pixels + placedTex2D[mip].Offset, placedTex2D[mip].Footprint.RowPitch, (placedTex2D[mip].Footprint.Width * bytePP) / pixelsPerBlock, num_rows[mip]);
 
                 D3D12_PLACED_SUBRESOURCE_FOOTPRINT slice = placedTex2D[mip];
                 slice.Offset += (pixels - pUploadHeap->BasePtr());
 
-                CD3DX12_TEXTURE_COPY_LOCATION Dst(m_pResource, a*m_header.mipMapCount + mip);
+                CD3DX12_TEXTURE_COPY_LOCATION Dst(m_pResource, a * m_header.mipMapCount + mip);
                 CD3DX12_TEXTURE_COPY_LOCATION Src(pUploadHeap->GetResource(), slice);
-                pUploadHeap->GetCommandList()->CopyTextureRegion(&Dst, 0, 0, 0, &Src, NULL);
+                pUploadHeap->AddCopy(Src, Dst);
             }
+
+            pUploadHeap->EndSuballocate();
         }
 
-        // prepare to shader read
-        //
-        D3D12_RESOURCE_BARRIER RBDesc = {};
-        RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-        RBDesc.Transition.pResource = m_pResource;
-        RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-        RBDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-        RBDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-
-        pUploadHeap->GetCommandList()->ResourceBarrier(1, &RBDesc);
+        pUploadHeap->AddBarrier(m_pResource);
     }
+
 
     //--------------------------------------------------------------------------------------
     // entry function to initialize an image from a .DDS texture
     //--------------------------------------------------------------------------------------
-    bool Texture::InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, const char *pFilename, bool useSRGB, float cutOff)
+    bool Texture::InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char* pFilename, bool useSRGB, float cutOff, D3D12_RESOURCE_FLAGS resourceFlags)
     {
         assert(m_pResource == NULL);
 
-        ImgLoader *img = GetImageLoader(pFilename);
+        ImgLoader* img = CreateImageLoader(pFilename);
         bool result = img->Load(pFilename, cutOff, &m_header);
         if (result)
         {
-            CreateTextureCommitted(pDevice, pFilename, useSRGB);
+            CreateTextureCommitted(pDevice, pFilename, useSRGB, resourceFlags);
             LoadAndUpload(pDevice, pUploadHeap, img, m_pResource);
         }
 

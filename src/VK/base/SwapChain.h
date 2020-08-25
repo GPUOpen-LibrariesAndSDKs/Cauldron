@@ -20,7 +20,7 @@
 #pragma once
 
 #include "Device.h"
-#include "FreeSync2.h"
+#include "FreeSyncHDR.h"
 
 namespace CAULDRON_VK
 {

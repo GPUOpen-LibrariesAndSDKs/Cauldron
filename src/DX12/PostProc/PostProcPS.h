@@ -40,8 +40,8 @@ namespace CAULDRON_DX12
             D3D12_BLEND_DESC *pBlendDesc = NULL,
             D3D12_DEPTH_STENCIL_DESC *pDepthStencilDesc = NULL,
             uint32_t numRenderTargets = 1,
-            const char *pVSTarget = "vs_5_0",
-            const char *pPSTarget = "ps_5_0"
+            const char *pVSTarget = "-T vs_6_0",
+            const char *pPSTarget = "-T ps_6_0"
         );
         void OnDestroy();
 
