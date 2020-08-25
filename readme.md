@@ -4,7 +4,7 @@ A simple framework for rapid prototyping on Vulkan or DirectX12.
 
 Cauldron was developed by AMD and is used internally to develop prototypes, demos and SDK samples.
 
-Cauldron is compiled as a static library, to see it in action check projects below.
+Cauldron is compiled as a static library. To see it in action check projects below.
 
 # Projects that feature Cauldron
 
@@ -131,10 +131,10 @@ Please feel free to [open an issue](TODO:LinkToGitHubRepoIssuesPage) for bug rep
 
 Cauldron should be very easy to extend, should you want to contribute to Cauldron, you can [open a merge request](TODO:LinkToGitHubRepoMergeRequestPage).
 
-# 3rd-Party Open Source Projects
+# 3rd-Party Open Source Projects Used
 
 - [ImGUI](https://github.com/ocornut/imgui)
-- [json](https://github.com/nlohmann/json)
+- [JSON for Modern C++](https://github.com/nlohmann/json)
 - [AMD GPU Services (AGS) SDK](https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)

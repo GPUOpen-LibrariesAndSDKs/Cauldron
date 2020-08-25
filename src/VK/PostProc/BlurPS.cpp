@@ -93,7 +93,7 @@ namespace CAULDRON_VK
 
         // Use helper class to create the fullscreen pass 
         //
-        m_directionalBlur.OnCreate(pDevice, m_in, "blur.glsl", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout);
+        m_directionalBlur.OnCreate(pDevice, m_in, "blur.glsl", "main", "", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout);
 
         // Allocate descriptors for the mip chain
         //

@@ -30,7 +30,9 @@ namespace CAULDRON_VK
         void OnCreate(
             Device* pDevice,
             VkRenderPass renderPass,
-            const std::string &string,
+            const std::string &shaderFilename,
+            const std::string &shaderEntryPoint,
+            const std::string &shaderCompilerParams,
             StaticBufferPool *pStaticBufferPool,
             DynamicBufferRing *pDynamicBufferRing,
             VkDescriptorSetLayout descriptorSetLayout,
@@ -44,6 +46,7 @@ namespace CAULDRON_VK
     private:
         Device* m_pDevice;
         std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
+        std::string m_fragmentShaderName;
 
         // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
         uint32_t m_NumIndices;

@@ -20,13 +20,32 @@
 
 namespace CAULDRON_DX12
 {
+    class ResourceViewHeaps;
+
     class PostProcCS
     {
     public:
         PostProcCS();
         ~PostProcCS();
 
-        void OnCreate(
+        struct CreateParams
+        {
+            Device*                    pDevice = nullptr;
+            ResourceViewHeaps*         pResourceViewHeaps = nullptr;
+            std::string                shaderFilename;
+            std::string                shaderEntryPoint;
+            std::string                strShaderCompilerParams;
+            uint32_t                   UAVTableSize;
+            uint32_t                   SRVTableSize;
+            uint32_t                   dwWidth, dwHeight, dwDepth;
+            DefineList*                userDefines = 0;
+            uint32_t                   numStaticSamplers = 0;
+            D3D12_STATIC_SAMPLER_DESC* pStaticSamplers = 0;
+        };
+
+        void OnCreate(const PostProcCS::CreateParams& params);
+
+        void OnCreate( // LEGACY OnCreate()
             Device *pDevice,
             ResourceViewHeaps *pResourceViewHeaps,
             const std::string &shaderFilename,

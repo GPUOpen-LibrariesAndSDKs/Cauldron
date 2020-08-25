@@ -34,6 +34,8 @@ public:
         VkResult Init();
         bool AddInstanceLayerName(const char *instanceLayerName);
         bool AddInstanceExtensionName(const char *instanceExtensionName);
+        void *GetNext() { return m_pNext; }
+        void SetNewNext(void *pNext) { m_pNext = pNext; }
 
         void GetExtensionNamesAndConfigs(std::vector<const char *> *pInstance_layer_names, std::vector<const char *> *pInstance_extension_names);
 private:

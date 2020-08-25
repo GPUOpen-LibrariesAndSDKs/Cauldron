@@ -27,7 +27,8 @@ namespace CAULDRON_VK
     // Crate/Destroys a Vulkan instance
     //
 
-    VkInstance CreateInstance(VkApplicationInfo app_info, bool usingValidationLayer);
+    bool CreateInstance(const char *pAppName, const char *pEngineName, VkInstance *pVulkanInstance, VkPhysicalDevice *pPhysicalDevice, InstanceProperties *pIp);
+    VkInstance CreateInstance(VkApplicationInfo app_info, InstanceProperties *pIp);
     void DestroyInstance(VkInstance instance);
 }
 

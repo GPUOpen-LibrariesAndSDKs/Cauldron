@@ -24,7 +24,7 @@
 
 namespace CAULDRON_VK
 {
-    bool ExtDebugReportCheckInstanceExtensions(InstanceProperties *pIP, void **pNext);
+    bool ExtDebugReportCheckInstanceExtensions(InstanceProperties *pIP);
     void ExtDebugReportGetProcAddresses(VkInstance instance);
 
     void ExtDebugReportOnCreate(VkInstance instance);

@@ -19,12 +19,12 @@
 #pragma once
 
 #include "vulkan/vulkan.h"
-#include "DeviceProperties.h"
+#include "InstanceProperties.h"
 
 namespace CAULDRON_VK
 {
     // helpers functions to use debug markers
     void ExtDebugUtilsGetProcAddresses(VkDevice device);
-    bool ExtDebugUtilsCheckDeviceExtensions(DeviceProperties *pDP);
+    bool ExtDebugUtilsCheckInstanceExtensions(InstanceProperties *pDP);
     void SetResourceName(VkDevice device, VkObjectType objectType, uint64_t handle, const char *pMsg);
 }

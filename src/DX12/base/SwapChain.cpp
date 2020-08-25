@@ -21,7 +21,7 @@
 #include "Helper.h"
 #include "Misc/Misc.h"
 #include "base/Device.h"
-#include "base/FreeSync2.h"
+#include "base/FreeSyncHDR.h"
 
 #include "SwapChain.h"
 #include "../common/Misc/DxgiFormatHelper.h"
@@ -42,11 +42,11 @@ namespace CAULDRON_DX12
         m_pDirectQueue = pDevice->GetGraphicsQueue();
         m_BackBufferCount = numberBackBuffers;
 
-        // Init FS2
-        fs2Init(pDevice->GetAGSContext(), pDevice->GetAGSGPUInfo(), hWnd);
+        // Init FS HDR
+        fsHdrInit(pDevice->GetAGSContext(), pDevice->GetAGSGPUInfo(), hWnd);
 
         // set some safe format to start with
-        m_swapChainFormat = fs2GetFormat(DISPLAYMODE_SDR);
+        m_swapChainFormat = fsHdrGetFormat(DISPLAYMODE_SDR);
 
         CreateDXGIFactory1(IID_PPV_ARGS(&m_pFactory));
 
@@ -119,13 +119,13 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     void SwapChain::EnumerateDisplayModes(std::vector<DisplayModes> *pModes, std::vector<const char *> *pNames)
     {
-        fs2EnumerateDisplayModes(pModes);
+        fsHdrEnumerateDisplayModes(pModes);
 
         if (pNames != NULL)
         {
             pNames->clear();
             for (DisplayModes mode : *pModes)
-                pNames->push_back(fs2GetDisplayModeString(mode));
+                pNames->push_back(fsHdrGetDisplayModeString(mode));
         }
     }
 
@@ -190,15 +190,15 @@ namespace CAULDRON_DX12
         bool bIsModeSupported = IsModeSupported(displayMode);
         if (bIsModeSupported == false)
         {
-            assert(!"FS2 display mode not supported");
+            assert(!"FS HDR display mode not supported");
             displayMode = DISPLAYMODE_SDR;
         }
 
         m_displayMode = displayMode;
-        m_swapChainFormat = fs2GetFormat(displayMode);
+        m_swapChainFormat = fsHdrGetFormat(displayMode);
         m_bVSyncOn = bVSyncOn;
 
-        // note that FS2 modes require to be in fullscreen mode!
+        // note that FS HDR modes require to be in fullscreen mode!
         BOOL isFullScreen;
         ThrowIfFailed(m_pSwapChain->GetFullscreenState(&isFullScreen, nullptr));
         if (m_displayMode != DISPLAYMODE_SDR)
@@ -216,7 +216,7 @@ namespace CAULDRON_DX12
                 m_descSwapChain.Flags)
         );
 
-        fs2SetDisplayMode(displayMode, disableLocalDimming);
+        fsHdrSetDisplayMode(displayMode, disableLocalDimming);
 
         // if SDR, convert add gamma for the swapchain format so blending is correct
         if (m_displayMode == DISPLAYMODE_SDR)

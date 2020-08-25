@@ -128,6 +128,9 @@ struct Output
     float4 diffuseColor : TARGET(HAS_DIFFUSE_RT);
 #endif
 
+#ifdef HAS_NORMALS_RT
+    float4 normals : TARGET(HAS_NORMALS_RT);
+#endif
 };
 
 Output mainPS(VS_OUTPUT_SCENE Input)
@@ -155,8 +158,12 @@ Output mainPS(VS_OUTPUT_SCENE Input)
 #endif
 
 #ifdef HAS_FORWARD_RT
-        output.finalColor = float4(doPbrLighting(Input, myPerFrame, diffuseColor, specularColor, perceptualRoughness), alpha);
+    output.finalColor = float4(doPbrLighting(Input, myPerFrame, diffuseColor, specularColor, perceptualRoughness), alpha);
 #endif            
+
+#ifdef HAS_NORMALS_RT
+    output.normals = float4((getPixelNormal(Input) + 1) / 2, 0);
+#endif
     
     return output;
 }

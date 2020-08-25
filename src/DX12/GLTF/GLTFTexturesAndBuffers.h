@@ -53,18 +53,22 @@ namespace CAULDRON_DX12
         StaticBufferPool *m_pStaticBufferPool;
         DynamicBufferRing *m_pDynamicBufferRing;
 
+        // maps GLTF ids into views
+        std::map<int, D3D12_VERTEX_BUFFER_VIEW> m_vertexBufferMap;
+        std::map<int, D3D12_INDEX_BUFFER_VIEW> m_IndexBufferMap;
+
     public:
         GLTFCommon *m_pGLTFCommon;
 
         D3D12_GPU_VIRTUAL_ADDRESS m_perFrameConstants;
 
         bool OnCreate(Device* pDevice, GLTFCommon *pGLTFCommon, UploadHeap* pUploadHeap, StaticBufferPool *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
-        void LoadTextures();
+        void LoadTextures(AsyncPool *pAsyncPool = NULL);
+        void LoadGeometry();
         void OnDestroy();
 
-        void CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, DXGI_FORMAT *pIndexType, D3D12_INDEX_BUFFER_VIEW *pIBV);
-        void CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry);
-
+        void CreateIndexBuffer(int indexBufferId, uint32_t *pNumIndices, DXGI_FORMAT *pIndexType, D3D12_INDEX_BUFFER_VIEW *pIBV);
+        void CreateGeometry(int indexBufferId, std::vector<int> &vertexBufferIds, Geometry *pGeometry);
         void CreateGeometry(const json &primitive, const std::vector<std::string > requiredAttributes, std::vector<std::string> &semanticNames, std::vector<D3D12_INPUT_ELEMENT_DESC> &layout, DefineList &defines, Geometry *pGeometry);
 
         void SetPerFrameConstants();

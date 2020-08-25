@@ -21,7 +21,7 @@
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
 #include "Base/UploadHeap.h"
-#include "Base/Freesync2.h"
+#include "Base/FreesyncHDR.h"
 #include "Misc/ColorConversion.h"
 #include "ColorConversionPS.h"
 
@@ -62,7 +62,7 @@ namespace CAULDRON_DX12
 
         if (displayMode != DISPLAYMODE_SDR)
         {
-            const AGSDisplayInfo *agsDisplayInfo = fs2GetDisplayInfo();
+            const AGSDisplayInfo *agsDisplayInfo = fsHdrGetDisplayInfo();
 
             m_colorConversionConsts.m_displayMinLuminancePerNits = (float)agsDisplayInfo->minLuminance / 80.0f; // RGB(1, 1, 1) maps to 80 nits in scRGB;
             m_colorConversionConsts.m_displayMaxLuminancePerNits = (float)agsDisplayInfo->maxLuminance / 80.0f; // This means peak white equals RGB(m_maxLuminanace/80.0f, m_maxLuminanace/80.0f, m_maxLuminanace/80.0f) in scRGB;

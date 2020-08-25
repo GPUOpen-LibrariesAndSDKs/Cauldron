@@ -43,20 +43,22 @@ double MillisecondsNow()
     return milliseconds;
 }
 
-//
-// Compute a hash of an array
-//
-size_t Hash(const void *ptr, size_t size, size_t result)
+class MessageBuffer
 {
-    for (size_t i = 0; i < size; ++i)
+public:
+    MessageBuffer(size_t len) :
+        m_dynamic(len > STATIC_LEN ? len : 0),
+        m_ptr(len > STATIC_LEN ? m_dynamic.data() : m_static)
     {
-        result = (result * 16777619) ^ ((char *)ptr)[i];
     }
+    char* Data() { return m_ptr; }
 
-    return result;
-}
-
-
+private:
+    static const size_t STATIC_LEN = 256;
+    char m_static[STATIC_LEN];
+    std::vector<char> m_dynamic;
+    char* m_ptr;
+};
 
 //
 // Formats a string
@@ -67,16 +69,16 @@ std::string format(const char* format, ...)
     va_start(args, format);
 #ifndef _MSC_VER
     size_t size = std::snprintf(nullptr, 0, format, args) + 1; // Extra space for '\0'
-    std::unique_ptr<char[]> buf(new char[size]);
-    std::vsnprintf(buf.get(), size, format, args);
+    MessageBuffer buf(size);
+    std::vsnprintf(buf.Data(), size, format, args);
     va_end(args);
-    return std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+    return std::string(buf.Data(), buf.Data() + size - 1); // We don't want the '\0' inside
 #else
-    int size = _vscprintf(format, args);
-    std::string result(++size, 0);
-    vsnprintf_s((char*)result.data(), size, _TRUNCATE, format, args);
+    const size_t size = (size_t)_vscprintf(format, args) + 1;
+    MessageBuffer buf(size);
+    vsnprintf_s(buf.Data(), size, _TRUNCATE, format, args);
     va_end(args);
-    return result;
+    return std::string(buf.Data(), buf.Data() + size - 1);
 #endif
 }
 
@@ -92,17 +94,17 @@ void Trace(const char* pFormat, ...)
     std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
 
-    constexpr uint32_t MaxBufferSize = 20480;
-    char str[MaxBufferSize];
     va_list args;
 
     // generate formatted string
     va_start(args, pFormat);
-    vsnprintf_s(str, MaxBufferSize, pFormat, args);
+    const size_t bufLen = (size_t)_vscprintf(pFormat, args) + 2;
+    MessageBuffer buf(bufLen);
+    vsnprintf_s(buf.Data(), bufLen, bufLen, pFormat, args);
     va_end(args);
-    strcat_s(str, "\n");
+    strcat_s(buf.Data(), bufLen, "\n");
 
-    OutputDebugStringA(str);
+    OutputDebugStringA(buf.Data());
 }
 
 //
@@ -113,8 +115,7 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
     FILE *file;
 
     //Open file
-    fopen_s(&file, name, isbinary ? "rb" : "r");
-    if (!file)
+    if (fopen_s(&file, name, isbinary ? "rb" : "r") != 0)
     {
         return false;
     }
@@ -129,7 +130,7 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
         fileLen++;
 
     //Allocate memory
-    char *buffer = (char *)malloc(fileLen);
+    char *buffer = (char *)malloc(std::max<size_t>(fileLen, 1));
     if (!buffer)
     {
         fclose(file);
@@ -137,7 +138,11 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
     }
 
     //Read file contents into buffer
-    size_t bytesRead = fread(buffer, 1, fileLen, file);
+    size_t bytesRead = 0;
+    if(fileLen > 0)
+    {
+        bytesRead = fread(buffer, 1, fileLen, file);
+    }
     fclose(file);
 
     if (!isbinary)
@@ -156,8 +161,7 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
 bool SaveFile(const char *name, void const*data, size_t size, bool isbinary)
 {
     FILE *file;
-    fopen_s(&file, name, isbinary ? "wb" : "w");
-    if (file != NULL)
+    if (fopen_s(&file, name, isbinary ? "wb" : "w") == 0)
     {
         fwrite(data, size, 1, file);
         fclose(file);
@@ -172,12 +176,12 @@ bool SaveFile(const char *name, void const*data, size_t size, bool isbinary)
 //
 // Launch a process, captures stderr into a file
 //
-bool LaunchProcess(const std::string &commandLine, const std::string &filenameErr)
+bool LaunchProcess(const char* commandLine, const char* filenameErr)
 {
     char cmdLine[1024];
-    strcpy_s<1024>(cmdLine, commandLine.c_str());
+    strcpy_s<1024>(cmdLine, commandLine);
 
-    // create a pipe to get possible errors from the compiler
+    // create a pipe to get possible errors from the process
     //
     HANDLE g_hChildStd_OUT_Rd = NULL;
     HANDLE g_hChildStd_OUT_Wr = NULL;
@@ -189,7 +193,7 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
     if (!CreatePipe(&g_hChildStd_OUT_Rd, &g_hChildStd_OUT_Wr, &saAttr, 0))
         return false;
 
-    // launch compiler
+    // launch process
     //
     PROCESS_INFORMATION pi = {};
     STARTUPINFOA si = {};
@@ -209,15 +213,15 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
         {
             if (rc == 0)
             {
-                DeleteFileA(filenameErr.c_str());
+                DeleteFileA(filenameErr);
                 return true;
             }
             else
             {
-                Trace(format("*** Process %s returned an error, see %s ***\n\n", cmdLine, filenameErr.c_str()));
+                Trace(format("*** Process %s returned an error, see %s ***\n\n", commandLine, filenameErr));
 
                 // save errors to disk
-                std::ofstream ofs(filenameErr.c_str(), std::ofstream::out);
+                std::ofstream ofs(filenameErr, std::ofstream::out);
 
                 for (;;)
                 {
@@ -242,37 +246,30 @@ bool LaunchProcess(const std::string &commandLine, const std::string &filenameEr
     }
     else
     {
-        Trace(format("*** Can't launch: %s \n", cmdLine));
+        Trace(format("*** Can't launch: %s \n", commandLine));
     }
 
     return false;
 }
 
-void GetXYZ(float *f, const XMVECTOR v)
-{
-    f[0] = XMVectorGetX(v);
-    f[1] = XMVectorGetY(v);
-    f[2] = XMVectorGetZ(v);
-}
-
 //
 // Frustrum culls an AABB. The culling is done in clip space. 
 //
-bool FrustumCulled(const XMMATRIX mCameraViewProj, const XMVECTOR center, const XMVECTOR extent)
+bool CameraFrustumToBoxCollision(const XMMATRIX mCameraViewProj, const XMVECTOR boxCenter, const XMVECTOR boxExtent)
 {
-    float ex = XMVectorGetX(extent);
-    float ey = XMVectorGetY(extent);
-    float ez = XMVectorGetZ(extent);
+    float ex = XMVectorGetX(boxExtent);
+    float ey = XMVectorGetY(boxExtent);
+    float ez = XMVectorGetZ(boxExtent);
 
     XMVECTOR p[8];
-    p[0] = XMVector4Transform((center + XMVectorSet(ex, ey, ez, 0)), mCameraViewProj);
-    p[1] = XMVector4Transform((center + XMVectorSet(ex, ey, -ez, 0)), mCameraViewProj);
-    p[2] = XMVector4Transform((center + XMVectorSet(ex, -ey, ez, 0)), mCameraViewProj);
-    p[3] = XMVector4Transform((center + XMVectorSet(ex, -ey, -ez, 0)), mCameraViewProj);
-    p[4] = XMVector4Transform((center + XMVectorSet(-ex, ey, ez, 0)), mCameraViewProj);
-    p[5] = XMVector4Transform((center + XMVectorSet(-ex, ey, -ez, 0)), mCameraViewProj);
-    p[6] = XMVector4Transform((center + XMVectorSet(-ex, -ey, ez, 0)), mCameraViewProj);
-    p[7] = XMVector4Transform((center + XMVectorSet(-ex, -ey, -ez, 0)), mCameraViewProj);
+    p[0] = XMVector4Transform((boxCenter + XMVectorSet(ex, ey, ez, 0)), mCameraViewProj);
+    p[1] = XMVector4Transform((boxCenter + XMVectorSet(ex, ey, -ez, 0)), mCameraViewProj);
+    p[2] = XMVector4Transform((boxCenter + XMVectorSet(ex, -ey, ez, 0)), mCameraViewProj);
+    p[3] = XMVector4Transform((boxCenter + XMVectorSet(ex, -ey, -ez, 0)), mCameraViewProj);
+    p[4] = XMVector4Transform((boxCenter + XMVectorSet(-ex, ey, ez, 0)), mCameraViewProj);
+    p[5] = XMVector4Transform((boxCenter + XMVectorSet(-ex, ey, -ez, 0)), mCameraViewProj);
+    p[6] = XMVector4Transform((boxCenter + XMVectorSet(-ex, -ey, ez, 0)), mCameraViewProj);
+    p[7] = XMVector4Transform((boxCenter + XMVectorSet(-ex, -ey, -ez, 0)), mCameraViewProj);
 
     uint32_t left = 0;
     uint32_t right = 0;
@@ -293,9 +290,5 @@ bool FrustumCulled(const XMMATRIX mCameraViewProj, const XMVECTOR center, const 
         if (z < 0) back++;
     }
 
-    if (left == 8 || right == 8 || top == 8 || bottom == 8 || back == 8)
-        return true;
-
-    return false;
+    return left == 8 || right == 8 || top == 8 || bottom == 8 || back == 8;
 }
-

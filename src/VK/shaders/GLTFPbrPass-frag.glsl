@@ -66,6 +66,10 @@ layout (location = 0) in VS2PS Input;
     layout (location = ID_DIFFUSE_RT) out vec4 Output_diffuseColor;
 #endif
 
+#ifdef ID_NORMALS_RT
+    layout (location = ID_NORMALS_RT) out vec4 Output_normal;
+#endif
+
 //--------------------------------------------------------------------------------------
 //
 // Constant Buffers 
@@ -124,7 +128,11 @@ void main()
 #endif
 
 #ifdef ID_DIFFUSE_RT
-    Output_diffuseColor = diffuseColor;
+    Output_diffuseColor = vec4(diffuseColor, 0);
+#endif
+
+#ifdef ID_NORMALS_RT
+    Output_normal = vec4((getPixelNormal(Input) + 1) / 2, 0);
 #endif
 
 #ifdef ID_FORWARD_RT

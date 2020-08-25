@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Device.h"
+#include "Misc/Async.h"
 
 namespace CAULDRON_VK
 {
@@ -29,18 +30,34 @@ namespace CAULDRON_VK
     //
     class UploadHeap
     {
+        Sync allocating, flushing;
+        struct COPY
+        {
+            VkImage m_image; VkBufferImageCopy m_bufferImageCopy;
+        };
+        std::vector<COPY> m_copies;
+
+        std::vector<VkImageMemoryBarrier> m_toPreBarrier;
+        std::vector<VkImageMemoryBarrier> m_toPostBarrier;
+
+        std::mutex m_mutex;
     public:
         void OnCreate(Device *pDevice, SIZE_T uSize);
         void OnDestroy();
 
         UINT8* Suballocate(SIZE_T uSize, UINT64 uAlign);
-
+        UINT8* BeginSuballocate(SIZE_T uSize, UINT64 uAlign);
+        void EndSuballocate();
         UINT8* BasePtr() { return m_pDataBegin; }
         VkBuffer GetResource() { return m_buffer; }
         VkCommandBuffer GetCommandList() { return m_pCommandBuffer; }
 
+        void AddCopy(VkImage image, VkBufferImageCopy bufferImageCopy);
+        void AddPreBarrier(VkImageMemoryBarrier imageMemoryBarrier);
+        void AddPostBarrier(VkImageMemoryBarrier imageMemoryBarrier);
+
         void Flush();
-        void FlushAndFinish();
+        void FlushAndFinish(bool bDoBarriers=false);
 
     private:
 
@@ -57,6 +74,5 @@ namespace CAULDRON_VK
         UINT8* m_pDataBegin = nullptr;    // starting position of upload heap
         UINT8* m_pDataCur   = nullptr;      // current position of upload heap
         UINT8* m_pDataEnd   = nullptr;      // ending position of upload heap 
-
     };
 }

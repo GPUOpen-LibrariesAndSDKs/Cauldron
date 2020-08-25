@@ -41,7 +41,7 @@ namespace CAULDRON_VK
 
         // Allocates a IB/VB and fill it with pInitData, returns a descriptor
         //
-        bool AllocBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void *pInitData, VkDescriptorBufferInfo *pOut);
+        bool AllocBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, const void *pInitData, VkDescriptorBufferInfo *pOut);
 
         // if using vidmem this kicks the upload from the upload heap to the video mem
         void UploadData(VkCommandBuffer cmd_buf);

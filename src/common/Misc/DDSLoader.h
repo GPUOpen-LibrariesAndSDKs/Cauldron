@@ -26,12 +26,12 @@
 class DDSLoader : public ImgLoader
 {
 public:
-    ~DDSLoader() {}
+    ~DDSLoader();
     bool Load(const char *pFilename, float cutOff, IMG_INFO *pInfo);
     // after calling Load, calls to CopyPixels return each time a lower mip level 
     void CopyPixels(void *pDest, uint32_t stride, uint32_t width, uint32_t height);
 private:
-    HANDLE m_handle;
+    HANDLE m_handle = INVALID_HANDLE_VALUE;
 };
 
 

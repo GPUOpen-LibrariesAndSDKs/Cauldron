@@ -31,21 +31,19 @@ namespace CAULDRON_DX12
     class Device
     {
     public:
-        Device();
-        ~Device();
-
-        void Device::OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd);
+        void OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, bool bGpuValidationEnabled, HWND hWnd);
         void OnDestroy();
 
         ID3D12Device *GetDevice() { return m_pDevice; }
         IDXGIAdapter *GetAdapter() { return m_pAdapter; }
         ID3D12CommandQueue *GetGraphicsQueue() { return m_pDirectQueue; }
         ID3D12CommandQueue *GetComputeQueue() { return m_pComputeQueue; }
+        void GetDeviceInfo(std::string *deviceName, std::string *driverVersion);
 
         AGSContext *GetAGSContext() { return m_agsContext; }
         AGSGPUInfo *GetAGSGPUInfo() { return &m_agsGPUInfo; }
 
-        bool IsFp16Supported() { return m_fp16Supported; };
+        bool IsFp16Supported() { return m_fp16Supported; }
 
         void CreatePipelineCache();
         void DestroyPipelineCache();

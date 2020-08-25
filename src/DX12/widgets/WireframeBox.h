@@ -36,14 +36,14 @@ namespace CAULDRON_DX12
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool)
         {
-            std::vector<short> indices;
+            std::vector<unsigned short> indices;
             std::vector<float> vertices;
 
             GenerateBox(indices, vertices);
 
             // set indices
             m_NumIndices = (uint32_t)indices.size();
-            pStaticBufferPool->AllocIndexBuffer(m_NumIndices, sizeof(short), indices.data(), &m_IBV);
+            pStaticBufferPool->AllocIndexBuffer(m_NumIndices, sizeof(unsigned short), indices.data(), &m_IBV);
             pStaticBufferPool->AllocVertexBuffer((uint32_t)(vertices.size() / 3), 3 * sizeof(float), vertices.data(), &m_VBV);
         }
 

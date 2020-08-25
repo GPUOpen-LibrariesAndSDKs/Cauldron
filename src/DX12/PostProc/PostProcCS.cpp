@@ -23,6 +23,11 @@
 #include "../Base/ShaderCompilerHelper.h"
 #include "PostProcCS.h"
 
+#if _DEBUG
+#define DEFAULT_SHADER_COMPILE_FLAGS  "-T cs_6_0 /Zi /Zss"
+#else
+#define DEFAULT_SHADER_COMPILE_FLAGS  "-T cs_6_0"
+#endif
 
 namespace CAULDRON_DX12
 {
@@ -47,20 +52,39 @@ namespace CAULDRON_DX12
         D3D12_STATIC_SAMPLER_DESC* pStaticSamplers
     )
     {
-        m_pDevice = pDevice;
+        CreateParams params = {};
+        params.pDevice = pDevice;
+        params.pResourceViewHeaps = pResourceViewHeaps;
+        params.shaderFilename = shaderFilename;
+        params.shaderEntryPoint = shaderEntryPoint;
+        params.UAVTableSize = UAVTableSize;
+        params.SRVTableSize = SRVTableSize;
+        params.dwWidth  = dwWidth;
+        params.dwHeight = dwHeight;
+        params.dwDepth  = dwDepth;
+        params.userDefines = 0;
+        params.numStaticSamplers = 0;
+        params.pStaticSamplers = 0;
+        params.strShaderCompilerParams = DEFAULT_SHADER_COMPILE_FLAGS;
+        this->OnCreate(params);
+    }
 
-        m_pResourceViewHeaps = pResourceViewHeaps;
+    void PostProcCS::OnCreate(const PostProcCS::CreateParams& params)
+    {
+        m_pDevice = params.pDevice;
+
+        m_pResourceViewHeaps = params.pResourceViewHeaps;
 
         // Compile shaders
         //
         D3D12_SHADER_BYTECODE shaderByteCode = {};
         DefineList defines;
-        if (userDefines)
-            defines = *userDefines;
-        defines["WIDTH"] = std::to_string(dwWidth);
-        defines["HEIGHT"] = std::to_string(dwHeight);
-        defines["DEPTH"] = std::to_string(dwDepth);
-        bool bCompile = CompileShaderFromFile(shaderFilename.c_str(), &defines, shaderEntryPoint.c_str(), "cs_6_0", 0, &shaderByteCode);
+        if (params.userDefines)
+            defines = *params.userDefines;
+        defines["WIDTH" ] = std::to_string(params.dwWidth);
+        defines["HEIGHT"] = std::to_string(params.dwHeight);
+        defines["DEPTH" ] = std::to_string(params.dwDepth);
+        bool bCompile = CompileShaderFromFile(params.shaderFilename.c_str(), &defines, params.shaderEntryPoint.c_str(), params.strShaderCompilerParams.c_str(), &shaderByteCode);
 
         // Create root signature
         //
@@ -74,16 +98,16 @@ namespace CAULDRON_DX12
             RTSlot[parameterCount++].InitAsConstantBufferView(0, 0, D3D12_SHADER_VISIBILITY_ALL);
 
             // if we have a UAV table
-            if (UAVTableSize > 0)
+            if (params.UAVTableSize > 0)
             {
-                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, UAVTableSize, 0);
+                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, params.UAVTableSize, 0);
                 RTSlot[parameterCount++].InitAsDescriptorTable(1, &DescRange[1], D3D12_SHADER_VISIBILITY_ALL);
             }
 
             // if we have a SRV table
-            if (SRVTableSize > 0)
+            if (params.SRVTableSize > 0)
             {
-                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, SRVTableSize, 0);
+                DescRange[parameterCount].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, params.SRVTableSize, 0);
                 RTSlot[parameterCount++].InitAsDescriptorTable(1, &DescRange[2], D3D12_SHADER_VISIBILITY_ALL);
             }
 
@@ -91,8 +115,8 @@ namespace CAULDRON_DX12
             CD3DX12_ROOT_SIGNATURE_DESC descRootSignature = CD3DX12_ROOT_SIGNATURE_DESC();
             descRootSignature.NumParameters = parameterCount;
             descRootSignature.pParameters = RTSlot;
-            descRootSignature.NumStaticSamplers = numStaticSamplers;
-            descRootSignature.pStaticSamplers = pStaticSamplers;
+            descRootSignature.NumStaticSamplers = params.numStaticSamplers;
+            descRootSignature.pStaticSamplers = params.pStaticSamplers;
 
             // deny uneccessary access to certain pipeline stages   
             descRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
@@ -100,9 +124,9 @@ namespace CAULDRON_DX12
             ID3DBlob *pOutBlob, *pErrorBlob = NULL;
             ThrowIfFailed(D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &pOutBlob, &pErrorBlob));
             ThrowIfFailed(
-                pDevice->GetDevice()->CreateRootSignature(0, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature))
+                m_pDevice->GetDevice()->CreateRootSignature(0, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&m_pRootSignature))
             );
-            SetName(m_pRootSignature, std::string("PostProcCS::m_pRootSignature::") + shaderFilename);
+            SetName(m_pRootSignature, std::string("PostProcCS::m_pRootSignature::") + params.shaderFilename);
 
             pOutBlob->Release();
             if (pErrorBlob)
@@ -116,10 +140,11 @@ namespace CAULDRON_DX12
             descPso.pRootSignature = m_pRootSignature;
             descPso.NodeMask = 0;
 
-            ThrowIfFailed(pDevice->GetDevice()->CreateComputePipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline)));
-            SetName(m_pRootSignature, std::string("PostProcCS::m_pPipeline::") + shaderFilename);
+            ThrowIfFailed(m_pDevice->GetDevice()->CreateComputePipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline)));
+            SetName(m_pRootSignature, std::string("PostProcCS::m_pPipeline::") + params.shaderFilename);
         }
     }
+
 
     void PostProcCS::OnDestroy()
     {

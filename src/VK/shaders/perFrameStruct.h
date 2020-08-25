@@ -46,12 +46,13 @@ const int LightType_Spot = 2;
 struct PerFrame
 {
     mat4          u_CameraViewProj;
-	mat4          u_mCameraViewProjInverse;
+    mat4          u_mCameraViewProjInverse;
     vec4          u_CameraPos;
     float         u_iblFactor;
     float         u_EmissiveFactor;
+    vec2          u_invScreenResolution;
 
-    int           padding;
+    vec3          u_padding;
     int           u_lightCount;
     Light         u_lights[4];
 };

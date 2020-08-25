@@ -82,8 +82,8 @@ namespace CAULDRON_DX12
 
         D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
         {
-            CompileShaderFromString(vertexShader, NULL, "mainVS", "vs_5_0", 0, 0, &shaderVert);
-            CompileShaderFromString(pixelShader, NULL, "mainPS", "ps_5_0", 0, 0, &shaderPixel);
+            CompileShaderFromString(vertexShader, NULL, "mainVS", "-T vs_6_0", &shaderVert);
+            CompileShaderFromString(pixelShader, NULL, "mainPS", "-T ps_6_0", &shaderPixel);
         }
 
         /////////////////////////////////////////////

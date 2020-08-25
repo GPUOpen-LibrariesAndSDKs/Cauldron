@@ -29,8 +29,8 @@ namespace CAULDRON_VK
     struct PBRMaterial
     {
         int m_textureCount = 0;
-        VkDescriptorSet m_texturesDescriptorSet;
-        VkDescriptorSetLayout m_descriptorLayout;
+        VkDescriptorSet m_texturesDescriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_texturesDescriptorSetLayout = VK_NULL_HANDLE;
 
         PBRMaterialParameters m_pbrMaterialParameters;
     };
@@ -42,10 +42,10 @@ namespace CAULDRON_VK
         PBRMaterial *m_pMaterial = NULL;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout m_pipelineLayout;
+        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
-        VkDescriptorSet m_descriptorSet;
-        VkDescriptorSetLayout m_descriptorLayout;
+        VkDescriptorSet m_uniformsDescriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_uniformsDescriptorSetLayout = VK_NULL_HANDLE;
 
         void DrawPrimitive(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo perSceneDesc, VkDescriptorBufferInfo perObjectDesc, VkDescriptorBufferInfo *pPerSkeleton);
     };
@@ -74,15 +74,19 @@ namespace CAULDRON_VK
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
+            bool bUseSSAOMask,
             VkImageView ShadowMapView,
             bool bExportForwardPass,
             bool bExportSpecularRoughness,
             bool bExportDiffuseColor,
-            VkSampleCountFlagBits sampleCount
+            bool bExportNormals,
+            VkSampleCountFlagBits sampleCount,
+            AsyncPool *pAsyncPool = NULL
         );
 
         void OnDestroy();
         void Draw(VkCommandBuffer cmd_buf);
+        void OnUpdateWindowSizeDependentResources(VkImageView SSAO);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
 
@@ -98,18 +102,18 @@ namespace CAULDRON_VK
         PBRMaterial m_defaultMaterial;
 
         Device* m_pDevice;
-        VkRenderPass m_renderPass;
+        VkRenderPass m_renderPass = VK_NULL_HANDLE;
         VkSampleCountFlagBits m_sampleCount;
-        VkSampler m_samplerPbr, m_samplerShadow;
+        VkSampler m_samplerPbr = VK_NULL_HANDLE, m_samplerShadow = VK_NULL_HANDLE;
 
         // PBR Brdf
         Texture m_brdfLutTexture;
-        VkImageView m_brdfLutView;
-        VkSampler m_brdfLutSampler;
+        VkImageView m_brdfLutView = VK_NULL_HANDLE;
+        VkSampler m_brdfLutSampler = VK_NULL_HANDLE;
 
-        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, VkImageView ShadowMapView);
-        void CreateDescriptors(Device *pDevice, int inverseMatrixBufferSize, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive);
-        void CreatePipeline(Device *pDevice, std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
+        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, VkImageView ShadowMapView, bool bUseSSAOMask);
+        void CreateDescriptors(int inverseMatrixBufferSize, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);
+        void CreatePipeline(std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };
 }
 

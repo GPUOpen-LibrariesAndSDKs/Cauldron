@@ -30,10 +30,10 @@ public:
     uint32_t GetWidth() { return m_Width; }
     uint32_t GetHeight() { return m_Height; }
 
-    virtual void OnActivate(bool windowActive) {};
+    virtual void OnActivate(bool windowActive) {}
 
     // Pure virtual functions
-
+    virtual void OnParseCommandLine(LPSTR lpCmdLine, uint32_t* pWidth, uint32_t* pHeight, bool *pbFullScreen) = 0;
     virtual void OnCreate(HWND hWnd) = 0;
     virtual void OnDestroy() = 0;
     virtual void OnRender() = 0;
@@ -51,4 +51,4 @@ protected:
 };
 
 
-int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, uint32_t Width, uint32_t Height, FrameworkWindows *pFramework);
+int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWindows *pFramework);

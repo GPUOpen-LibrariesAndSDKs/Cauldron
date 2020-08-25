@@ -52,7 +52,7 @@ layout (location = 0) in VS2PS Input;
 
 void main()
 {
-    //discardPixelIfAlphaCutOff(Input);
+    discardPixelIfAlphaCutOff(Input);
 
 #ifdef HAS_MOTION_VECTORS
     motionVect = Input.CurrPosition.xy / Input.CurrPosition.w -

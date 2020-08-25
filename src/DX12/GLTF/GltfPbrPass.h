@@ -80,16 +80,21 @@ namespace CAULDRON_DX12
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
+            bool bUseSSAOMask,
             bool bUseShadowMask,
             DXGI_FORMAT outForwardFormat,
             DXGI_FORMAT outSpecularRoughnessFormat,
             DXGI_FORMAT outDiffuseColor,
-            uint32_t sampleDescCount);
+            DXGI_FORMAT outNormals,
+            uint32_t sampleDescCount,
+            AsyncPool *pAsyncPool = NULL);
 
         void OnDestroy();
+        void OnUpdateWindowSizeDependentResources(Texture *pSSAO);
         void BuildLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
         void Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV);
     private:
+        Device *m_pDevice;
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
 
         ResourceViewHeaps *m_pResourceViewHeaps;
@@ -110,9 +115,9 @@ namespace CAULDRON_DX12
         std::vector<DXGI_FORMAT> m_outFormats;
         uint32_t m_sampleCount;
 
-        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, bool bUseShadowMask);
-        void CreateDescriptors(ID3D12Device* pDevice, bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive);
-        void CreatePipeline(ID3D12Device* pDevice, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
+        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, bool bUseShadowMask, bool bUseSSAOMask);
+        void CreateDescriptors(bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);
+        void CreatePipeline(std::vector<D3D12_INPUT_ELEMENT_DESC> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };
 }
 

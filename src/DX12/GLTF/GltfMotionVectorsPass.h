@@ -71,12 +71,14 @@ namespace CAULDRON_DX12
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             DXGI_FORMAT motionVectorsBufferFormat,
-            DXGI_FORMAT normalBufferFormat = DXGI_FORMAT_UNKNOWN);
+            DXGI_FORMAT normalBufferFormat = DXGI_FORMAT_UNKNOWN,
+            AsyncPool *pAsyncPool = NULL);
 
         void OnDestroy();
         GltfMotionVectorsPass::per_frame *SetPerFrameConstants();
         void Draw(ID3D12GraphicsCommandList* pCommandList);
     private:
+        Device *m_pDevice;
         ResourceViewHeaps *m_pResourceViewHeaps;
         DynamicBufferRing *m_pDynamicBufferRing;
         StaticBufferPool *m_pStaticBufferPool;
@@ -93,7 +95,7 @@ namespace CAULDRON_DX12
         DXGI_FORMAT m_normalBufferFormat;
         DXGI_FORMAT m_motionVectorsBufferFormat;
 
-        void CreatePipeline(ID3D12Device* pDevice, bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, MotionVectorPrimitives *pPrimitive);
+        void CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, MotionVectorPrimitives *pPrimitive);
     };
 }
 

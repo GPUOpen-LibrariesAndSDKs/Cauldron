@@ -282,9 +282,30 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     // create a comitted resource using m_header
     //--------------------------------------------------------------------------------------
-    VkImage Texture::CreateTextureCommitted(Device* pDevice, UploadHeap* pUploadHeap, const char *pName, bool useSRGB)
+    VkImage Texture::CreateTextureCommitted(Device *pDevice, UploadHeap *pUploadHeap, const char *pName, bool useSRGB, VkImageUsageFlags usageFlags)
     {
-        m_header.format = SetFormatGamma(m_header.format, useSRGB);
+        VkImageCreateInfo info = {};
+
+        if (useSRGB && ((usageFlags & VK_IMAGE_USAGE_STORAGE_BIT) != 0))
+        {
+            // the storage bit is not supported for srgb formats
+            // we can still use the srgb format on an image view if the access is read-only
+            // for write access, we need to use an image view with unorm format
+            // this is ok as srgb and unorm formats are compatible with each other
+            VkImageFormatListCreateInfo formatListInfo = {};
+            formatListInfo.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO;
+            formatListInfo.viewFormatCount = 2;
+            VkFormat list[2];
+            list[0] = TranslateDxgiFormatIntoVulkans(m_header.format);
+            list[1] = TranslateDxgiFormatIntoVulkans(SetFormatGamma(m_header.format, useSRGB));
+            formatListInfo.pViewFormats = list;
+
+            info.pNext = &formatListInfo;
+            info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+        }
+        else {
+            m_header.format = SetFormatGamma(m_header.format, useSRGB);
+        }
 
         m_format = TranslateDxgiFormatIntoVulkans((DXGI_FORMAT)m_header.format);
 
@@ -292,7 +313,6 @@ namespace CAULDRON_VK
 
         // Create the Image:
         {
-            VkImageCreateInfo info = {};
             info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
             info.imageType = VK_IMAGE_TYPE_2D;
             info.format = m_format;
@@ -305,7 +325,7 @@ namespace CAULDRON_VK
                 info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
             info.samples = VK_SAMPLE_COUNT_1_BIT;
             info.tiling = VK_IMAGE_TILING_OPTIMAL;
-            info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | usageFlags;
             info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
             info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
@@ -347,7 +367,7 @@ namespace CAULDRON_VK
         return tex;
     }
 
-    void Texture::LoadAndUpload(Device* pDevice, UploadHeap* pUploadHeap, ImgLoader *pDds, VkImage pTexture2D)
+    void Texture::LoadAndUpload(Device *pDevice, UploadHeap *pUploadHeap, ImgLoader *pDds, VkImage pTexture2D)
     {
         // Upload Image
         {
@@ -363,15 +383,16 @@ namespace CAULDRON_VK
             copy_barrier.subresourceRange.baseMipLevel = 0;
             copy_barrier.subresourceRange.levelCount = m_header.mipMapCount;
             copy_barrier.subresourceRange.layerCount = m_header.arraySize;
-            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &copy_barrier);
+            pUploadHeap->AddPreBarrier(copy_barrier);
         }
 
         //compute pixel size
         //
-        UINT32 bytePP = m_header.bitCount / 8;
+        UINT32 bytesPerPixel = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
+        UINT32 pixelsPerBlock = 1;
         if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
         {
-            bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format);
+            pixelsPerBlock = 4*4; // BC formats have 4*4 pixels per block
         }
 
         for (uint32_t a = 0; a < m_header.arraySize; a++)
@@ -383,20 +404,22 @@ namespace CAULDRON_VK
                 uint32_t dwWidth = std::max<uint32_t>(m_header.width >> mip, 1);
                 uint32_t dwHeight = std::max<uint32_t>(m_header.height >> mip, 1);
 
-                UINT8* pixels = NULL;
-                UINT64 UplHeapSize = dwWidth * dwHeight * 4;
-                pixels = pUploadHeap->Suballocate(UplHeapSize, 512);
+                UINT64 UplHeapSize = (dwWidth * dwHeight * bytesPerPixel) / pixelsPerBlock;
+                UINT8 *pixels = pUploadHeap->BeginSuballocate(SIZE_T(UplHeapSize), 512);
+
                 if (pixels == NULL)
                 {
                     // oh! We ran out of mem in the upload heap, flush it and try allocating mem from it again
-                    pUploadHeap->FlushAndFinish();
+                    pUploadHeap->FlushAndFinish(true);
                     pixels = pUploadHeap->Suballocate(SIZE_T(UplHeapSize), 512);
                     assert(pixels != NULL);
                 }
 
                 uint32_t offset = uint32_t(pixels - pUploadHeap->BasePtr());
 
-                pDds->CopyPixels(pixels, dwWidth * bytePP, dwWidth * bytePP, dwHeight);
+                pDds->CopyPixels(pixels, (dwWidth * bytesPerPixel) / pixelsPerBlock, (dwWidth * bytesPerPixel) / pixelsPerBlock, dwHeight);
+
+                pUploadHeap->EndSuballocate();
 
                 {
                     VkBufferImageCopy region = {};
@@ -408,7 +431,7 @@ namespace CAULDRON_VK
                     region.imageExtent.width = dwWidth;
                     region.imageExtent.height = dwHeight;
                     region.imageExtent.depth = 1;
-                    vkCmdCopyBufferToImage(pUploadHeap->GetCommandList(), pUploadHeap->GetResource(), pTexture2D, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+                    pUploadHeap->AddCopy(pTexture2D, region);
                 }
             }
         }
@@ -428,23 +451,23 @@ namespace CAULDRON_VK
             use_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             use_barrier.subresourceRange.levelCount = m_header.mipMapCount;
             use_barrier.subresourceRange.layerCount = m_header.arraySize;
-            vkCmdPipelineBarrier(pUploadHeap->GetCommandList(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &use_barrier);
+            pUploadHeap->AddPostBarrier(use_barrier);
         }
     }
 
     //--------------------------------------------------------------------------------------
     // entry function to initialize an image from a .DDS texture
     //--------------------------------------------------------------------------------------
-    bool Texture::InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *pFilename, bool useSRGB, float cutOff)
+    bool Texture::InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, const char *pFilename, bool useSRGB, VkImageUsageFlags usageFlags, float cutOff)
     {
         m_pDevice = pDevice;
         assert(m_pResource == NULL);
 
-        ImgLoader *img = GetImageLoader(pFilename);
+        ImgLoader* img = CreateImageLoader(pFilename);
         bool result = img->Load(pFilename, cutOff, &m_header);
         if (result)
         {
-            m_pResource = CreateTextureCommitted(pDevice, pUploadHeap, pFilename, useSRGB);
+            m_pResource = CreateTextureCommitted(pDevice, pUploadHeap, pFilename, useSRGB, usageFlags);
             LoadAndUpload(pDevice, pUploadHeap, img, m_pResource);
         }
 

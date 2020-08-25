@@ -24,7 +24,7 @@
 #include "Base/ExtDebugUtils.h"
 #include "Base/ExtDebugMarkers.h"
 #include "Base/Helper.h"
-#include "Misc/Cache.h"
+#include "Misc/Async.h"
 
 #include "GLTF/GltfPbrMaterial.h"
 #include "GltfDepthPass.h"
@@ -43,7 +43,8 @@ namespace CAULDRON_VK
         ResourceViewHeaps *pHeaps,
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
-        GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers)
+        GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
+        AsyncPool *pAsyncPool)
     {
         m_pDevice = pDevice;
         m_renderPass = renderPass;
@@ -147,49 +148,52 @@ namespace CAULDRON_VK
                     const json &primitive = primitives[p];
                     DepthPrimitives *pPrimitive = &tfmesh->m_pPrimitives[p];
 
-                    // Set Material
-                    //
-                    auto mat = primitive.find("material");
-                    if (mat != primitive.end())
-                        pPrimitive->m_pMaterial = &m_materialsData[mat.value()];
-                    else
-                        pPrimitive->m_pMaterial = &m_defaultMaterial;
-
-                    // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things. 
-                    //
-                    std::vector<std::string > requiredAttributes;
-                    for (auto const & it : primitive["attributes"].items())
+                    ExecAsyncIfThereIsAPool(pAsyncPool, [this, i, &primitive, pPrimitive]()
                     {
-                        const std::string semanticName = it.key();
-                        if (
-                            (semanticName == "POSITION") ||
-                            (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
-                            (semanticName.substr(0, 6) == "JOINTS") || // for skinning
-                            (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) // if there is transparency this will make sure we use the texture coordinates of that texture
-                            )
+                        // Set Material
+                        //
+                        auto mat = primitive.find("material");
+                        if (mat != primitive.end())
+                            pPrimitive->m_pMaterial = &m_materialsData[mat.value()];
+                        else
+                            pPrimitive->m_pMaterial = &m_defaultMaterial;
+
+                        // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things. 
+                        //
+                        std::vector<std::string > requiredAttributes;
+                        for (auto const & it : primitive["attributes"].items())
                         {
-                            requiredAttributes.push_back(semanticName);
+                            const std::string semanticName = it.key();
+                            if (
+                                (semanticName == "POSITION") ||
+                                (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
+                                (semanticName.substr(0, 6) == "JOINTS") || // for skinning
+                                (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) // if there is transparency this will make sure we use the texture coordinates of that texture
+                                )
+                            {
+                                requiredAttributes.push_back(semanticName);
+                            }
                         }
-                    }
 
-                    // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
-                    //
-                    DefineList defines = pPrimitive->m_pMaterial->m_defines;
+                        // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
+                        //
+                        DefineList defines = pPrimitive->m_pMaterial->m_defines;
 
-                    // create an input layout from the required attributes
-                    // shader's can tell the slots from the #defines
-                    //
-                    std::vector<VkVertexInputAttributeDescription> inputLayout;
-                    m_pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, inputLayout, defines, &pPrimitive->m_geometry);
+                        // create an input layout from the required attributes
+                        // shader's can tell the slots from the #defines
+                        //
+                        std::vector<VkVertexInputAttributeDescription> inputLayout;
+                        m_pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, inputLayout, defines, &pPrimitive->m_geometry);
 
-                    // Create Pipeline
-                    //
-                    {
-                        int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
-                        int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
-                        CreateDescriptors(pDevice, inverseMatrixBufferSize, &defines, pPrimitive);
-                        CreatePipeline(pDevice, inputLayout, defines, pPrimitive);
-                    }
+                        // Create Pipeline
+                        //
+                        {
+                            int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
+                            int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
+                            CreateDescriptors(inverseMatrixBufferSize, &defines, pPrimitive);
+                            CreatePipeline(inputLayout, defines, pPrimitive);
+                        }
+                    });
                 }
             }
         }
@@ -230,7 +234,7 @@ namespace CAULDRON_VK
     // CreateDescriptors for a combination of material and geometry
     //
     //--------------------------------------------------------------------------------------
-    void GltfDepthPass::CreateDescriptors(Device *pDevice, int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive)
+    void GltfDepthPass::CreateDescriptors(int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive)
     {
         std::vector<VkDescriptorSetLayoutBinding> layout_bindings(2);
         layout_bindings[0].binding = 0;
@@ -291,7 +295,7 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &pPrimitive->m_pipelineLayout);
         assert(res == VK_SUCCESS);
-        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pPrimitive->m_pipelineLayout, "GltfDepthPass PL");
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pPrimitive->m_pipelineLayout, "GltfDepthPass PL");
     }
 
     //--------------------------------------------------------------------------------------
@@ -299,15 +303,15 @@ namespace CAULDRON_VK
     // CreatePipeline
     //
     //--------------------------------------------------------------------------------------
-    void GltfDepthPass::CreatePipeline(Device *pDevice, std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, DepthPrimitives *pPrimitive)
+    void GltfDepthPass::CreatePipeline(std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, DepthPrimitives *pPrimitive)
     {
         /////////////////////////////////////////////
         // Compile and create shaders
 
         VkPipelineShaderStageCreateInfo vertexShader, fragmentShader = {};
         {
-            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFDepthPass-vert.glsl", "main", &defines, &vertexShader);
-            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFDepthPass-frag.glsl", "main", &defines, &fragmentShader);
+            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFDepthPass-vert.glsl", "main", "", &defines, &vertexShader);
+            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFDepthPass-frag.glsl", "main", "", &defines, &fragmentShader);
         }
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader, fragmentShader };
 
@@ -465,7 +469,7 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &pPrimitive->m_pipeline);
         assert(res == VK_SUCCESS);
-        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)pPrimitive->m_pipeline, "GltfDepthPass P");
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)pPrimitive->m_pipeline, "GltfDepthPass P");
     }
 
     //--------------------------------------------------------------------------------------
@@ -532,7 +536,7 @@ namespace CAULDRON_VK
                 // Bind Descriptor sets
                 //
                 VkDescriptorSet descriptorSets[2] = { pPrimitive->m_descriptorSet, pPrimitive->m_pMaterial->m_descriptorSet };
-                uint32_t descritorSetCount = 1 + pPrimitive->m_pMaterial->m_textureCount;
+                uint32_t descritorSetCount = 1 + (pPrimitive->m_pMaterial->m_textureCount > 0 ? 1 : 0);
 
                 uint32_t uniformOffsets[3] = { (uint32_t)m_perFrameDesc.offset,  (uint32_t)perObjectDesc.offset, (pPerSkeleton) ? (uint32_t)pPerSkeleton->offset : 0 };
                 uint32_t uniformOffsetsCount = (pPerSkeleton) ? 3 : 2;

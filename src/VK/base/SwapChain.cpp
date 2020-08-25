@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "SwapChain.h"
-#include "ExtFreeSync2.h"
+#include "ExtFreeSyncHDR.h"
 #include <vulkan\vulkan_win32.h>
 
 namespace CAULDRON_VK
@@ -43,12 +43,12 @@ namespace CAULDRON_VK
 
         m_presentQueue = pDevice->GetPresentQueue();
 
-        // Init FS2
-        fs2Init(pDevice->GetDevice(), pDevice->GetSurface(), pDevice->GetPhysicalDevice(), hWnd);
+        // Init FSHDR
+        fsHdrInit(pDevice->GetDevice(), pDevice->GetSurface(), pDevice->GetPhysicalDevice(), hWnd);
 
         // set some safe format to start with
         m_displayMode = DISPLAYMODE_SDR;
-        m_swapChainFormat = fs2GetFormat(m_displayMode);
+        m_swapChainFormat = fsHdrGetFormat(m_displayMode);
 
         VkDevice device = m_pDevice->GetDevice();
 
@@ -111,13 +111,13 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     void SwapChain::EnumerateDisplayModes(std::vector<DisplayModes> *pModes, std::vector<const char *> *pNames)
     {
-        fs2EnumerateDisplayModes(pModes);
+        fsHdrEnumerateDisplayModes(pModes);
 
         if (pNames != NULL)
         {
             pNames->clear();
             for (DisplayModes mode : *pModes)
-                pNames->push_back(fs2GetDisplayModeString(mode));
+                pNames->push_back(fsHdrGetDisplayModeString(mode));
         }
     }
 
@@ -214,9 +214,9 @@ namespace CAULDRON_VK
                 monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top,
                 SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
 
-            if (ExtFreeSync2AreAllExtensionsPresent())
+            if (ExtFreeSyncHdrAreAllExtensionsPresent())
             {
-                fs2SetFullscreenState(fullscreen, m_swapChain);
+                fsHdrSetFullscreenState(fullscreen, m_swapChain);
             }
         }
         else if (m_isFullScreen == true && fullscreen == false)
@@ -240,9 +240,9 @@ namespace CAULDRON_VK
                 ::SendMessage(m_hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
             }
 
-            if (ExtFreeSync2AreAllExtensionsPresent())
+            if (ExtFreeSyncHdrAreAllExtensionsPresent())
             {
-                fs2SetFullscreenState(fullscreen, m_swapChain);
+                fsHdrSetFullscreenState(fullscreen, m_swapChain);
             }
         }
     }
@@ -253,15 +253,15 @@ namespace CAULDRON_VK
         bool bIsModeSupported = IsModeSupported(displayMode);
         if (bIsModeSupported == false)
         {
-            assert(!"FS2 display mode not supported");
+            assert(!"FSHDR display mode not supported");
             displayMode = DISPLAYMODE_SDR;
         }
 
         m_displayMode = displayMode;
-        m_swapChainFormat = fs2GetFormat(displayMode);
+        m_swapChainFormat = fsHdrGetFormat(displayMode);
         m_bVSyncOn = bVSyncOn;
 
-        // note that FS2 modes require to be in fullscreen mode!
+        // note that FSHDR modes require to be in fullscreen mode!
         if (m_displayMode != DISPLAYMODE_SDR)
         {
             assert(m_isFullScreen == true);
@@ -288,7 +288,7 @@ namespace CAULDRON_VK
         VkSurfaceCapabilitiesKHR surfCapabilities;
         if (displayMode != DISPLAYMODE_SDR)
         {
-            fs2GetPhysicalDeviceSurfaceCapabilities2KHR(physicaldevice, surface, &surfCapabilities);
+            fsHdrGetPhysicalDeviceSurfaceCapabilities2KHR(physicaldevice, surface, &surfCapabilities);
         }
         else
         {
@@ -362,9 +362,9 @@ namespace CAULDRON_VK
         VkSwapchainCreateInfoKHR swapchain_ci = {};
         swapchain_ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapchain_ci.pNext = nullptr;
-        if (ExtFreeSync2AreAllExtensionsPresent())
+        if (ExtFreeSyncHdrAreAllExtensionsPresent())
         {
-            swapchain_ci.pNext = GetVkSwapchainDisplayNativeHdrCreateInfoAMD();
+            swapchain_ci.pNext = GetVkSurfaceFullScreenExclusiveInfoEXT();
         }
         swapchain_ci.surface = surface;
         swapchain_ci.imageFormat = m_swapChainFormat.format;
@@ -397,7 +397,7 @@ namespace CAULDRON_VK
         res = vkCreateSwapchainKHR(device, &swapchain_ci, NULL, &m_swapChain);
         assert(res == VK_SUCCESS);
 
-        fs2SetDisplayMode(displayMode, m_swapChain);
+        fsHdrSetDisplayMode(displayMode, m_swapChain);
 
         // we are querying the swapchain count so the next call doesn't generate a validation warning
         uint32_t backBufferCount;

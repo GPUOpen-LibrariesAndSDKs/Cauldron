@@ -49,7 +49,7 @@ namespace CAULDRON_VK
 
         m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_descriptorSetLayout);
 
-        m_toneMapping.OnCreate(m_pDevice, "ToneMappingCS.glsl", "main", m_descriptorSetLayout, 8, 8, 1, NULL);
+        m_toneMapping.OnCreate(m_pDevice, "ToneMappingCS.glsl", "main", "", m_descriptorSetLayout, 8, 8, 1, NULL);
 
         m_descriptorIndex = 0;
         for (int i = 0; i < s_descriptorBuffers; i++)

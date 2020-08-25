@@ -31,30 +31,25 @@
 
 namespace CAULDRON_DX12
 {
-    Device::Device()
-    {
-    }
-
-    Device::~Device()
-    {
-    }
-
-    void Device::OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd)
+    void Device::OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, bool bGpuValidationEnabled, HWND hWnd)
     {
         // Enable the D3D12 debug layer
         //
-        // Note that it turns out the validation and debug layer are know to cause
+        // Note that it turns out the validation and debug layer are known to cause
         // deadlocks in certain circumstances, for example when the vsync interval
         // is 0 and full screen is used
-        if (bValidationEnabled)
+        if (bValidationEnabled || bGpuValidationEnabled)
         {
             ID3D12Debug1 *pDebugController;
             if (D3D12GetDebugInterface(IID_PPV_ARGS(&pDebugController)) == S_OK)
             {
-                pDebugController->EnableDebugLayer();
-                //pDebugController->SetEnableGPUBasedValidation(TRUE);
+                if (bValidationEnabled)
+                {
+                    pDebugController->EnableDebugLayer();
+                }
+                pDebugController->SetEnableGPUBasedValidation(bGpuValidationEnabled);
 
-                pDebugController->SetEnableSynchronizedCommandQueueValidation(TRUE);
+                pDebugController->SetEnableSynchronizedCommandQueueValidation(false);
                 pDebugController->Release();
             }
         }
@@ -64,17 +59,17 @@ namespace CAULDRON_DX12
         factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
         IDXGIFactory *pFactory;
-        CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&pFactory));
+        ThrowIfFailed(CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&pFactory)));
 
         // Detect if this GPU is an AMD one so we can use AGS
-        pFactory->EnumAdapters(0, &m_pAdapter);
+        ThrowIfFailed(pFactory->EnumAdapters(0, &m_pAdapter));
         DXGI_ADAPTER_DESC AdapterDesc;
         m_pAdapter->GetDesc(&AdapterDesc);
         const bool bAMDGPU = (AdapterDesc.VendorId == 0x1002);
         pFactory->Release();
         m_pDevice = NULL;
 
-        // Create to create an AGS Device
+        // Create an AGS Device
         //
         if (bAMDGPU)
         {
@@ -112,7 +107,7 @@ namespace CAULDRON_DX12
         // Check for FP16 support
         //
         D3D12_FEATURE_DATA_D3D12_OPTIONS featureDataOptions = {};
-        m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &featureDataOptions, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS));
+        ThrowIfFailed(m_pDevice->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &featureDataOptions, sizeof(D3D12_FEATURE_DATA_D3D12_OPTIONS)));
         m_fp16Supported = (featureDataOptions.MinPrecisionSupport & D3D12_SHADER_MIN_PRECISION_SUPPORT_16_BIT) != 0;
 
         // create direct and compute queues
@@ -122,7 +117,7 @@ namespace CAULDRON_DX12
             queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
             queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
             queueDesc.NodeMask = 0;
-            m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pDirectQueue));
+            ThrowIfFailed(m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pDirectQueue)));
             SetName(m_pDirectQueue, "DirectQueue");
         }
         {
@@ -130,10 +125,19 @@ namespace CAULDRON_DX12
             queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
             queueDesc.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE;
             queueDesc.NodeMask = 0;
-            m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pComputeQueue));
+            ThrowIfFailed(m_pDevice->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pComputeQueue)));
             SetName(m_pComputeQueue, "ComputeQueue");
         }
 
+    }
+
+    void Device::GetDeviceInfo(std::string *deviceName, std::string *driverVersion)
+    {
+        DXGI_ADAPTER_DESC adapterDescription;
+        m_pAdapter->GetDesc(&adapterDescription);
+
+        *deviceName = format("%S", adapterDescription.Description);
+        *driverVersion = "WIP";
     }
 
     void Device::CreatePipelineCache()
@@ -154,7 +158,6 @@ namespace CAULDRON_DX12
         {
             agsDriverExtensionsDX12_DestroyDevice(m_agsContext, m_pDevice, nullptr);
             agsDeInit(m_agsContext);
-            m_agsContext = nullptr;
         }
         else
         {

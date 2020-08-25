@@ -22,6 +22,26 @@
 //#define SMP(b) CONCAT(s,b)
 #define TEXCOORD(id) CONCAT(Input.UV, id)
 
+//disable texcoords that are not in the VS2PS structure
+#if defined(HAS_TEXCOORD_0)==false
+    #if ID_normalTexCoord == 0
+        #undef ID_normalTexture
+        #undef ID_normalTexCoord
+    #endif
+    #if ID_emissiveTexCoord == 0
+        #undef ID_emissiveTexture
+        #undef ID_emissiveTexCoord
+    #endif
+    #if ID_baseTexCoord == 0
+        #undef ID_baseColorTexture
+        #undef ID_baseTexCoord
+    #endif
+    #if ID_metallicRoughnessTexCoord == 0
+        #undef ID_metallicRoughnessTexture
+        #undef ID_metallicRoughnessTexCoord
+    #endif
+#endif
+
 #ifdef ID_baseColorTexture
 Texture2D        baseColorTexture              :register(TEX(ID_baseColorTexture));
 SamplerState     samBaseColor                  :register(SMP(ID_baseColorTexture));

@@ -49,7 +49,7 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t hash)
         }
         else if (*pch == '#') // parse #include
         {
-            *pch++;
+            pch++;
             const char include[] = "include";
             int i = 0;
             while ((*pch!= 0) && *pch == include[i])

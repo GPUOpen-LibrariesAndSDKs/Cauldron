@@ -36,7 +36,7 @@ namespace CAULDRON_VK
         void OnDestroy();
 
         void GetTimeStamp(VkCommandBuffer cmd_buf, const char *label);
-
+        void GetTimeStampUser(TimeStamp ts);
         void OnBeginFrame(VkCommandBuffer cmd_buf, std::vector<TimeStamp> *pTimestamp);
         void OnEndFrame();
 
@@ -51,5 +51,6 @@ namespace CAULDRON_VK
         uint32_t m_NumberOfBackBuffers = 0;
 
         std::vector<std::string> m_labels[5];
+        std::vector<TimeStamp> m_cpuTimeStamps[5];
     };
 }

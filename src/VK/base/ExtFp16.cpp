@@ -29,16 +29,16 @@ namespace CAULDRON_VK
     static VkPhysicalDevice16BitStorageFeatures Storage16BitFeatures = {};
 
 
-    bool ExtFp16CheckExtensions(DeviceProperties *pDP, void **pNext)
+    bool ExtFp16CheckExtensions(DeviceProperties *pDP)
     {
         std::vector<const char *> required_extension_names = { VK_KHR_16BIT_STORAGE_EXTENSION_NAME, VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME };
 
         bool bFp16Enabled = true;
         for (auto& ext : required_extension_names)
         {
-            if (pDP->Add(ext) == false)
+            if (pDP->AddDeviceExtensionName(ext) == false)
             {
-                Trace(format("FreeSync2 disabled, missing extension: %s\n", ext));
+                Trace(format("FP16 disabled, missing extension: %s\n", ext));
                 bFp16Enabled = false;
             }
 
@@ -67,15 +67,15 @@ namespace CAULDRON_VK
 
         if (bFp16Enabled)
         {
+            // Query 16 bit storage
+            Storage16BitFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES;
+            Storage16BitFeatures.pNext = pDP->GetNext();
+
             // Query 16 bit ops
             FP16Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR;
             FP16Features.pNext = &Storage16BitFeatures;
 
-            // Query 16 bit storage
-            Storage16BitFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES;
-            Storage16BitFeatures.pNext = *pNext;
-
-            *pNext = &FP16Features;
+            pDP->SetNewNext(&FP16Features);
         }
 
         return bFp16Enabled;

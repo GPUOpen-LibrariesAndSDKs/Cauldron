@@ -24,6 +24,7 @@
 #include "Base/ExtDebugUtils.h"
 #include "Base/ExtDebugMarkers.h"
 #include "Base/Helper.h"
+#include "Misc/Async.h"
 #include "Misc/Misc.h"
 
 #include "GLTF/GltfPbrMaterial.h"
@@ -45,7 +46,8 @@ namespace CAULDRON_VK
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
         VkFormat motionVectorsBufferFormat,
-        VkFormat normalBufferFormat)
+        VkFormat normalBufferFormat,
+        AsyncPool *pAsyncPool)
     {
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pHeaps;
@@ -103,19 +105,67 @@ namespace CAULDRON_VK
                 std::string alphaMode = GetElementString(material, "alphaMode", "OPAQUE");
                 tfmat->m_defines["DEF_alphaMode_" + alphaMode] = std::to_string(1);
 
-                if (normalBufferFormat != DXGI_FORMAT_UNKNOWN)
+                std::vector<VkImageView> textures;
+
+                if (normalBufferFormat != VK_FORMAT_UNDEFINED)
                 {
-                    int id = GetElementInt(material, "normalTexture/index", -1);
-                    if (id >= 0)
+                    int index, texCoord;
+                    if (ProcessGetTextureIndexAndTextCoord(material, "normalTexture", &index, &texCoord))
                     {
-                        // allocate descriptor table for the texture
-                        tfmat->m_textureCount = 1;
-                        tfmat->m_defines["ID_normalTexture"] = "0";
-                        tfmat->m_defines["ID_normalTexCoord"] = std::to_string(GetElementInt(material, "normalTexture/texCoord", 0));
-                        m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, &m_sampler, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
-                        VkImageView textureView = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
-                        SetDescriptorSet(pDevice->GetDevice(), 0, textureView, NULL, tfmat->m_descriptorSet);
+                        tfmat->m_defines["ID_normalTexture"] = std::to_string(textures.size());
+                        tfmat->m_defines["ID_normalTexCoord"] = std::to_string(texCoord);
+                        textures.push_back(pGLTFTexturesAndBuffers->GetTextureViewByID(index));
                     }
+                }
+
+                // If transparent use the baseColorTexture for alpha
+                //
+                if (alphaMode != "OPAQUE")
+                {
+                    tfmat->m_defines["DEF_alphaCutoff"] = std::to_string(GetElementFloat(material, "alphaCutoff", 0.5));
+
+                    auto pbrMetallicRoughnessIt = material.find("pbrMetallicRoughness");
+                    if (pbrMetallicRoughnessIt != material.end())
+                    {
+                        tfmat->m_defines["MATERIAL_METALLICROUGHNESS"] = "1";
+
+                        int index, texCoord;
+                        if (ProcessGetTextureIndexAndTextCoord(*pbrMetallicRoughnessIt, "baseColorTexture", &index, &texCoord))
+                        {
+                            tfmat->m_defines["ID_baseColorTexture"] = std::to_string(textures.size());
+                            tfmat->m_defines["ID_baseTexCoord"] = std::to_string(texCoord);
+                            textures.push_back(pGLTFTexturesAndBuffers->GetTextureViewByID(index));
+                        }
+                    }
+                    else
+                    {
+                        auto extensions = material.find("extensions");
+                        if (extensions != material.end())
+                        {
+                            auto KHR_materials_pbrSpecularGlossinessIt = extensions->find("KHR_materials_pbrSpecularGlossiness");
+                            if (KHR_materials_pbrSpecularGlossinessIt != extensions->end())
+                            {
+                                tfmat->m_defines["MATERIAL_SPECULARGLOSSINESS"] = "1";
+
+                                int index, texCoord;
+                                if (ProcessGetTextureIndexAndTextCoord(*KHR_materials_pbrSpecularGlossinessIt, "diffuseTexture", &index, &texCoord))
+                                {
+                                    tfmat->m_defines["ID_diffuseTexture"] = std::to_string(textures.size());
+                                    tfmat->m_defines["ID_diffuseTexCoord"] = std::to_string(texCoord);
+                                    textures.push_back(pGLTFTexturesAndBuffers->GetTextureViewByID(index));
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // allocate descriptor table for the texture
+                tfmat->m_textureCount = static_cast<int>(textures.size());
+                m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, NULL, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
+                int cnt = 0;
+                for (auto const &it : textures)
+                {
+                    SetDescriptorSet(m_pDevice->GetDevice(), cnt++, it, &m_sampler, tfmat->m_descriptorSet);                    
                 }
             }
         }
@@ -151,43 +201,46 @@ namespace CAULDRON_VK
                     const json &primitive = primitives[p];
                     MotionVectorPrimitives *pPrimitive = &tfmesh->m_pPrimitives[p];
 
-                    // Set Material
-                    //
-                    auto mat = primitive.find("material");
-                    pPrimitive->m_pMaterial = (mat != primitive.end()) ? &m_materialsData[mat.value()] : &m_defaultMaterial;
-
-                    // specify attributes needed to render the material
-                    //
-                    std::vector<std::string> requiredAttributes;
-                    for (auto const & it : primitive["attributes"].items())
+                    ExecAsyncIfThereIsAPool(pAsyncPool, [this, i, formatsCount, normalBufferFormat, renderPass, definesRenderTargets, &primitive, pPrimitive]()
                     {
-                        const std::string semanticName = it.key();
-                        if (                            
-                            (semanticName == "POSITION") ||
-                            (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
-                            (semanticName.substr(0, 6) == "JOINTS")  || // for skinning
-                            (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) ||
-                            ((normalBufferFormat != DXGI_FORMAT_UNKNOWN) && ((semanticName == "NORMAL") || (semanticName == "TANGENT"))) // for obvious reasons
-                           )
+                        // Set Material
+                        //
+                        auto mat = primitive.find("material");
+                        pPrimitive->m_pMaterial = (mat != primitive.end()) ? &m_materialsData[mat.value()] : &m_defaultMaterial;
+
+                        // specify attributes needed to render the material
+                        //
+                        std::vector<std::string> requiredAttributes;
+                        for (auto const & it : primitive["attributes"].items())
                         {
-                            requiredAttributes.push_back(semanticName);
+                            const std::string semanticName = it.key();
+                            if (
+                                (semanticName == "POSITION") ||
+                                (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
+                                (semanticName.substr(0, 6) == "JOINTS") || // for skinning
+                                (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) ||
+                                ((normalBufferFormat != DXGI_FORMAT_UNKNOWN) && ((semanticName == "NORMAL") || (semanticName == "TANGENT"))) // for obvious reasons
+                                )
+                            {
+                                requiredAttributes.push_back(semanticName);
+                            }
                         }
-                    }
 
-                    // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
-                    //
-                    DefineList defines = definesRenderTargets + pPrimitive->m_pMaterial->m_defines;
+                        // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
+                        //
+                        DefineList defines = definesRenderTargets + pPrimitive->m_pMaterial->m_defines;
 
-                    // Get input layout from glTF attributes
-                    //
-                    std::vector<VkVertexInputAttributeDescription> layout;
-                    pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, layout, defines, &pPrimitive->m_geometry);
+                        // Get input layout from glTF attributes
+                        //
+                        std::vector<VkVertexInputAttributeDescription> layout;
+                        m_pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, layout, defines, &pPrimitive->m_geometry);
 
-                    // Create Pipeline
-                    //
-                    int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
-                    int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
-                    CreatePipeline(pDevice, renderPass, formatsCount, inverseMatrixBufferSize, layout, defines, pPrimitive);
+                        // Create Pipeline
+                        //
+                        int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
+                        int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
+                        CreatePipeline(renderPass, formatsCount, inverseMatrixBufferSize, layout, defines, pPrimitive);
+                    });
                 }
             }
         }
@@ -228,7 +281,7 @@ namespace CAULDRON_VK
     // CreatePipeline
     //
     //--------------------------------------------------------------------------------------
-    void GltfMotionVectorsPass::CreatePipeline(Device* pDevice, VkRenderPass renderPass, int attachmentCount, int inverseMatrixBufferSize, std::vector<VkVertexInputAttributeDescription> layout, DefineList &defines, MotionVectorPrimitives *pPrimitive)
+    void GltfMotionVectorsPass::CreatePipeline(VkRenderPass renderPass, int attachmentCount, int inverseMatrixBufferSize, std::vector<VkVertexInputAttributeDescription> layout, DefineList &defines, MotionVectorPrimitives *pPrimitive)
     {
         /////////////////////////////////////////////
         // Create descriptors 
@@ -291,9 +344,9 @@ namespace CAULDRON_VK
             pPipelineLayoutCreateInfo.setLayoutCount = (uint32_t)descriptorSetLayout.size();
             pPipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayout.data();
 
-            VkResult res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &pPrimitive->m_pipelineLayout);
+            VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &pPrimitive->m_pipelineLayout);
             assert(res == VK_SUCCESS);
-            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pPrimitive->m_pipelineLayout, "GltfDepthPass PL");        
+            SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pPrimitive->m_pipelineLayout, "GltfDepthPass PL");
         }
 
         /////////////////////////////////////////////
@@ -301,8 +354,8 @@ namespace CAULDRON_VK
 
         VkPipelineShaderStageCreateInfo vertexShader, fragmentShader = {};
         {
-            VKCompileFromFile(pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFMotionVectorsPass-vert.glsl", "main", &defines, &vertexShader);
-            VKCompileFromFile(pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFMotionVectorsPass-frag.glsl", "main", &defines, &fragmentShader);
+            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFMotionVectorsPass-vert.glsl", "main", "", &defines, &vertexShader);
+            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFMotionVectorsPass-frag.glsl", "main", "", &defines, &fragmentShader);
         }
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader, fragmentShader };
 
@@ -461,9 +514,9 @@ namespace CAULDRON_VK
             pipeline.renderPass = renderPass;
             pipeline.subpass = 0;
 
-            VkResult res = vkCreateGraphicsPipelines(pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &pPrimitive->m_pipeline);
+            VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &pPrimitive->m_pipeline);
             assert(res == VK_SUCCESS);
-            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)pPrimitive->m_pipeline, "GltfDepthPass P");
+            SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)pPrimitive->m_pipeline, "GltfDepthPass P");
 
         }
     }
@@ -534,7 +587,7 @@ namespace CAULDRON_VK
                 // Bind Descriptor sets
                 //
                 VkDescriptorSet descriptorSets[2] = { pPrimitive->m_descriptorSet, pPrimitive->m_pMaterial->m_descriptorSet };
-                uint32_t descritorSetCount = 1 + pPrimitive->m_pMaterial->m_textureCount;
+                uint32_t descritorSetCount = 1 + (pPrimitive->m_pMaterial->m_textureCount > 0 ? 1 : 0);
 
                 uint32_t uniformOffsets[3] = { (uint32_t)m_perFrameDesc.offset,  (uint32_t)perObjectDesc.offset, (pPerSkeleton) ? (uint32_t)pPerSkeleton->offset : 0 };
                 uint32_t uniformOffsetsCount = (pPerSkeleton) ? 3 : 2;

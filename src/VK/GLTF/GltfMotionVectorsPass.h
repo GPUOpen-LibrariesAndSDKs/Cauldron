@@ -27,8 +27,8 @@ namespace CAULDRON_VK
     struct MotionVectorMaterial
     {
         int m_textureCount = 0;
-        VkDescriptorSet m_descriptorSet;
-        VkDescriptorSetLayout m_descriptorSetLayout;
+        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
 
         DefineList m_defines;
         bool m_doubleSided;
@@ -41,10 +41,10 @@ namespace CAULDRON_VK
         MotionVectorMaterial *m_pMaterial = NULL;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout m_pipelineLayout;
+        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
-        VkDescriptorSet m_descriptorSet;
-        VkDescriptorSetLayout m_descriptorSetLayout;
+        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     };
 
     struct MotionVectorMesh
@@ -76,7 +76,8 @@ namespace CAULDRON_VK
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             VkFormat motionVectorsBufferFormat,
-            VkFormat normalBufferFormat = VK_FORMAT_UNDEFINED);
+            VkFormat normalBufferFormat = VK_FORMAT_UNDEFINED,
+            AsyncPool *pAsyncPool = NULL);
 
         void OnDestroy();
         GltfMotionVectorsPass::per_frame *SetPerFrameConstants();
@@ -93,13 +94,13 @@ namespace CAULDRON_VK
         MotionVectorMaterial m_defaultMaterial;
 
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
-        VkSampler m_sampler;
+        VkSampler m_sampler = VK_NULL_HANDLE;
         VkDescriptorBufferInfo m_perFrameDesc;
 
         VkFormat m_normalBufferFormat;
         VkFormat m_motionVectorsBufferFormat;
 
-        void CreatePipeline(Device* pDevice, VkRenderPass renderPass, int attachmentCount, int inverseMatrixBufferSize, std::vector<VkVertexInputAttributeDescription> layout, DefineList &defines, MotionVectorPrimitives *pPrimitive);
+        void CreatePipeline(VkRenderPass renderPass, int attachmentCount, int inverseMatrixBufferSize, std::vector<VkVertexInputAttributeDescription> layout, DefineList &defines, MotionVectorPrimitives *pPrimitive);
     };
 }
 

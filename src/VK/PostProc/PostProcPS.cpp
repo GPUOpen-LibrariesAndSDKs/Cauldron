@@ -39,6 +39,8 @@ namespace CAULDRON_VK
         Device* pDevice,
         VkRenderPass renderPass,
         const std::string &shaderFilename,
+        const std::string &shaderEntryPoint,
+        const std::string &shaderCompilerParams,
         StaticBufferPool *pStaticBufferPool,
         DynamicBufferRing *pDynamicBufferRing,
         VkDescriptorSetLayout descriptorSetLayout,
@@ -75,11 +77,12 @@ namespace CAULDRON_VK
         DefineList attributeDefines;
 
         VkPipelineShaderStageCreateInfo m_vertexShader;
-        res = VKCompileFromString(m_pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "main", &attributeDefines, &m_vertexShader);
+        res = VKCompileFromString(m_pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "main", "", &attributeDefines, &m_vertexShader);
         assert(res == VK_SUCCESS);
 
+        m_fragmentShaderName = shaderEntryPoint;
         VkPipelineShaderStageCreateInfo m_fragmentShader;
-        res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, shaderFilename.c_str(), "main", &attributeDefines, &m_fragmentShader);
+        res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, shaderFilename.c_str(), m_fragmentShaderName.c_str(), shaderCompilerParams.c_str(), &attributeDefines, &m_fragmentShader);
         assert(res == VK_SUCCESS);
 
         m_shaderStages.clear();

@@ -43,6 +43,6 @@ public:
 };
 
 
-ImgLoader *GetImageLoader(const char *pFilename);
+ImgLoader *CreateImageLoader(const char *pFilename);
 
 

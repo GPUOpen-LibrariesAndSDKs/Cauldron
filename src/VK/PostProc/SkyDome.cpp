@@ -36,6 +36,7 @@ namespace CAULDRON_VK
 
         m_CubeDiffuseTexture.InitFromFile(pDevice, pUploadHeap, pDiffuseCubemap, true); // SRGB
         m_CubeSpecularTexture.InitFromFile(pDevice, pUploadHeap, pSpecularCubemap, true);
+        
         pUploadHeap->FlushAndFinish();
 
         m_CubeDiffuseTexture.CreateCubeSRV(&m_CubeDiffuseTextureView);
@@ -92,7 +93,7 @@ namespace CAULDRON_VK
         pDynamicBufferRing->SetDescriptorSet(0, sizeof(XMMATRIX), m_descriptorSet);
         SetDescriptorSpec(1, m_descriptorSet);
 
-        m_skydome.OnCreate(pDevice, renderPass, "SkyDome.glsl", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount);
+        m_skydome.OnCreate(pDevice, renderPass, "SkyDome.glsl", "main", "", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount);
     }
 
     void SkyDome::OnDestroy()
@@ -140,5 +141,28 @@ namespace CAULDRON_VK
     void SkyDome::GenerateDiffuseMapFromEnvironmentMap()
     {
 
+    }
+
+    // Sampler and TextureView getters
+    //
+
+    VkImageView SkyDome::GetCubeDiffuseTextureView() const
+    {
+        return m_CubeDiffuseTextureView;
+    }
+
+    VkImageView SkyDome::GetCubeSpecularTextureView() const
+    {
+        return m_CubeSpecularTextureView;
+    }
+
+    VkSampler SkyDome::GetCubeDiffuseTextureSampler() const
+    {
+        return m_samplerDiffuseCube;
+    }
+
+    VkSampler SkyDome::GetCubeSpecularTextureSampler() const
+    {
+        return m_samplerSpecularCube;
     }
 }

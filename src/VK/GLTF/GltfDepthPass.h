@@ -27,8 +27,8 @@ namespace CAULDRON_VK
     struct DepthMaterial
     {
         int m_textureCount = 0;
-        VkDescriptorSet m_descriptorSet;
-        VkDescriptorSetLayout m_descriptorSetLayout;
+        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
 
         DefineList m_defines;
         bool m_doubleSided = false;
@@ -40,11 +40,11 @@ namespace CAULDRON_VK
 
         DepthMaterial *m_pMaterial = NULL;
 
-        VkPipeline m_pipeline;
-        VkPipelineLayout m_pipelineLayout;
+        VkPipeline m_pipeline = VK_NULL_HANDLE;
+        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
-        VkDescriptorSet m_descriptorSet;
-        VkDescriptorSetLayout m_descriptorSetLayout;
+        VkDescriptorSet m_descriptorSet = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_descriptorSetLayout = VK_NULL_HANDLE;
     };
 
     struct DepthMesh
@@ -72,7 +72,8 @@ namespace CAULDRON_VK
             ResourceViewHeaps *pHeaps,
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
-            GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers);
+            GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
+            AsyncPool *pAsyncPool = NULL);
 
         void OnDestroy();
         GltfDepthPass::per_frame *SetPerFrameConstants();
@@ -89,12 +90,12 @@ namespace CAULDRON_VK
 
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
         Device* m_pDevice;
-        VkRenderPass m_renderPass;
-        VkSampler m_sampler;
+        VkRenderPass m_renderPass = VK_NULL_HANDLE;
+        VkSampler m_sampler = VK_NULL_HANDLE;
         VkDescriptorBufferInfo m_perFrameDesc;
 
-        void CreateDescriptors(Device* pDevice, int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive);
-        void CreatePipeline(Device* pDevice, std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, DepthPrimitives *pPrimitive);
+        void CreateDescriptors(int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive);
+        void CreatePipeline(std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, DepthPrimitives *pPrimitive);
     };
 }
 

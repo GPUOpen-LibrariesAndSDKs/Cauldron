@@ -26,11 +26,11 @@ namespace CAULDRON_VK
     static PFN_vkSetDebugUtilsObjectNameEXT    s_vkSetDebugUtilsObjectName = NULL;
     
     static bool s_bCanUseDebugUtils;
+    static std::mutex s_mutex;
 
-
-    bool ExtDebugUtilsCheckDeviceExtensions(DeviceProperties *pDP)
+    bool ExtDebugUtilsCheckInstanceExtensions(InstanceProperties *pDP)
     {
-        s_bCanUseDebugUtils = pDP->Add("VK_EXT_debug_utils");
+        s_bCanUseDebugUtils = pDP->AddInstanceExtensionName("VK_EXT_debug_utils");
         if (s_bCanUseDebugUtils)
         {
             Trace("Note that the extension 'VK_EXT_debug_utils' is only available under tools that enable them, like RenderDoc\n");
@@ -53,18 +53,23 @@ namespace CAULDRON_VK
     {
         assert(handle != VK_NULL_HANDLE);
 
+        size_t size = strlen(pMsg);
+        char  *uniName = (char  *)malloc(size +1); //yes, this will be causing leaks!
+        strcpy_s(uniName, size+1, pMsg);
+
         const VkDebugUtilsObjectNameInfoEXT imageNameInfo =
         {
             VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT, // sType
             NULL,                                               // pNext
             objectType,                                         // objectType
             (uint64_t)handle,                                   // object
-            pMsg,                                               // pObjectName
+            uniName,                                            // pObjectName
         };
 
         if (s_vkSetDebugUtilsObjectName != NULL)
         {
-            s_vkSetDebugUtilsObjectName(device, &imageNameInfo);
+           std::unique_lock<std::mutex> lock(s_mutex);
+           s_vkSetDebugUtilsObjectName(device, &imageNameInfo);
         }
     }
 }

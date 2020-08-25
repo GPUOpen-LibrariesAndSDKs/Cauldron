@@ -19,7 +19,8 @@
 #pragma once
 
 #include <d3dCommon.h>
-#include "Base/Device.h"
+#include "Device.h"
+#include "Base/DXCHelper.h"
 #include "Base/ShaderCompiler.h"
 
 #include <vector>
@@ -36,16 +37,13 @@ namespace CAULDRON_DX12
         const char *pShaderCode,
         const DefineList* pDefines,
         const char *pEntrypoint,
-        const char *pTarget,
-        UINT Flags1,
-        UINT Flags2,
+        const char *pParams,
         D3D12_SHADER_BYTECODE* pOutBytecode);
 
     bool CompileShaderFromFile(
         const char* pFileName,
         const DefineList* pMacro,
         const char *pEntryPoint,
-        const char *pTarget,
-        UINT Flags,
+        const char *pParams,
         D3D12_SHADER_BYTECODE* pOutBytecode);
 }

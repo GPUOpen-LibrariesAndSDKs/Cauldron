@@ -58,7 +58,7 @@ namespace CAULDRON_DX12
         }
         defines["ID_SKINNING_MATRICES"] = "5";
         defines["ID_OUTPUT"] = "6";
-        CompileShaderFromFile("BakeSkinning.hlsl", &defines, "main", "cs_5_0", 0, &shaderByteCode);
+        CompileShaderFromFile("BakeSkinning.hlsl", &defines, "main", "-T cs_5_0", &shaderByteCode);
 
         // Create root signature
         //

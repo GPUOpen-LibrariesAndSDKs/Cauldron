@@ -52,18 +52,8 @@ set(Base_src
     base/DynamicBufferRing.h
     base/GPUTimestamps.cpp
     base/GPUTimestamps.h
-    base/FreeSync2.cpp
-    base/FreeSync2.h
-    base/ExtFreeSync2.cpp
-    base/ExtFreeSync2.h
-    base/ExtFp16.cpp
-    base/ExtFp16.h
-    base/ExtValidation.cpp
-    base/ExtValidation.h
-    base/ExtDebugMarkers.cpp
-    base/ExtDebugMarkers.h
-    base/ExtDebugUtils.cpp
-    base/ExtDebugUtils.h
+    base/FreeSyncHDR.cpp
+    base/FreeSyncHDR.h
     base/Helper.cpp
     base/Helper.h
     base/Imgui.cpp
@@ -84,6 +74,20 @@ set(Base_src
     base/Texture.h
     base/UploadHeap.cpp
     base/UploadHeap.h)
+
+set(Extensions_src
+    base/ExtFreeSyncHDR.cpp
+    base/ExtFreeSyncHDR.h
+    base/ExtFp16.cpp
+    base/ExtFp16.h
+    base/ExtValidation.cpp
+    base/ExtValidation.h
+    base/ExtDebugMarkers.cpp
+    base/ExtDebugMarkers.h
+    base/ExtDebugUtils.cpp
+    base/ExtDebugUtils.h
+    base/ExtGPUValidation.cpp
+    base/ExtGPUValidation.h)
 
 set(Widgets_src
     widgets/Axis.cpp
@@ -131,7 +135,7 @@ set(media_src
 copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
 copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
 
-add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src})
+add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src} ${Extensions_src})
 
 target_link_libraries (${PROJECT_NAME} Cauldron_Common NJSON Vulkan::Vulkan)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -142,6 +146,8 @@ source_group("Base"            FILES ${Base_src})
 source_group("Widgets"         FILES ${Widgets_src})
 source_group("Shaders"         FILES ${Shaders_src})
 source_group("media"           FILES ${media_src})
+source_group("extensions"      FILES ${Extensions_src})
+ 
 
 set_source_files_properties(${Shaders_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
 set_source_files_properties(${media_src} PROPERTIES VS_TOOL_OVERRIDE "Media")

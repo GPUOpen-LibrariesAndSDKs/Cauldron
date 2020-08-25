@@ -22,7 +22,7 @@
 
 static HWND g_hWnd;
 
-bool ImGUI_Init(void* hwnd)
+bool ImGUI_Init(void *hwnd)
 {
     g_hWnd = (HWND)hwnd;
 
@@ -56,7 +56,7 @@ bool ImGUI_Init(void* hwnd)
 void ImGUI_Shutdown()
 {
     ImGui::Shutdown();
-    g_hWnd = (HWND)0;
+    g_hWnd = NULL;
 }
 
 void ImGUI_UpdateIO()
@@ -103,8 +103,8 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     {
         int button = 0;
         if (msg == WM_LBUTTONDOWN) button = 0;
-        if (msg == WM_RBUTTONDOWN) button = 1;
-        if (msg == WM_MBUTTONDOWN) button = 2;
+        else if (msg == WM_RBUTTONDOWN) button = 1;
+        else if (msg == WM_MBUTTONDOWN) button = 2;
         if (!IsAnyMouseButtonDown() && GetCapture() == NULL)
             SetCapture(hwnd);
         io.MouseDown[button] = true;
@@ -116,8 +116,8 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     {
         int button = 0;
         if (msg == WM_LBUTTONUP) button = 0;
-        if (msg == WM_RBUTTONUP) button = 1;
-        if (msg == WM_MBUTTONUP) button = 2;
+        else if (msg == WM_RBUTTONUP) button = 1;
+        else if (msg == WM_MBUTTONUP) button = 2;
         io.MouseDown[button] = false;
         if (!IsAnyMouseButtonDown() && GetCapture() == hwnd)
             ReleaseCapture();
@@ -133,12 +133,12 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
         if (wParam < 256)
-            io.KeysDown[wParam] = 1;
+            io.KeysDown[wParam] = true;
         return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:
         if (wParam < 256)
-            io.KeysDown[wParam] = 0;
+            io.KeysDown[wParam] = false;
         return 0;
     case WM_CHAR:
         // You can also use ToAscii()+GetKeyboardState() to retrieve characters.

@@ -35,8 +35,9 @@ namespace CAULDRON_VK
 public:
         VkResult Init(VkPhysicalDevice physicaldevice);
         bool IsExtensionPresent(const char *pExtName);
-
-        bool Add(const char *deviceExtensionName);
+        bool AddDeviceExtensionName(const char *deviceExtensionName);
+        void *GetNext() { return m_pNext; }
+        void SetNewNext(void *pNext) { m_pNext = pNext; }
 
         VkPhysicalDevice GetPhysicalDevice() { return m_physicaldevice; }
         void GetExtensionNamesAndConfigs(std::vector<const char *> *pDevice_extension_names);

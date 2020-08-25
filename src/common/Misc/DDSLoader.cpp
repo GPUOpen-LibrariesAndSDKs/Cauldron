@@ -53,10 +53,10 @@ struct DDS_HEADER
 };
 
 //--------------------------------------------------------------------------------------
-// retrieve the GetDxGiFormat from a DDS_PIXELFORMAT
+// retrieve the GetDxgiFormat from a DDS_PIXELFORMAT
 // based on http://msdn.microsoft.com/en-us/library/windows/desktop/bb943991(v=vs.85).aspx
 //--------------------------------------------------------------------------------------
-static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt)
+static DXGI_FORMAT GetDxgiFormat(DDS_PIXELFORMAT pixelFmt)
 {
     if (pixelFmt.flags & 0x00000004)   //DDPF_FOURCC
     {
@@ -99,7 +99,15 @@ static DXGI_FORMAT GetDxGiFormat(DDS_PIXELFORMAT pixelFmt)
     }
 }
 
-HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
+DDSLoader::~DDSLoader()
+{
+    if(m_handle != INVALID_HANDLE_VALUE)
+    {
+        CloseHandle(m_handle);
+    }
+}
+
+bool DDSLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
 {
     typedef enum RESOURCE_DIMENSION
     {
@@ -120,16 +128,16 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
     } DDS_HEADER_DXT10;
 
     if (GetFileAttributesA(pFilename) == 0xFFFFFFFF)
-        return INVALID_HANDLE_VALUE;
+        return false;
 
-    HANDLE hFile = CreateFileA(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE)
+    m_handle = CreateFileA(pFilename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (m_handle == INVALID_HANDLE_VALUE)
     {
-        return INVALID_HANDLE_VALUE;
+        return false;
     }
 
     LARGE_INTEGER largeFileSize;
-    GetFileSizeEx(hFile, &largeFileSize);
+    GetFileSizeEx(m_handle, &largeFileSize);
     assert(0 == largeFileSize.HighPart);
     UINT32 fileSize = largeFileSize.LowPart;
     UINT32 rawTextureSize = fileSize;
@@ -137,10 +145,15 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
     // read the header
     char headerData[4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)];
     DWORD dwBytesRead = 0;
-    if (ReadFile(hFile, headerData, 4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10), &dwBytesRead, NULL))
+    if (ReadFile(m_handle, headerData, 4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10), &dwBytesRead, NULL))
     {
         char *pByteData = headerData;
         UINT32 dwMagic = *reinterpret_cast<UINT32 *>(pByteData);
+        if (dwMagic != ' SDD')   // "DDS "
+        {
+            return false;
+        }
+
         pByteData += 4;
         rawTextureSize -= 4;
 
@@ -148,66 +161,35 @@ HANDLE DDSLoad(const char *pFilename, IMG_INFO *pInfo)
         pByteData += sizeof(DDS_HEADER);
         rawTextureSize -= sizeof(DDS_HEADER);
 
-        DDS_HEADER_DXT10 *header10 = NULL;
-        if (dwMagic == '01XD')   // "DX10"
+        pInfo->width = header->dwWidth;
+        pInfo->height = header->dwHeight;
+        pInfo->depth = header->dwDepth ? header->dwDepth : 1;
+        pInfo->mipMapCount = header->dwMipMapCount ? header->dwMipMapCount : 1;
+
+        if (header->ddspf.fourCC == '01XD')
         {
-            header10 = reinterpret_cast<DDS_HEADER_DXT10 *>(&pByteData[4]);
-            pByteData += sizeof(DDS_HEADER_DXT10);
+            DDS_HEADER_DXT10 *header10 = reinterpret_cast<DDS_HEADER_DXT10*>((char*)header + sizeof(DDS_HEADER));
             rawTextureSize -= sizeof(DDS_HEADER_DXT10);
-            header->ddspf.bitCount = (UINT32)BitsPerPixel(header10->dxgiFormat);
 
-            IMG_INFO dx10header =
-            {
-                header->dwWidth,
-                header->dwHeight,
-                header->dwDepth,
-                header10->arraySize,
-                header->dwMipMapCount,
-                header10->dxgiFormat,
-                header->ddspf.bitCount
-            };
-            *pInfo = dx10header;
-        }
-        else if (dwMagic == ' SDD')   // "DDS "
-        {
-            // DXGI
-            UINT32 arraySize = (header->dwCubemapFlags == 0xfe00) ? 6 : 1;
-            DXGI_FORMAT dxgiFormat = GetDxGiFormat(header->ddspf);
-            UINT32 mipMapCount = header->dwMipMapCount ? header->dwMipMapCount : 1;
-            header->ddspf.bitCount = (UINT32)BitsPerPixel(dxgiFormat);
-
-            IMG_INFO dx10header =
-            {
-                header->dwWidth,
-                header->dwHeight,
-                header->dwDepth ? header->dwDepth : 1,
-                arraySize,
-                mipMapCount,
-                dxgiFormat,
-                header->ddspf.bitCount
-            };
-            *pInfo = dx10header;
+            pInfo->arraySize = header10->arraySize;
+            pInfo->format = header10->dxgiFormat;
+            pInfo->bitCount = header->ddspf.bitCount;
         }
         else
         {
-            return INVALID_HANDLE_VALUE;
+            pInfo->arraySize = (header->dwCubemapFlags == 0xfe00) ? 6 : 1;
+            pInfo->format = GetDxgiFormat(header->ddspf);
+            pInfo->bitCount = (UINT32)BitsPerPixel(pInfo->format);
         }
     }
 
-    SetFilePointer(hFile, fileSize - rawTextureSize, 0, FILE_BEGIN);
-
-    return hFile;
-}
-
-bool DDSLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
-{
-    m_handle = DDSLoad(pFilename, pInfo);
-
-    return m_handle != INVALID_HANDLE_VALUE;
+    SetFilePointer(m_handle, fileSize - rawTextureSize, 0, FILE_BEGIN);
+    return true;
 }
 
 void DDSLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, uint32_t height)
 {
+    assert(m_handle != INVALID_HANDLE_VALUE);
     for (uint32_t y = 0; y < height; y++)
     {
         ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, NULL, NULL);

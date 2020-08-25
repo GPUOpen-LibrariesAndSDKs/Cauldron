@@ -79,8 +79,8 @@ namespace CAULDRON_DX12
         //
         {
             DefineList defines;
-            CompileShaderFromString(vertexShader, &defines, "mainVS", pVSTarget, 0, 0, &m_shaderVert);
-            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", pPSTarget, 0, &m_shaderPixel);
+            CompileShaderFromString(vertexShader, &defines, "mainVS", pVSTarget, &m_shaderVert);
+            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", pPSTarget, &m_shaderPixel);
         }
 
         // Create root signature

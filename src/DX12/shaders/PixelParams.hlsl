@@ -29,10 +29,9 @@ float4 getPixelColor(VS_OUTPUT_SCENE Input)
 // or from the interpolated mesh normal and tangent attributes.
 float3 getPixelNormal(VS_OUTPUT_SCENE Input)
 {
-    float2 UV = getNormalUV(Input);
-
     // Retrieve the tangent space matrix
 #ifndef HAS_TANGENT
+    float2 UV = getNormalUV(Input);   
     float3 pos_dx = ddx(Input.WorldPos);
     float3 pos_dy = ddy(Input.WorldPos);
     float3 tex_dx = ddx(float3(UV, 0.0));
@@ -116,7 +115,6 @@ float4 getBaseColor(VS_OUTPUT_SCENE Input, PBRFactors params)
 
 void discardPixelIfAlphaCutOff(VS_OUTPUT_SCENE Input)
 {
-#ifdef ID_baseColorTexture
     float4 baseColor = getBaseColor(Input);
 
 #if defined(DEF_alphaMode_BLEND)
@@ -127,7 +125,6 @@ void discardPixelIfAlphaCutOff(VS_OUTPUT_SCENE Input)
             discard;
 #else
         //OPAQUE
-#endif
 #endif
 }
 

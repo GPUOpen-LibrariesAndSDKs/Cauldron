@@ -67,12 +67,14 @@ namespace CAULDRON_DX12
             ResourceViewHeaps *pHeaps,
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
-            GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers);
+            GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
+            AsyncPool *pAsyncPool = NULL);
 
         void OnDestroy();
         GltfDepthPass::per_frame *SetPerFrameConstants();
         void Draw(ID3D12GraphicsCommandList* pCommandList);
     private:
+        Device *m_pDevice;
         ResourceViewHeaps *m_pResourceViewHeaps;
         DynamicBufferRing *m_pDynamicBufferRing;
         StaticBufferPool *m_pStaticBufferPool;
@@ -86,7 +88,7 @@ namespace CAULDRON_DX12
         D3D12_STATIC_SAMPLER_DESC m_samplerDesc;
         D3D12_GPU_VIRTUAL_ADDRESS m_perFrameDesc;
 
-        void CreatePipeline(ID3D12Device* pDevice, bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive);
+        void CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive);
     };
 }
 

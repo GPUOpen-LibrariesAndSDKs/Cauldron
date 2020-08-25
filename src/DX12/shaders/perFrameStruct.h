@@ -39,6 +39,15 @@ struct Light
     int           shadowMapIndex;
 };
 
+struct LightInstance
+{
+    matrix        mLightViewProj;
+    float3        direction;
+    float3        position;
+    int           shadowMapIndex;
+    float         depthBias;
+};
+
 static const int LightType_Directional = 0;
 static const int LightType_Point = 1;
 static const int LightType_Spot = 2;
@@ -50,9 +59,10 @@ struct PerFrame
     float4        u_CameraPos;
     float         u_iblFactor;
     float         u_EmissiveFactor;
+    float2        u_invScreenResolution;
 
-    int           u_padding;
+    int3          u_padding;
 
     int           u_lightCount;
-    Light         u_lights[4];
+    Light         u_lights[80];
 };

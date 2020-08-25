@@ -20,7 +20,7 @@ vec4 getPixelColor(VS2PS Input)
    vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
 
 #ifdef ID_COLOR_0
-    color = Input.Color0;
+    color.xyz = Input.Color0;
 #endif
 
    return color;
@@ -116,7 +116,6 @@ vec4 getBaseColor(VS2PS Input, PBRFactors params)
 
 void discardPixelIfAlphaCutOff(VS2PS Input)
 {
-#ifdef ID_baseColorTexture
     vec4 baseColor = getBaseColor(Input);
 
 #if defined(DEF_alphaMode_BLEND)
@@ -127,7 +126,6 @@ void discardPixelIfAlphaCutOff(VS2PS Input)
             discard;
 #else
         //OPAQUE
-#endif
 #endif
 }
 

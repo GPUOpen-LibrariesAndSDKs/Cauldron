@@ -63,7 +63,7 @@ public:
 
     bool Free(uint32_t size)
     {
-        if (m_AllocatedSize > size)
+        if (m_AllocatedSize >= size)
         {
             m_Head = (m_Head + size) % m_TotalSize;
             m_AllocatedSize -= size;

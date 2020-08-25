@@ -40,7 +40,7 @@ namespace CAULDRON_VK
         descriptor_pool.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptor_pool.pNext = NULL;
         descriptor_pool.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-        descriptor_pool.maxSets = 6000;
+        descriptor_pool.maxSets = 8000;
         descriptor_pool.poolSizeCount = (uint32_t)type_count.size();
         descriptor_pool.pPoolSizes = type_count.data();
 

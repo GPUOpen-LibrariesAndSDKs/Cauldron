@@ -23,12 +23,12 @@
 namespace CAULDRON_DX12
 {
     // This class manages command allocators and command lists. 
-    // For each backbuffer creates a command list allocator and creates <commandListsPerframe> command lists. 
+    // For each backbuffer creates a command list allocator and creates <commandListsPerFrame> command lists. 
     //
     class CommandListRing
     {
     public:
-        void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerframe, D3D12_COMMAND_QUEUE_DESC queueDesc);
+        void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerBackBuffer, const D3D12_COMMAND_QUEUE_DESC& queueDesc);
         void OnDestroy();
         void OnBeginFrame();
         ID3D12GraphicsCommandList2 *GetNewCommandList();
@@ -42,7 +42,7 @@ namespace CAULDRON_DX12
         struct CommandBuffersPerFrame
         {
             ID3D12CommandAllocator       *m_pCommandAllocator;
-            ID3D12GraphicsCommandList2    **m_ppCommandList;
+            ID3D12GraphicsCommandList2    **m_ppCommandLists;
             uint32_t m_UsedCls;
         } *m_pCommandBuffers, *m_pCurrentFrame;
     };

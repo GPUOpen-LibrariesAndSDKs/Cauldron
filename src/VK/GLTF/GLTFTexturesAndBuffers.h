@@ -45,21 +45,27 @@ namespace CAULDRON_VK
         std::vector<Texture> m_textures;
         std::vector<VkImageView> m_textureViews;
 
+        std::map<int, VkDescriptorBufferInfo> m_skeletonMatricesBuffer;
+
         StaticBufferPool *m_pStaticBufferPool;
         DynamicBufferRing *m_pDynamicBufferRing;
+
+        // maps GLTF ids into views
+        std::map<int, VkDescriptorBufferInfo> m_vertexBufferMap;
+        std::map<int, VkDescriptorBufferInfo> m_IndexBufferMap;
 
     public:
         GLTFCommon *m_pGLTFCommon;
 
         VkDescriptorBufferInfo m_perFrameConstants;
-        std::map<int, VkDescriptorBufferInfo> m_skeletonMatricesBuffer;
 
         bool OnCreate(Device *pDevice, GLTFCommon *pGLTFCommon, UploadHeap* pUploadHeap, StaticBufferPool *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
-        void LoadTextures();
+        void LoadTextures(AsyncPool *pAsyncPool = NULL);
+        void LoadGeometry();
         void OnDestroy();
 
-        void CreateIndexBuffer(tfAccessor indexBuffer, uint32_t *pNumIndices, VkIndexType *pIndexType, VkDescriptorBufferInfo *pIBV);
-        void CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry);
+        void CreateIndexBuffer(int indexBufferId, uint32_t *pNumIndices, VkIndexType *pIndexType, VkDescriptorBufferInfo *pIBV);
+        void CreateGeometry(int indexBufferId, std::vector<int> &vertexBufferIds, Geometry *pGeometry);
         void CreateGeometry(const json &primitive, const std::vector<std::string> requiredAttributes, std::vector<VkVertexInputAttributeDescription> &layout, DefineList &defines, Geometry *pGeometry);
 
         VkImageView GetTextureViewByID(int id);

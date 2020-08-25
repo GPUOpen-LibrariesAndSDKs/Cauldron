@@ -43,6 +43,22 @@ struct MaterialInfo
     vec3 specularColor;           // color contribution from specular lighting
 };
 
+//
+//  Get SSAO from texture
+//
+#ifdef ID_SSAO
+layout(set = 1, binding = ID_SSAO) uniform sampler2D ssaoSampler;
+
+float GetSSAO(vec2 coords)
+{
+    return texture(ssaoSampler, coords).r;
+}
+#else
+float GetSSAO(vec2 coords)
+{
+    return 1.0f;
+}
+#endif
 
 // Calculation of the lighting contribution from an optional Image Based Light source.
 // Precomputed Environment Maps are required uniform inputs and are computed as outlined in [1].
@@ -261,7 +277,7 @@ vec3 doPbrLighting(VS2PS Input, PerFrame perFrame, vec3 diffuseColor, vec3 specu
 
     // Calculate lighting contribution from image based lighting source (IBL)
 #ifdef USE_IBL
-    color += getIBLContribution(materialInfo, normal, view) * myPerFrame.u_iblFactor;
+    color += getIBLContribution(materialInfo, normal, view) * myPerFrame.u_iblFactor  * GetSSAO(gl_FragCoord.xy * perFrame.u_invScreenResolution);
 #endif
 
     float ao = 1.0;
@@ -274,8 +290,10 @@ vec3 doPbrLighting(VS2PS Input, PerFrame perFrame, vec3 diffuseColor, vec3 specu
     vec3 emissive = vec3(0);
 #ifdef ID_emissiveTexture
     emissive = (texture(u_EmissiveSampler, getEmissiveUV(Input))).rgb * u_pbrParams.myPerObject_u_EmissiveFactor.rgb * myPerFrame.u_EmissiveFactor;
-    color += emissive;
+#else
+    emissive = u_pbrParams.myPerObject_u_EmissiveFactor.rgb * perFrame.u_EmissiveFactor;
 #endif
+    color += emissive;
 
 #ifndef DEBUG_OUTPUT // no debug
 

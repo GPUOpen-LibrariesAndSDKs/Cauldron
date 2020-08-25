@@ -40,7 +40,7 @@ namespace CAULDRON_VK
         INT32 Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name = NULL);
         INT32 InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name = NULL);
         INT32 InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, char *name = NULL);
-        bool InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f);
+        bool InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, const char *szFilename, bool useSRGB = false, VkImageUsageFlags usageFlags = 0, float cutOff = 1.0f);
 
         VkImage Resource() const { return m_pResource; }
 
@@ -77,8 +77,8 @@ namespace CAULDRON_VK
         } footprints[6][12];
 
 
-        VkImage CreateTextureCommitted(Device* pDevice, UploadHeap* pUploadHeap, const char *pName, bool useSRGB = false);
-        void LoadAndUpload(Device* pDevice, UploadHeap* pUploadHeap, ImgLoader *pDds, VkImage pTexture2D);
+        VkImage CreateTextureCommitted(Device *pDevice, UploadHeap *pUploadHeap, const char *pName, bool useSRGB = false, VkImageUsageFlags usageFlags = 0);
+        void LoadAndUpload(Device *pDevice, UploadHeap *pUploadHeap, ImgLoader *pDds, VkImage pTexture2D);
 
         bool    isCubemap()const;
     };

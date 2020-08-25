@@ -18,7 +18,5 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <vector>
-
 void GenerateSphere(int sides, std::vector<short> &outIndices, std::vector<float> &outVertices);
 void GenerateBox(std::vector<short> &outIndices, std::vector<float> &outVertices);

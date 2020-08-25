@@ -59,7 +59,7 @@ void main()
             break;
 
         case 1: 
-            // FS2_DisplayNative
+            // FSHDR_DisplayNative
             color.xyz = (myPerFrame.u_contentToMonitorRecMatrix * color).xyz;
             
 			// Apply gamma
@@ -68,7 +68,7 @@ void main()
             break;
 
         case 2:
-            // FS2_scRGB
+            // FSHDR_scRGB
             // Scale to maxdisplayLuminanace / 80
             // In this case luminanace value queried from
             outColor.xyz = (color.xyz * (myPerFrame.u_displayMaxLuminancePerNits - myPerFrame.u_displayMinLuminancePerNits)) + vec3(myPerFrame.u_displayMinLuminancePerNits);

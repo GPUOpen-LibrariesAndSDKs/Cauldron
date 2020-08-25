@@ -29,8 +29,8 @@
 // http://go.microsoft.com/fwlink/?LinkID=615561
 //--------------------------------------------------------------------------------------
 
+#include "stdafx.h"
 #include "DxgiFormatHelper.h"
-#include <assert.h>
 
 //--------------------------------------------------------------------------------------
 // Return the BPP for a particular format

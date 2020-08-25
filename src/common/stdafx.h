@@ -19,6 +19,7 @@
 #include <malloc.h>
 #include <tchar.h>
 #include <cassert>
+#include <cstdlib>
 
 // math API
 #include <DirectXMath.h>

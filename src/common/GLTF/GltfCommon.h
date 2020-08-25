@@ -19,17 +19,17 @@
 
 #pragma once
 #include "../json/json.h"
-#include "../../common/Misc/Camera.h"
+#include "../Misc/Camera.h"
 #include "GltfStructures.h"
 
 // The GlTF file is loaded in 2 steps
 //
-// 1) loading the GPU agnostic data that is common to all pass (This is done in the GLTFCommon class you can see here below)
+// 1) loading the GPU agnostic data that is common to all passes (This is done in the GLTFCommon class you can see here below)
 //     - nodes
 //     - scenes
 //     - animations
 //     - binary buffers
-//     - skining skeletons
+//     - skinning skeletons
 //
 // 2) loading the GPU specific data that is common to any pass (This is done in the GLTFCommonVK class)
 //     - textures
@@ -65,6 +65,8 @@ struct Light
     uint32_t      shadowMapIndex = -1;
 };
 
+
+
 const uint32_t LightType_Directional = 0;
 const uint32_t LightType_Point = 1;
 const uint32_t LightType_Spot = 2;
@@ -76,10 +78,11 @@ struct per_frame
     XMVECTOR  cameraPos;
     float     iblFactor;
     float     emmisiveFactor;
+    float     invScreenResolution[2];
 
-    uint32_t  padding;
+    uint32_t  padding[3];
     uint32_t  lightCount;
-    Light     lights[4];
+    Light     lights[80];
 };
 
 //
@@ -95,6 +98,7 @@ public:
     std::vector<tfMesh> m_meshes;
     std::vector<tfSkins> m_skins;
     std::vector<tfLight> m_lights;
+    std::vector<LightInstance> m_lightInstances;
     std::vector<tfCamera> m_cameras;
 
     std::vector<tfNode> m_nodes;
@@ -118,19 +122,19 @@ public:
     void Unload();
 
     // misc functions
-    int FindMeshSkinId(int meshId);
-    int GetInverseBindMatricesBufferSizeByID(int id);
-    void GetBufferDetails(int accessor, tfAccessor *pAccessor);
-    void GetAttributesAccessors(const json &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors);
+    int FindMeshSkinId(int meshId) const;
+    int GetInverseBindMatricesBufferSizeByID(int id) const;
+    void GetBufferDetails(int accessor, tfAccessor *pAccessor) const;
+    void GetAttributesAccessors(const json &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors) const;
 
     // transformation and animation functions
     void SetAnimationTime(uint32_t animationIndex, float time);
     void TransformScene(int sceneIndex, XMMATRIX world);
     per_frame *SetPerFrameData(const Camera &cam);
-    bool GetCamera(uint32_t cameraIdx, Camera *pCam);
-    tfNodeIdx AddNode(tfNode node);
-    int AddLight(tfLight light);
+    bool GetCamera(uint32_t cameraIdx, Camera *pCam) const;
+    tfNodeIdx AddNode(const tfNode& node);
+    int AddLight(const tfNode& node, const tfLight& light);
 private:
     void InitTransformedData(); //this is called after loading the data from the GLTF
-    void TransformNodes(tfNode *pRootNode, XMMATRIX world, std::vector<tfNodeIdx> *pNodes, GLTFCommonTransformed *pTransformed);
+    void TransformNodes(const tfNode *pRootNode, XMMATRIX world, const std::vector<tfNodeIdx> *pNodes, GLTFCommonTransformed *pTransformed) const;
 };
