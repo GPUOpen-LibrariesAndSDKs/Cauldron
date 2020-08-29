@@ -8,6 +8,10 @@ Cauldron is compiled as a static library. To see it in action check projects bel
 
 # Projects that feature Cauldron
 
+- [FidelityFX-SPD](https://github.com/GPUOpen-Effects/FidelityFX-SPD) Single Pass Downsampler (SPD)
+- [FidelityFX-SSSR](https://github.com/GPUOpen-Effects/FidelityFX-SSSR) Stochastic Screen Space Reflections (SSSR)
+- [FidelityFX-LPM](https://github.com/GPUOpen-Effects/FidelityFX-LPM) Luma Preserving Mapper (LPM)
+- [FidelityFX-CACAO](https://github.com/GPUOpen-Effects/FidelityFX-CACAO) Combined Adaptive Compute Ambient Occlusion (CACAO)
 - [TressFX](https://github.com/GPUOpen-Effects/TressFX), a library that simulates and renders realistic hair and fur
 - [GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample), a simple demo app to show off Cauldron's features
   ![GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample/raw/master/screenshot.png)
@@ -18,25 +22,25 @@ Cauldron is compiled as a static library. To see it in action check projects bel
 - [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0) File loader
   - Animation for cameras, objects, skeletons and lights
   - Skinning
+    - Baking skinning into buffers (DX12 only)
   - Rendering techniques
-    - :champagne: Motion vectors (New!)
+    - Motion vectors
     - Depth pass only
-    - :champagne: Baking skinning (New! and DX12 only)
     - PBR Materials 
       - Metallic-Roughness 
-  	  - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
+      - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
     - Lighting (KHR_lights_punctual extension)
       - Spot Lights w/ Shadows (up to 4)
       - Image-based Lighting (IBL) CubeMaps
   - Shadow techniques
     - shadow maps
-    - :champagne: shadow masks (New! and DX12 only)
+    - shadow masks (DX12 only)
 - Postprocessing
-  - :champagne: TAA (New! and DX12 only)
+  - TAA (DX12 only)
   - Bloom
   - HDR/Tonemapping
-- Texture Loaders for DDS, JPEG and PNG formats
-  - MipMap generation for powers-of-two textures
+- Texture Loaders for DDS (including the BCn formats), JPEG and PNG formats
+  - MIP Map generation for powers-of-two textures
 - In-app user interface using [Dear ImGui](https://github.com/ocornut/imgui)
 - Rendering Resource Management
   - Command Buffer Ring
@@ -52,6 +56,12 @@ Cauldron is compiled as a static library. To see it in action check projects bel
 - Support for DXC/SM6.x 
 - Shader Binary & PSO caching
 - FreeSync :tm: 2 HDR support
+- Multithreading loading & creation of resources
+  - Textures & MIP map generation
+  - Shader compilation
+  - Pipeline creation
+- VK extensions can be enabled from the app side
+- Benchmarking 
 
 # Directory Structure
 
@@ -139,3 +149,4 @@ Cauldron should be very easy to extend, should you want to contribute to Cauldro
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
 - [D3DX12](https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/Libraries/D3DX12)
+- [stb_image](http://nothings.org/stb)
