@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -23,33 +23,43 @@
 //  Include IO structures
 //--------------------------------------------------------------------------------------
 
-#include "GLTFPbrPass-IO.hlsl"
+#include "GLTFPbrPass-IO.h"
 
 //--------------------------------------------------------------------------------------
 //  Constant buffers
 //--------------------------------------------------------------------------------------
 
+#include "perFrameStruct.h"
+
 cbuffer cbPerFrame : register(b0)
 {
-    matrix        myPerFrame_u_mCameraViewProj;
-    float4        myPerFrame_u_CameraPos;
-    float         myPerFrame_u_iblFactor;
-    float         myPerFrame_u_EmissiveFactor;
+    PerFrame myPerFrame;
 };
 
 cbuffer cbPerObject : register(b1)
 {
-    matrix        myPerObject_u_mWorld;
+    matrix myPerObject_u_mCurrWorld;
+    matrix myPerObject_u_mPrevWorld;
 }
 
 matrix GetWorldMatrix()
 {
-    return myPerObject_u_mWorld;
+    return myPerObject_u_mCurrWorld;
 }
 
 matrix GetCameraViewProj()
 {
-    return myPerFrame_u_mCameraViewProj;
+    return myPerFrame.u_mCameraCurrViewProj;
+}
+
+matrix GetPrevWorldMatrix()
+{
+    return myPerObject_u_mPrevWorld;
+}
+
+matrix GetPrevCameraViewProj()
+{
+    return myPerFrame.u_mCameraPrevViewProj;
 }
 
 #include "GLTFVertexFactory.hlsl"

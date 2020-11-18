@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "textures.hlsl"
+#include "PBRTextures.hlsl"
 
 float4 getPixelColor(VS_OUTPUT_SCENE Input)
 {
@@ -25,42 +25,6 @@ float4 getPixelColor(VS_OUTPUT_SCENE Input)
    return color;
 }
 
-// Find the normal for this fragment, pulling either from a predefined normal map
-// or from the interpolated mesh normal and tangent attributes.
-float3 getPixelNormal(VS_OUTPUT_SCENE Input)
-{
-    // Retrieve the tangent space matrix
-#ifndef HAS_TANGENT
-    float2 UV = getNormalUV(Input);   
-    float3 pos_dx = ddx(Input.WorldPos);
-    float3 pos_dy = ddy(Input.WorldPos);
-    float3 tex_dx = ddx(float3(UV, 0.0));
-    float3 tex_dy = ddy(float3(UV, 0.0));
-    float3 t = (tex_dy.y * pos_dx - tex_dx.y * pos_dy) / (tex_dx.x * tex_dy.y - tex_dy.x * tex_dx.y);
-
-#ifdef HAS_NORMAL
-    float3 ng = normalize(Input.Normal);
-#else
-    float3 ng = cross(pos_dx, pos_dy);
-#endif
-
-    t = normalize(t - ng * dot(ng, t));
-    float3 b = normalize(cross(ng, t));
-    float3x3 tbn = float3x3(t, b, ng);
-#else // HAS_TANGENTS
-    float3x3 tbn = float3x3(Input.Tangent, Input.Binormal, Input.Normal);
-#endif
-
-#ifdef ID_normalTexture
-    float3 n = getNormalTexture(Input);
-    n = normalize(mul(transpose(tbn),((2.0 * n - 1.0) /* * float3(u_NormalScale, u_NormalScale, 1.0) */)));
-#else
-    // The tbn matrix is linearly interpolated, so we need to re-normalize
-    float3 n = normalize(tbn[2].xyz);
-#endif
-
-    return n;
-}
 
 //------------------------------------------------------------
 // PBR getters

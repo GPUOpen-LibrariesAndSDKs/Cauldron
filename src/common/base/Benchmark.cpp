@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2017 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -99,7 +99,7 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
     //set default timeStart/timEnd
     bm.timeStart = 0;
     bm.timeEnd = 0;
-    if ((pGltfLoader->m_animations.size() > 0))
+    if ((pGltfLoader!=NULL) && (pGltfLoader->m_animations.size() > 0))
     {
         //if there is an animation take the endTime from the animation
         bm.timeEnd = pGltfLoader->m_animations[0].m_duration;
@@ -114,7 +114,7 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
     //
     bm.m_animationFound = false;
     bm.cameraId = cameraId;
-    if (cameraId==-1)
+    if ((pGltfLoader == NULL) || cameraId==-1)
     {
         if (benchmark.find("sequence") != benchmark.end())
         {
@@ -136,7 +136,7 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
         // a camera from the GLTF will be used
         // check such a camera exist, otherwise show an error and quit
         Camera Cam;
-        if (bm.m_pGltfLoader->GetCamera(cameraId, &Cam) == false)
+        if (pGltfLoader->GetCamera(cameraId, &Cam) == false)
         {
             Trace(format("The cameraId %i doesn't exits in the GLTF\n", cameraId));
             exit(0);

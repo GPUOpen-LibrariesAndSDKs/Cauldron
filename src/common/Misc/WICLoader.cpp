@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -214,7 +214,7 @@ void WICLoader::MipImage(uint32_t width, uint32_t height)
 
     // For cutouts we need we need to scale the alpha channel to match the coverage of the top MIP map
     // otherwise cutouts seem to get thinner when smaller mips are used
-    // Credits: http://the-witness.net/news/2010/09/computing-alpha-mipmaps/
+    // Credits: http://www.ludicon.com/castano/blog/articles/computing-alpha-mipmaps/
     //
     
     if (m_alphaTestCoverage < 1.0)

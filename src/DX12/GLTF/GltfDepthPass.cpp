@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -351,7 +351,7 @@ namespace CAULDRON_DX12
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
+        Matrix2 *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
@@ -373,7 +373,7 @@ namespace CAULDRON_DX12
                 // Set per Object constants
                 //
                 per_object cbPerObject;
-                cbPerObject.mWorld = pNodesMatrices[i];
+                cbPerObject.mWorld = pNodesMatrices[i].GetCurrent();
                 D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc= m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), &cbPerObject);
 
                 // Bind indices and vertices using the right offsets into the buffer

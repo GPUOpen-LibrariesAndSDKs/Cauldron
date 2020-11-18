@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2019 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -42,7 +42,9 @@ namespace CAULDRON_DX12
         DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
         DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
-        m_skydome.OnCreate(pDevice, "SkyDome.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, outFormat, sampleDescCount);
+        D3D12_BLEND_DESC blendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        m_skydome.OnCreate(pDevice, "SkyDome.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, outFormat, sampleDescCount, &blendDesc, &depthStencilDesc);
     }
 
     void SkyDome::OnDestroy()

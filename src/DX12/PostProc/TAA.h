@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -17,21 +17,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 #pragma once
+#include "Base/Texture.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/GBuffer.h"
 
 namespace CAULDRON_DX12
 {
     class TAA
     {
     public:
-        void OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps);
+        void OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool);
         void OnDestroy();
-
-        void Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pUAVTable, CBV_SRV_UAV *pSRVTable, uint32_t width, uint32_t height);
+        void OnCreateWindowSizeDependentResources(uint32_t Width, uint32_t Height, GBuffer *pGBuffer);
+        void OnDestroyWindowSizeDependentResources();
+        
+        void Draw(ID3D12GraphicsCommandList *pCommandList, D3D12_RESOURCE_STATES hdrBefore, D3D12_RESOURCE_STATES hdrAfter);
 
     private:
-        ResourceViewHeaps *m_pResourceViewHeaps;
+        Device                         *m_pDevice;
+        ResourceViewHeaps              *m_pResourceViewHeaps;
 
-        ID3D12RootSignature *m_pRootSignature;
-        ID3D12PipelineState *m_pPipelineState;
+        uint32_t                        m_Width, m_Height;
+
+        GBuffer                        *m_pGBuffer;
+
+        // TAA buffer
+        Texture                         m_TAABuffer;
+        Texture                         m_HistoryBuffer;
+
+        CBV_SRV_UAV                     m_TaaTable;
+        CBV_SRV_UAV                     m_SharpenerTable;
+
+        ID3D12RootSignature            *m_pTaaRootSignature;
+        ID3D12PipelineState            *m_pTaaPipelineState;
+
+        
+        ID3D12RootSignature            *m_pSharpenerRootSignature;
+        ID3D12PipelineState            *m_pSharpenerPipelineState;
+
     };
 }
+

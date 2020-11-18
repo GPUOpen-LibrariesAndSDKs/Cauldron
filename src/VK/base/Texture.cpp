@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -476,6 +476,81 @@ namespace CAULDRON_VK
         return result;
     }
 
+    bool Texture::InitFromData(Device* pDevice, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data, const char* name)
+    {
+        assert(!m_pResource && !m_pDevice);
+        assert(header.arraySize == 1 && header.mipMapCount == 1);
+
+        m_pDevice = pDevice;
+        m_header = header;
+
+        m_pResource = CreateTextureCommitted(m_pDevice, &uploadHeap, name, false);
+
+        // Upload Image
+        {
+            VkImageMemoryBarrier copy_barrier = {};
+            copy_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            copy_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            copy_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            copy_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            copy_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            copy_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            copy_barrier.image = m_pResource;
+            copy_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            copy_barrier.subresourceRange.baseMipLevel = 0;
+            copy_barrier.subresourceRange.levelCount = m_header.mipMapCount;
+            copy_barrier.subresourceRange.layerCount = m_header.arraySize;
+            vkCmdPipelineBarrier(uploadHeap.GetCommandList(), VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &copy_barrier);
+        }
+
+        //compute pixel size
+        //
+        UINT32 bytePP = m_header.bitCount / 8;
+        if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
+        {
+            bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format);
+        }
+
+         
+        UINT8* pixels = NULL;
+        UINT64 UplHeapSize = m_header.width * m_header.height * 4;
+        pixels =  uploadHeap.Suballocate(UplHeapSize, 512);
+        assert(pixels != NULL);
+
+        CopyMemory( pixels, data, m_header.width * m_header.height * bytePP );
+
+        VkBufferImageCopy region = {};
+        region.bufferOffset = 0;
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.layerCount = 1;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.mipLevel = 0;
+        region.imageExtent.width = m_header.width;
+        region.imageExtent.height = m_header.height;
+        region.imageExtent.depth = 1;
+        vkCmdCopyBufferToImage(uploadHeap.GetCommandList(), uploadHeap.GetResource(), m_pResource, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+        // prepare to shader read
+        //
+        {
+            VkImageMemoryBarrier use_barrier = {};
+            use_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            use_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            use_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            use_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            use_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            use_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            use_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            use_barrier.image = m_pResource;
+            use_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            use_barrier.subresourceRange.levelCount = m_header.mipMapCount;
+            use_barrier.subresourceRange.layerCount = m_header.arraySize;
+            vkCmdPipelineBarrier(uploadHeap.GetCommandList(), VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &use_barrier);
+        }
+
+        return true;
+    }
+
     VkFormat TranslateDxgiFormatIntoVulkans(DXGI_FORMAT format)
     {
         switch (format)
@@ -496,6 +571,7 @@ namespace CAULDRON_VK
         case DXGI_FORMAT_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
         case DXGI_FORMAT_R10G10B10A2_UNORM: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
         case DXGI_FORMAT_R16G16B16A16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case DXGI_FORMAT_R32G32B32A32_FLOAT: return VK_FORMAT_R32G32B32A32_SFLOAT;
         default: assert(false);  return VK_FORMAT_UNDEFINED;
         }
     }

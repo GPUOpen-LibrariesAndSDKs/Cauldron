@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -21,6 +21,7 @@
 #include "GLTFTexturesAndBuffers.h"
 #include "PostProc/SkyDome.h"
 #include "../Common/GLTF/GltfPbrMaterial.h"
+#include "base/GBuffer.h"
 
 namespace CAULDRON_DX12
 {
@@ -56,7 +57,8 @@ namespace CAULDRON_DX12
     public:
         struct per_object
         {
-            XMMATRIX mWorld;
+            XMMATRIX mCurrentWorld;
+            XMMATRIX mPreviousWorld;
 
             PBRMaterialParametersConstantBuffer m_pbrParams;
         };
@@ -71,52 +73,48 @@ namespace CAULDRON_DX12
             operator float() { return -m_depth; }
         };
 
-
         void OnCreate(
             Device *pDevice,
             UploadHeap *pUploadHeap,
             ResourceViewHeaps *pHeaps,
             DynamicBufferRing *pDynamicBufferRing,
-            StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
             bool bUseSSAOMask,
             bool bUseShadowMask,
-            DXGI_FORMAT outForwardFormat,
-            DXGI_FORMAT outSpecularRoughnessFormat,
-            DXGI_FORMAT outDiffuseColor,
-            DXGI_FORMAT outNormals,
-            uint32_t sampleDescCount,
+            GBufferRenderPass *pGBufferRenderPass,
             AsyncPool *pAsyncPool = NULL);
 
         void OnDestroy();
         void OnUpdateWindowSizeDependentResources(Texture *pSSAO);
-        void BuildLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
-        void Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV);
+        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
+        void DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList);
     private:
-        Device *m_pDevice;
-        GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
+        Device                  *m_pDevice;
+        GBufferRenderPass       *m_pGBufferRenderPass;
 
-        ResourceViewHeaps *m_pResourceViewHeaps;
-        DynamicBufferRing *m_pDynamicBufferRing;
-        StaticBufferPool *m_pStaticBufferPool;
+        GLTFTexturesAndBuffers  *m_pGLTFTexturesAndBuffers;
 
-        std::vector<PBRMesh> m_meshes;
+        ResourceViewHeaps       *m_pResourceViewHeaps;
+        DynamicBufferRing       *m_pDynamicBufferRing;
+
+        std::vector<PBRMesh>     m_meshes;
         std::vector<PBRMaterial> m_materialsData;
 
-        GltfPbrPass::per_frame m_cbPerFrame;
+        GltfPbrPass::per_frame   m_cbPerFrame;
 
-        PBRMaterial m_defaultMaterial;
+        PBRMaterial              m_defaultMaterial;
 
-        Texture m_BrdfLut;
+        Texture                  m_BrdfLut;
 
-        bool m_doLighting;
+        bool                     m_doLighting;
 
+        DXGI_FORMAT              m_depthFormat;
         std::vector<DXGI_FORMAT> m_outFormats;
-        uint32_t m_sampleCount;
+        uint32_t                 m_sampleCount;
 
         void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, bool bUseShadowMask, bool bUseSSAOMask);
-        void CreateDescriptors(bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);
+        void CreateRootSignature(bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);
         void CreatePipeline(std::vector<D3D12_INPUT_ELEMENT_DESC> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };
 }

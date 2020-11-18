@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -39,7 +39,7 @@ cbuffer cbPerObject : register(b1)
 // I/O Structures
 //--------------------------------------------------------------------------------------
 
-#include "GLTFPbrPass-IO.hlsl"
+#include "GLTFPbrPass-IO.h"
 
 //--------------------------------------------------------------------------------------
 // Vertex Shader
@@ -78,7 +78,7 @@ VS_OUTPUT_SCENE mainVS(VS_INPUT_SCENE input)
 // Pixel Shader
 //--------------------------------------------------------------------------------------
 
-#include "PixelParams.hlsl"
+#include "PBRPixelParams.hlsl"
 
 struct Output
 {

@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -40,7 +40,9 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pResourceViewHeaps = pResourceViewHeaps;
 
-        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, 0, NULL, outFormat, sampleDescCount);
+        D3D12_BLEND_DESC blendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, 0, NULL, outFormat, sampleDescCount, &blendDesc, &depthStencilDesc);
     }
 
     void SkyDomeProc::OnDestroy()

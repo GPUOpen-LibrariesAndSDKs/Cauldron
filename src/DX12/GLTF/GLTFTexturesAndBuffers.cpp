@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -231,10 +231,10 @@ namespace CAULDRON_DX12
 
     void GLTFTexturesAndBuffers::SetSkinningMatricesForSkeletons()
     {
-        for (auto &t : m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceSkeletonMats)
+        for (auto &t : m_pGLTFCommon->m_worldSpaceSkeletonMats)
         {
-            std::vector<XMMATRIX> *matrices = &t.second;
-            D3D12_GPU_VIRTUAL_ADDRESS perSkeleton = m_pDynamicBufferRing->AllocConstantBuffer((uint32_t)(matrices->size() * sizeof(XMMATRIX)), matrices->data());
+            std::vector<Matrix2> *matrices = &t.second;
+            D3D12_GPU_VIRTUAL_ADDRESS perSkeleton = m_pDynamicBufferRing->AllocConstantBuffer((uint32_t)(matrices->size() * sizeof(Matrix2)), matrices->data());
 
             m_skeletonMatricesBuffer[t.first] = perSkeleton;
         }

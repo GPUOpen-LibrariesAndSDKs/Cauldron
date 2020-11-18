@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -546,8 +546,7 @@ namespace CAULDRON_VK
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesCurrMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
-        XMMATRIX *pNodesPrevMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pPreviousFrameTransformedData->m_worldSpaceMats.data();
+        Matrix2 *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
@@ -569,8 +568,8 @@ namespace CAULDRON_VK
                 // Set per Object constants
                 //
                 per_object cbPerObject;
-                cbPerObject.mCurrentWorld = pNodesCurrMatrices[i];
-                cbPerObject.mPreviousWorld = pNodesPrevMatrices[i];
+                cbPerObject.mCurrentWorld = pNodesMatrices[i].GetCurrent();
+                cbPerObject.mPreviousWorld = pNodesMatrices[i].GetPrevious();
 
                 VkDescriptorBufferInfo perObjectDesc = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), &cbPerObject);
 

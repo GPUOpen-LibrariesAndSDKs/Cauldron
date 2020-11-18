@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -134,10 +134,31 @@ namespace CAULDRON_DX12
         allocating.Dec();
     }
 
+    void UploadHeap::AddBufferCopy(const void *pData, int size, ID3D12Resource *pBufferDst)
+    {
+        UINT8 *pixels = BeginSuballocate(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
+        memcpy(pixels, pData, size);
+        EndSuballocate();
+
+        {
+            std::unique_lock<std::mutex> lock(m_mutex);
+            m_bufferCopies.push_back({ pBufferDst, (UINT64)(pixels - BasePtr()), size });
+
+            D3D12_RESOURCE_BARRIER RBDesc = {};
+            RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            RBDesc.Transition.pResource = pBufferDst;
+            RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+            RBDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+            RBDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            m_toBarrierIntoShaderResource.push_back(RBDesc);
+        }
+    }
+
+
     void UploadHeap::AddCopy(CD3DX12_TEXTURE_COPY_LOCATION Src, CD3DX12_TEXTURE_COPY_LOCATION Dst)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        m_copies.push_back({ Src, Dst });
+        m_textureCopies.push_back({ Src, Dst });
     }
 
     void UploadHeap::AddBarrier(ID3D12Resource *pRes)
@@ -171,14 +192,20 @@ namespace CAULDRON_DX12
         allocating.Wait();
 
         std::unique_lock<std::mutex> lock(m_mutex);
-        Trace("flushing %i", m_copies.size());
+        Trace("flushing %i, %i", m_textureCopies.size(), m_bufferCopies.size());
 
         //issue copies
-        for (COPY c : m_copies)
+        for (TextureCopy c : m_textureCopies)
         {
             m_pCommandList->CopyTextureRegion(&c.Dst, 0, 0, 0, &c.Src, NULL);
         }
-        m_copies.clear();
+        m_textureCopies.clear();
+
+        for (BufferCopy c : m_bufferCopies)
+        {
+            m_pCommandList->CopyBufferRegion(c.pBufferDst, 0, GetResource(), c.offset, c.size);
+        }
+        m_bufferCopies.clear();
 
         //apply barriers in one go
         if (m_toBarrierIntoShaderResource.size() > 0)

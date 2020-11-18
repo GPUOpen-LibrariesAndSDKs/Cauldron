@@ -18,18 +18,26 @@
 // THE SOFTWARE.
 
 #ifdef ID_SKINNING_MATRICES
-    layout (std140, binding = ID_SKINNING_MATRICES) uniform perSkeleton
-    {
-        mat4 u_ModelMatrix[200];
-    } myPerSkeleton;
+
+struct Matrix2
+{
+    mat4 m_current;
+    mat4 m_previous;
+};
+
+
+layout (std140, binding = ID_SKINNING_MATRICES) uniform perSkeleton
+{
+    Matrix2 u_ModelMatrix[200];
+} myPerSkeleton;
 
 mat4 GetSkinningMatrix(vec4 Weights, uvec4 Joints)
 {
     mat4 skinningMatrix =
-        Weights.x * myPerSkeleton.u_ModelMatrix[Joints.x] +
-        Weights.y * myPerSkeleton.u_ModelMatrix[Joints.y] +
-        Weights.z * myPerSkeleton.u_ModelMatrix[Joints.z] +
-        Weights.w * myPerSkeleton.u_ModelMatrix[Joints.w];
+        Weights.x * myPerSkeleton.u_ModelMatrix[Joints.x].m_current +
+        Weights.y * myPerSkeleton.u_ModelMatrix[Joints.y].m_current +
+        Weights.z * myPerSkeleton.u_ModelMatrix[Joints.z].m_current +
+        Weights.w * myPerSkeleton.u_ModelMatrix[Joints.w].m_current;
     return skinningMatrix;
 }
 #endif

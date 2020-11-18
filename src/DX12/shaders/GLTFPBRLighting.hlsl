@@ -1,5 +1,7 @@
 #define USE_PUNCTUAL
 
+#include "GLTFNormals.hlsl"
+
 struct MaterialInfo
 {
     float perceptualRoughness; // roughness value, as authored by the model creator (input to shader)

@@ -47,11 +47,6 @@ Texture2D        baseColorTexture              :register(TEX(ID_baseColorTexture
 SamplerState     samBaseColor                  :register(SMP(ID_baseColorTexture));
 #endif      
 
-#ifdef ID_normalTexture
-Texture2D        normalTexture                 :register(TEX(ID_normalTexture));
-SamplerState     samNormal                     :register(SMP(ID_normalTexture));
-#endif      
-
 #ifdef ID_emissiveTexture  
 Texture2D        emissiveTexture               :register(TEX(ID_emissiveTexture));
 SamplerState     samEmissive                   :register(SMP(ID_emissiveTexture));
@@ -100,17 +95,6 @@ SamplerState     samSpecularGlossiness         :register(SMP(ID_specularGlossine
 // UV getters
 //------------------------------------------------------------
 
-float2 getNormalUV(VS_OUTPUT_SCENE Input)
-{
-    float3 uv = float3(0.0, 0.0 , 1.0);
-#ifdef ID_normalTexCoord
-    uv.xy = TEXCOORD(ID_normalTexCoord);
-    #ifdef HAS_NORMAL_UV_TRANSFORM
-    uv *= u_NormalUVTransform;
-    #endif
-#endif
-    return uv.xy;
-}
 
 float2 getEmissiveUV(VS_OUTPUT_SCENE Input)
 {
@@ -198,14 +182,6 @@ float4 getBaseColorTexture(VS_OUTPUT_SCENE Input)
 #endif
 }
 
-float3 getNormalTexture(VS_OUTPUT_SCENE Input)
-{
-#ifdef ID_normalTexture
-    return normalTexture.Sample(samNormal, getNormalUV(Input)).rgb;
-#else 
-    return float3(0, 0, 0); 
-#endif
-}
 
 float4 getDiffuseTexture(VS_OUTPUT_SCENE Input)
 {

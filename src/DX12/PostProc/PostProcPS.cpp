@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -45,13 +45,17 @@ namespace CAULDRON_DX12
         const char *pPSTarget
     )
     {
+        float depth = 1.0f;
+        if (pDepthStencilDesc != NULL && pDepthStencilDesc->DepthFunc != D3D12_COMPARISON_FUNC_ALWAYS)
+            depth = .99999f;
+
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pResourceViewHeaps;
 
         float vertices[] = {
-            -1,  1,  1,   0, 0,
-             3,  1,  1,   2, 0,
-            -1, -3,  1,   0, 2,
+            -1,  1,  depth,   0, 0,
+             3,  1,  depth,   2, 0,
+            -1, -3,  depth,   0, 2,
         };
         pStaticBufferPool->AllocVertexBuffer(3, 5 * sizeof(float), vertices, &m_verticesView);
 
@@ -70,7 +74,7 @@ namespace CAULDRON_DX12
                 VERTEX_OUT mainVS(VERTEX_IN Input)\
                 {\
                     VERTEX_OUT Output;\
-                    Output.vPosition = float4(Input.vPosition, 1.0f);\
+                    Output.vPosition = float4(Input.vPosition, 1.0f/Input.vPosition.z);\
                     Output.vTexture = Input.vTexture;\
                     return Output;\
                 }";
@@ -138,7 +142,8 @@ namespace CAULDRON_DX12
 
         //we need to cache the refrenced data so the lambda function can get a copy
         D3D12_BLEND_DESC blendDesc = pBlendDesc ? *pBlendDesc : CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-        D3D12_DEPTH_STENCIL_DESC depthStencilBlankDesc = {};
+        D3D12_DEPTH_STENCIL_DESC depthStencilBlankDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        depthStencilBlankDesc.DepthEnable = FALSE;
         D3D12_DEPTH_STENCIL_DESC depthStencilDesc = pDepthStencilDesc ? *pDepthStencilDesc : depthStencilBlankDesc;
 
         // layout

@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -52,8 +52,8 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWi
     windowClass.lpszClassName = WINDOW_CLASS_NAME;
     RegisterClassEx(&windowClass);
 
-    uint32_t Width;
-    uint32_t Height;
+    uint32_t Width = 1920;
+    uint32_t Height = 1080;
     pFramework->OnParseCommandLine(lpCmdLine, &Width, &Height, &bIsFullScreen);
 
     RECT windowRect = { 0, 0, (LONG)Width, (LONG)Height };

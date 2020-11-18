@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -263,12 +263,12 @@ namespace CAULDRON_VK
         vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
     }
 
-    void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkSampler *pSampler, VkDescriptorSet descriptorSet)
+    void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkImageLayout imageLayout, VkSampler *pSampler, VkDescriptorSet descriptorSet)
     {
         VkDescriptorImageInfo desc_image;
         desc_image.sampler = (pSampler == NULL) ? VK_NULL_HANDLE : *pSampler;
         desc_image.imageView = imageView;
-        desc_image.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        desc_image.imageLayout = imageLayout;
 
         VkWriteDescriptorSet write;
         write = {};
@@ -276,12 +276,22 @@ namespace CAULDRON_VK
         write.pNext = NULL;
         write.dstSet = descriptorSet;
         write.descriptorCount = 1;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        write.descriptorType = (pSampler == NULL) ? VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE : VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         write.pImageInfo = &desc_image;
         write.dstBinding = index;
         write.dstArrayElement = 0;
 
         vkUpdateDescriptorSets(device, 1, &write, 0, NULL);
+    }
+
+    void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkSampler *pSampler, VkDescriptorSet descriptorSet)
+    {
+        SetDescriptorSet(device, index, imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, pSampler, descriptorSet);
+    }
+
+    void SetDescriptorSetForDepth(VkDevice device, uint32_t index, VkImageView imageView, VkSampler *pSampler, VkDescriptorSet descriptorSet)
+    {
+        SetDescriptorSet(device, index, imageView, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, pSampler, descriptorSet);
     }
 
     void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkDescriptorSet descriptorSet)
@@ -317,4 +327,42 @@ namespace CAULDRON_VK
         assert(res == VK_SUCCESS);
         return res;
     }
+
+    VkFramebuffer CreateFrameBuffer(VkDevice device, VkRenderPass renderPass, const std::vector<VkImageView> *pAttachments, uint32_t Width, uint32_t Height)
+    {
+        VkFramebufferCreateInfo fb_info = {};
+        fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        fb_info.layers = 1;
+        fb_info.pNext = NULL;
+        fb_info.width = Width;
+        fb_info.height = Height;
+
+        VkFramebuffer frameBuffer;
+
+        VkResult res;
+        fb_info.renderPass = renderPass;
+        fb_info.pAttachments = pAttachments->data();
+        fb_info.attachmentCount = (uint32_t)pAttachments->size();
+        res = vkCreateFramebuffer(device, &fb_info, NULL, &frameBuffer);
+        assert(res == VK_SUCCESS);
+
+        return frameBuffer;
+    }
+
+    void BeginRenderPass(VkCommandBuffer commandList, VkRenderPass renderPass, VkFramebuffer frameBuffer, const std::vector<VkClearValue> *pClearValues, uint32_t Width, uint32_t Height)
+    {
+        VkRenderPassBeginInfo rp_begin;
+        rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rp_begin.pNext = NULL;
+        rp_begin.renderPass = renderPass;
+        rp_begin.framebuffer = frameBuffer;
+        rp_begin.renderArea.offset.x = 0;
+        rp_begin.renderArea.offset.y = 0;
+        rp_begin.renderArea.extent.width = Width;
+        rp_begin.renderArea.extent.height = Height;
+        rp_begin.pClearValues = pClearValues->data();
+        rp_begin.clearValueCount = (uint32_t)pClearValues->size();
+        vkCmdBeginRenderPass(commandList, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
 }

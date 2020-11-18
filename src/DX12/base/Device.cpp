@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -73,7 +73,7 @@ namespace CAULDRON_DX12
         //
         if (bAMDGPU)
         {
-            AGSReturnCode result = agsInit(&m_agsContext, nullptr, &m_agsGPUInfo);
+            AGSReturnCode result = agsInitialize(AGS_MAKE_VERSION( AMD_AGS_VERSION_MAJOR, AMD_AGS_VERSION_MINOR, AMD_AGS_VERSION_PATCH ),nullptr, &m_agsContext, &m_agsGPUInfo);
             if (result == AGS_SUCCESS)
             {
                 UserMarker::SetAgsContext(m_agsContext);
@@ -157,7 +157,7 @@ namespace CAULDRON_DX12
         if (m_agsContext)
         {
             agsDriverExtensionsDX12_DestroyDevice(m_agsContext, m_pDevice, nullptr);
-            agsDeInit(m_agsContext);
+            agsDeInitialize(m_agsContext);
         }
         else
         {

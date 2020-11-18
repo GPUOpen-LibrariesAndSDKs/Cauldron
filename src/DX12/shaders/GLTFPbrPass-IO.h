@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -17,7 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 // 
- 
+#ifndef GLTFPBRPassIO
+#define GLTFPBRPassIO
+
 //--------------------------------------------------------------------------------------
 //  For PS input struct
 //--------------------------------------------------------------------------------------
@@ -49,3 +51,4 @@ struct VS_OUTPUT_SCENE
 #endif
 };
 
+#endif

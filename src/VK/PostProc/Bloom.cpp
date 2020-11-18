@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -330,7 +330,7 @@ namespace CAULDRON_VK
             }
 
             if (m_doUpscale)
-                m_blendAdd.Draw(cmd_buf, constantBuffer, m_mip[i].m_descriptorSet);
+                m_blendAdd.Draw(cmd_buf, &constantBuffer, m_mip[i].m_descriptorSet);
 
             vkCmdEndRenderPass(cmd_buf);
             SetPerfMarkerEnd(cmd_buf);

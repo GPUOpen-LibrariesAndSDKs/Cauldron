@@ -34,7 +34,7 @@
 //--------------------------------------------------------------------------------------
 //  Include IO structures
 //--------------------------------------------------------------------------------------
-#include "GLTFPbrPass-IO.hlsl"
+#include "GLTFPbrPass-IO.h"
 
 //--------------------------------------------------------------------------------------
 //  Remove texture references if the material doesn't have texture coordinates
@@ -97,11 +97,12 @@ cbuffer cbPerFrame : register(b0)
 // PerObject structure, must match the one in GltfPbrPass.h
 //--------------------------------------------------------------------------------------
 
-#include "PixelParams.hlsl"
+#include "PBRPixelParams.hlsl"
 
 cbuffer cbPerObject : register(b1)
 {
-    matrix        myPerObject_u_mWorld;
+    matrix        myPerObject_u_mCurrWorld;
+    matrix        myPerObject_u_mPrevWorld;
     
     PBRFactors    u_pbrParams;
 };
@@ -116,6 +117,10 @@ cbuffer cbPerObject : register(b1)
 
 struct Output
 {
+#ifdef HAS_MOTION_VECTORS_RT
+    float2 motionVectors : TARGET(HAS_MOTION_VECTORS_RT);
+#endif    
+
 #ifdef HAS_FORWARD_RT
     float4 finalColor : TARGET(HAS_FORWARD_RT);
 #endif    
@@ -149,12 +154,17 @@ Output mainPS(VS_OUTPUT_SCENE Input)
 
     Output output;
 
+#ifdef HAS_MOTION_VECTORS_RT
+    output.motionVectors = Input.svCurrPosition.xy / Input.svCurrPosition.w -
+                           Input.svPrevPosition.xy / Input.svPrevPosition.w;    
+#endif       
+    
 #ifdef HAS_SPECULAR_ROUGHNESS_RT
     output.specularRoughness = float4(specularColor, alphaRoughness);
 #endif
 
 #ifdef HAS_DIFFUSE_RT
-    output.diffuseColor = diffuseColor;
+    output.diffuseColor = float4(diffuseColor, alpha);
 #endif
 
 #ifdef HAS_FORWARD_RT

@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -37,7 +37,6 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     void GltfPbrPass::OnCreate(
         Device* pDevice,
-        VkRenderPass renderPass,
         UploadHeap* pUploadHeap,
         ResourceViewHeaps *pHeaps,
         DynamicBufferRing *pDynamicBufferRing,
@@ -46,17 +45,12 @@ namespace CAULDRON_VK
         SkyDome *pSkyDome,
         bool bUseSSAOMask,
         VkImageView ShadowMapView,
-        bool bExportForwardPass,
-        bool bExportSpecularRoughness,
-        bool bExportDiffuseColor,
-        bool bExportNormals,
-        VkSampleCountFlagBits sampleCount,
+        GBufferRenderPass *pRenderPass,
         AsyncPool *pAsyncPool
     )
     {
         m_pDevice = pDevice;
-        m_renderPass = renderPass;
-        m_sampleCount = sampleCount;
+        m_pRenderPass = pRenderPass;
         m_pResourceViewHeaps = pHeaps;
         m_pStaticBufferPool = pStaticBufferPool;
         m_pDynamicBufferRing = pDynamicBufferRing;
@@ -65,25 +59,7 @@ namespace CAULDRON_VK
         //set bindings for the render targets
         //
         DefineList rtDefines;
-        {
-            int rtIndex = 0;
-            if (bExportForwardPass)
-            {
-                rtDefines["ID_FORWARD_RT"] = std::to_string(rtIndex++);
-            }
-            if (bExportSpecularRoughness)
-            {
-                rtDefines["ID_SPECULAR_ROUGHNESS_RT"] = std::to_string(rtIndex++);
-            }
-            if (bExportDiffuseColor)
-            {
-                rtDefines["ID_DIFFUSE_RT"] = std::to_string(rtIndex++);
-            }
-            if (bExportNormals)
-            {
-                rtDefines["ID_NORMALS_RT"] = std::to_string(rtIndex++);
-            }
-        }
+        m_pRenderPass->GetCompilerDefines(rtDefines);
 
         // Load BRDF look up table for the PBR shader
         //
@@ -523,7 +499,7 @@ namespace CAULDRON_VK
 
 
         std::vector<VkPipelineColorBlendAttachmentState> att_states;
-        if (defines.Has("ID_FORWARD_RT"))
+        if (defines.Has("HAS_FORWARD_RT"))
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
@@ -536,7 +512,7 @@ namespace CAULDRON_VK
             att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
             att_states.push_back(att_state);
         }
-        if (defines.Has("ID_SPECULAR_ROUGHNESS_RT"))
+        if (defines.Has("HAS_SPECULAR_ROUGHNESS_RT"))
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
@@ -549,7 +525,7 @@ namespace CAULDRON_VK
             att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
             att_states.push_back(att_state);
         }
-        if (defines.Has("ID_DIFFUSE_RT"))
+        if (defines.Has("HAS_DIFFUSE_RT"))
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
@@ -562,7 +538,20 @@ namespace CAULDRON_VK
             att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
             att_states.push_back(att_state);
         }
-        if (defines.Has("ID_NORMALS_RT"))
+        if (defines.Has("HAS_NORMALS_RT"))
+        {
+            VkPipelineColorBlendAttachmentState att_state = {};
+            att_state.colorWriteMask = 0xf;
+            att_state.blendEnable = VK_FALSE;
+            att_state.alphaBlendOp = VK_BLEND_OP_ADD;
+            att_state.colorBlendOp = VK_BLEND_OP_ADD;
+            att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            att_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            att_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            att_states.push_back(att_state);
+        }
+        if (defines.Has("HAS_MOTION_VECTORS_RT"))
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
@@ -641,7 +630,7 @@ namespace CAULDRON_VK
         ms.pNext = NULL;
         ms.flags = 0;
         ms.pSampleMask = NULL;
-        ms.rasterizationSamples = m_sampleCount;
+        ms.rasterizationSamples = m_pRenderPass->GetSampleCount();
         ms.sampleShadingEnable = VK_FALSE;
         ms.alphaToCoverageEnable = VK_FALSE;
         ms.alphaToOneEnable = VK_FALSE;
@@ -667,7 +656,7 @@ namespace CAULDRON_VK
         pipeline.pDepthStencilState = &ds;
         pipeline.pStages = shaderStages.data();
         pipeline.stageCount = (uint32_t)shaderStages.size();
-        pipeline.renderPass = m_renderPass;
+        pipeline.renderPass = m_pRenderPass->GetRenderPass();
         pipeline.subpass = 0;
 
         VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &pPrimitive->m_pipeline);
@@ -677,29 +666,15 @@ namespace CAULDRON_VK
 
     //--------------------------------------------------------------------------------------
     //
-    // Draw
+    // BuildLists
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::Draw(VkCommandBuffer cmd_buf)
+    void GltfPbrPass::BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent)
     {
-        SetPerfMarkerBegin(cmd_buf, "gltfPBR");
-
-        struct Transparent
-        {
-            float m_depth;
-            PBRPrimitives *m_pPrimitive;
-            VkDescriptorBufferInfo m_perFrameDesc;
-            VkDescriptorBufferInfo m_perObjectDesc;
-            VkDescriptorBufferInfo *m_pPerSkeleton;
-            operator float() { return -m_depth; }
-        };
-
-        std::vector<Transparent> m_transparent;
-
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
+        Matrix2 *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
@@ -710,7 +685,7 @@ namespace CAULDRON_VK
             // skinning matrices constant buffer
             VkDescriptorBufferInfo *pPerSkeleton = m_pGLTFTexturesAndBuffers->GetSkinningMatricesBuffer(pNode->skinIndex);
 
-            XMMATRIX mModelViewProj = pNodesMatrices[i] * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraViewProj;
+            XMMATRIX mModelViewProj = pNodesMatrices[i].GetCurrent() * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraCurrViewProj;
 
             // loop through primitives
             //
@@ -735,50 +710,46 @@ namespace CAULDRON_VK
                 per_object *cbPerObject;
                 VkDescriptorBufferInfo perObjectDesc;
                 m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), (void **)&cbPerObject, &perObjectDesc);
-                cbPerObject->mWorld = pNodesMatrices[i];
+                cbPerObject->mCurrentWorld = pNodesMatrices[i].GetCurrent();
+                cbPerObject->mPreviousWorld = pNodesMatrices[i].GetPrevious();
                 cbPerObject->m_pbrParams = pPbrParams->m_params;
 
+                // compute depth for sorting
+                //
+                XMVECTOR v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
+                float depth = XMVectorGetW(XMVector4Transform(v, mModelViewProj));
 
-                // Draw primitive
+                BatchList t;
+                t.m_depth = depth;
+                t.m_pPrimitive = pPrimitive;
+                t.m_perFrameDesc = m_pGLTFTexturesAndBuffers->m_perFrameConstants;
+                t.m_perObjectDesc = perObjectDesc;
+                t.m_pPerSkeleton = pPerSkeleton;
+
+                // append primitive to list 
                 //
                 if (pPbrParams->m_blending == false)
                 {
-                    // If solid draw it 
-                    //
-                    pPrimitive->DrawPrimitive(cmd_buf, m_pGLTFTexturesAndBuffers->m_perFrameConstants, perObjectDesc, pPerSkeleton);
+                    pSolid->push_back(t);
                 }
                 else
                 {
-                    // If transparent queue it for sorting
-                    //
-                    XMMATRIX mat = pNodesMatrices[i] * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraViewProj;
-                    XMVECTOR v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
-
-                    Transparent t;
-                    t.m_depth = XMVectorGetW(XMVector4Transform(v, mat));
-                    t.m_pPrimitive = pPrimitive;
-                    t.m_perFrameDesc = m_pGLTFTexturesAndBuffers->m_perFrameConstants;
-                    t.m_perObjectDesc = perObjectDesc;
-                    t.m_pPerSkeleton = pPerSkeleton;
-
-                    m_transparent.push_back(t);
+                    pTransparent->push_back(t);
                 }
             }
         }
+    }
 
-        // sort transparent primitives
-        //
-        std::sort(m_transparent.begin(), m_transparent.end());
-
-        // Draw them sorted front to back
-        //
-        int tt = 0;
-        for (auto &t : m_transparent)
+    void GltfPbrPass::DrawBatchList(VkCommandBuffer commandBuffer, std::vector<BatchList> *pBatchList)
+    {
+        SetPerfMarkerBegin(commandBuffer, "gltfPBR");
+        
+        for (auto &t : *pBatchList)
         {
-            t.m_pPrimitive->DrawPrimitive(cmd_buf, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
+            t.m_pPrimitive->DrawPrimitive(commandBuffer, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
         }
 
-        SetPerfMarkerEnd(cmd_buf);
+        SetPerfMarkerEnd(commandBuffer);
     }
 
     void PBRPrimitives::DrawPrimitive(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo perFrameDesc, VkDescriptorBufferInfo perObjectDesc, VkDescriptorBufferInfo *pPerSkeleton)

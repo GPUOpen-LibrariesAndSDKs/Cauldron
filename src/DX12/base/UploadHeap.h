@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -31,11 +31,21 @@ namespace CAULDRON_DX12
     class UploadHeap
     {
         Sync allocating, flushing;
-        struct COPY
+
+        struct TextureCopy
         {
             CD3DX12_TEXTURE_COPY_LOCATION Src, Dst;
         };
-        std::vector<COPY> m_copies;
+        std::vector<TextureCopy> m_textureCopies;
+
+        struct BufferCopy
+        {
+            ID3D12Resource *pBufferDst; 
+            UINT64 offset;
+            int size;
+        };
+        std::vector<BufferCopy> m_bufferCopies;
+
         std::vector<D3D12_RESOURCE_BARRIER> m_toBarrierIntoShaderResource;
 
         std::mutex m_mutex;
@@ -50,9 +60,9 @@ namespace CAULDRON_DX12
         ID3D12Resource* GetResource() { return m_pUploadHeap; }
         ID3D12GraphicsCommandList* GetCommandList() { return m_pCommandList; }
         ID3D12CommandQueue* GetCommandQueue() { return m_pCommandQueue; }
+        void AddBufferCopy(const void *pData, int size, ID3D12Resource *m_pBufferDst);
         void AddCopy(CD3DX12_TEXTURE_COPY_LOCATION Src, CD3DX12_TEXTURE_COPY_LOCATION Dst);
 
-        void BeginBarrier();
         void AddBarrier(ID3D12Resource *pRes);
 
         void FlushAndFinish();

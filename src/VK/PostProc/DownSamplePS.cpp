@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -207,7 +207,6 @@ namespace CAULDRON_VK
         //
         for (int i = 0; i < m_mipCount; i++)
         {
-
             VkRenderPassBeginInfo rp_begin = {};
             rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             rp_begin.pNext = NULL;
@@ -229,7 +228,7 @@ namespace CAULDRON_VK
             data->invHeight = 1.0f / (float)(m_Height >> i);
             data->mipLevel = i;
 
-            m_downscale.Draw(cmd_buf, constantBuffer, m_mip[i].descriptorSet);
+            m_downscale.Draw(cmd_buf, &constantBuffer, m_mip[i].descriptorSet);
 
             vkCmdEndRenderPass(cmd_buf);
         }

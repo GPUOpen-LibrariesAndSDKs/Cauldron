@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,6 +18,7 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
 #include "Base/ResourceViewHeaps.h"
@@ -50,10 +51,12 @@ namespace CAULDRON_VK
     {
         m_pDevice = pDevice;
 
+        float depth = .99999f;
+
         float vertices[] = {
-            -1,  1,  1,  0, 0,
-             3,  1,  1,  2, 0,
-            -1, -3,  1,  0, 2,
+            -1,  1,  depth,  0, 0,
+             3,  1,  depth,  2, 0,
+            -1, -3,  depth,  0, 2,
         };
         pStaticBufferPool->AllocBuffer(3, 5 * sizeof(float), vertices, &m_verticesView);
 
@@ -225,7 +228,7 @@ namespace CAULDRON_VK
         ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
         ds.pNext = NULL;
         ds.flags = 0;
-        ds.depthTestEnable = VK_FALSE;
+        ds.depthTestEnable = VK_TRUE;
         ds.depthWriteEnable = VK_FALSE;
         ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         ds.depthBoundsTestEnable = VK_FALSE;
@@ -280,6 +283,7 @@ namespace CAULDRON_VK
 
         res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
         assert(res == VK_SUCCESS);
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_pipeline, "cacaca P");
     }
 
     //--------------------------------------------------------------------------------------
@@ -307,7 +311,7 @@ namespace CAULDRON_VK
     // OnDraw
     //
     //--------------------------------------------------------------------------------------    
-    void PostProcPS::Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo constantBuffer, VkDescriptorSet descriptorSet)
+    void PostProcPS::Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo *pConstantBuffer, VkDescriptorSet descriptorSet)
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;
@@ -318,14 +322,16 @@ namespace CAULDRON_VK
 
         // Bind Descriptor sets
         //                
-        VkDescriptorSet descritorSets[1] = { descriptorSet };
-        int numUniformOffsets = 1;
-        if (constantBuffer.buffer == NULL)
+        int numUniformOffsets = 0;
+        uint32_t uniformOffset = 0;
+        if (pConstantBuffer != NULL && pConstantBuffer->buffer != NULL)
         {
-            numUniformOffsets = 0;
+            numUniformOffsets = 1;
+            uniformOffset = (uint32_t)pConstantBuffer->offset;
         }
-        uint32_t uniformOffsets[1] = { (uint32_t)constantBuffer.offset };
-        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, descritorSets, numUniformOffsets, uniformOffsets);
+
+        VkDescriptorSet descritorSets[1] = { descriptorSet };
+        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, descritorSets, numUniformOffsets, &uniformOffset);
 
         // Bind Pipeline
         //

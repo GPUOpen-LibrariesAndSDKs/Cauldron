@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -171,8 +171,6 @@ bool SaveFile(const char *name, void const*data, size_t size, bool isbinary)
     return false;
 }
 
-
-
 //
 // Launch a process, captures stderr into a file
 //
@@ -291,4 +289,11 @@ bool CameraFrustumToBoxCollision(const XMMATRIX mCameraViewProj, const XMVECTOR 
     }
 
     return left == 8 || right == 8 || top == 8 || bottom == 8 || back == 8;
+}
+
+int countBits(uint32_t v) 
+{
+    v = v - ((v >> 1) & 0x55555555);                // put count of each 2 bits into those 2 bits
+    v = (v & 0x33333333) + ((v >> 2) & 0x33333333); // put count of each 4 bits into those 4 bits  
+    return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
 }

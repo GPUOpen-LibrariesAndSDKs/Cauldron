@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -21,6 +21,7 @@
 #include "GltfPbrPass.h"
 #include "Misc/ThreadPool.h"
 #include "GltfHelpers.h"
+#include "Base/GBuffer.h"
 #include "Base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_DX12
@@ -35,54 +36,24 @@ namespace CAULDRON_DX12
         UploadHeap* pUploadHeap,
         ResourceViewHeaps *pHeaps,
         DynamicBufferRing *pDynamicBufferRing,
-        StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
         SkyDome *pSkyDome,
         bool bUseSSAOMask,
         bool bUseShadowMask,
-        DXGI_FORMAT outForwardFormat,
-        DXGI_FORMAT outSpecularRoughnessFormat,
-        DXGI_FORMAT outDiffuseColor,
-        DXGI_FORMAT outNormals,
-        uint32_t sampleCount,
+        GBufferRenderPass *pGBufferRenderPass,
         AsyncPool *pAsyncPool)
     {
         m_pDevice = pDevice;
-        m_sampleCount = sampleCount;
+        m_pGBufferRenderPass = pGBufferRenderPass;
+        m_sampleCount = 1;
         m_pResourceViewHeaps = pHeaps;
-        m_pStaticBufferPool = pStaticBufferPool;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
 
         m_doLighting = true;
 
         DefineList rtDefines;
-        {
-            //set bindings for the render targets
-            int rtIndex = 0;
-            if (outForwardFormat != DXGI_FORMAT_UNKNOWN)
-            {
-                m_outFormats.push_back(outForwardFormat);
-                rtDefines["HAS_FORWARD_RT"] = std::to_string(rtIndex++);
-            }
-            if (outSpecularRoughnessFormat != DXGI_FORMAT_UNKNOWN)
-            {
-                m_outFormats.push_back(outSpecularRoughnessFormat);
-                rtDefines["HAS_SPECULAR_ROUGHNESS_RT"] = std::to_string(rtIndex++);
-            }
-            if (outDiffuseColor != DXGI_FORMAT_UNKNOWN)
-            {
-                m_outFormats.push_back(outDiffuseColor);
-                rtDefines["HAS_DIFFUSE_RT"] = std::to_string(rtIndex++);
-            }
-            if (outNormals != DXGI_FORMAT_UNKNOWN)
-            {
-                m_outFormats.push_back(outNormals);
-                rtDefines["HAS_NORMALS_RT"] = std::to_string(rtIndex++);
-            }
-        }
-
-        const json &j3 = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->j3;
+        m_pGBufferRenderPass->GetCompilerDefinesAndGBufferFormats(rtDefines, m_outFormats, m_depthFormat);
 
         // Load BRDF look up table for the PBR shader
         //
@@ -96,6 +67,8 @@ namespace CAULDRON_DX12
             std::map<std::string, Texture *> texturesBase;
             CreateDescriptorTableForMaterialTextures(&m_defaultMaterial, texturesBase, pSkyDome, bUseShadowMask, bUseSSAOMask);
         }
+
+        const json &j3 = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->j3;
 
         // Load PBR 2.0 Materials
         //
@@ -168,7 +141,7 @@ namespace CAULDRON_DX12
                         // Create the descriptors, the root signature and the pipeline
                         //
                         bool bUsingSkinning = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i) != -1;
-                        CreateDescriptors(bUsingSkinning, defines, pPrimitive, bUseSSAOMask);
+                        CreateRootSignature(bUsingSkinning, defines, pPrimitive, bUseSSAOMask);
                         CreatePipeline(inputLayout, defines, pPrimitive);
                         semanticNames;
                     });
@@ -314,7 +287,7 @@ namespace CAULDRON_DX12
     // CreateDescriptors for a combination of material and geometry
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::CreateDescriptors(bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive, bool bUseSSAOMask)
+    void GltfPbrPass::CreateRootSignature(bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive, bool bUseSSAOMask)
     {              
         int rootParamCnt = 0;
         CD3DX12_ROOT_PARAMETER rootParameter[6];
@@ -444,12 +417,12 @@ namespace CAULDRON_DX12
     // BuildLists
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::BuildLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent)
+    void GltfPbrPass::BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent)
     {
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
+        Matrix2 *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_worldSpaceMats.data();        
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
@@ -460,7 +433,7 @@ namespace CAULDRON_DX12
             // skinning matrices constant buffer
             D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton = m_pGLTFTexturesAndBuffers->GetSkinningMatricesBuffer(pNode->skinIndex);
 
-            XMMATRIX mModelViewProj = pNodesMatrices[i] * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraViewProj;
+            XMMATRIX mModelViewProj = pNodesMatrices[i].GetCurrent() * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraCurrViewProj;
 
             // loop through primitives
             //
@@ -483,9 +456,9 @@ namespace CAULDRON_DX12
                 // Set per Object constants from material
                 //
                 per_object cbPerObject;
-                cbPerObject.mWorld = pNodesMatrices[i];
+                cbPerObject.mCurrentWorld = pNodesMatrices[i].GetCurrent();
+                cbPerObject.mPreviousWorld = pNodesMatrices[i].GetPrevious();
                 cbPerObject.m_pbrParams = pPbrParams->m_params;
-
                 D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), &cbPerObject);
 
                 // compute depth for sorting
@@ -514,52 +487,18 @@ namespace CAULDRON_DX12
         }
     }
 
-    //--------------------------------------------------------------------------------------
-    //
-    // Draw
-    //
-    //--------------------------------------------------------------------------------------
-    void GltfPbrPass::Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV)
+    void GltfPbrPass::DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList)
     {
-        UserMarker marker(pCommandList, "gltfPBR");
-
-        // If we are not doing lighting (for example in a deferred pass) then set shadow SRV to NULL (it wont be in the descriptors)
-        //
-        if (m_doLighting == false)
-        {
-            pShadowBufferSRV = NULL;
-        }
-
-        // Get list of opaque and transparent primitives
-        //
-        std::vector<BatchList> solid, transparent;
-        BuildLists(&solid, &transparent);
+        UserMarker marker(pCommandList, "GltfPbrPass::DrawBatchList");
 
         // Set descriptor heaps
         pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ID3D12DescriptorHeap *pDescriptorHeaps[] = { m_pResourceViewHeaps->GetCBV_SRV_UAVHeap(), m_pResourceViewHeaps->GetSamplerHeap() };
         pCommandList->SetDescriptorHeaps(2, pDescriptorHeaps);
 
-        // draw solid primitives
-        //        
+        for (auto &t : *pBatchList)
         {
-            UserMarker marker(pCommandList, "Solids");
-            //std::sort(solid.begin(), solid.end(), [](const BatchList & a, const BatchList & b) -> bool { return a.m_pPrimitive->m_PipelineRender > b.m_pPrimitive->m_PipelineRender; });
-            for (auto &t : solid)
-            {
-                t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
-            }
-        }
-
-        // Sort transparent primitives and draw them
-        //
-        {
-            UserMarker marker(pCommandList, "Transparent");
-            std::sort(transparent.begin(), transparent.end());
-            for (auto &t : transparent)
-            {
-                t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
-            }
+            t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
         }
     }
 

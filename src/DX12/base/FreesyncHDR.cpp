@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2019 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -108,7 +108,7 @@ namespace CAULDRON_DX12
         s_displayIndex = bestDisplayIndex;
 
         // First check for FS HDR support
-        if (devices[0].displays[bestDisplayIndex].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_FREESYNC_HDR)
+        if (devices[0].displays[bestDisplayIndex].freesyncHDR)
         {
             pModes->push_back(DISPLAYMODE_FSHDR_Gamma22);
             pModes->push_back(DISPLAYMODE_FSHDR_SCRGB);
@@ -117,7 +117,7 @@ namespace CAULDRON_DX12
         }
         else // Check for HDR support
         {
-            if (devices[0].displays[bestDisplayIndex].displayFlags & AGSDisplayFlags::AGS_DISPLAYFLAG_HDR10)
+            if (devices[0].displays[bestDisplayIndex].HDR10)
             {
                 pModes->push_back(DISPLAYMODE_HDR10_2084);
                 pModes->push_back(DISPLAYMODE_HDR10_SCRGB);
@@ -207,14 +207,14 @@ namespace CAULDRON_DX12
                 s_AGSDisplayInfo.chromaticityWhitePointX = 0.3127;
                 s_AGSDisplayInfo.chromaticityWhitePointY = 0.3290;
                 agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_SDR;
-                agsDisplaySettings.flags = 0; // Local dimming always enabled for SDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
+                agsDisplaySettings.disableLocalDimming = 0; // Local dimming always enabled for SDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
                 break;
             }
 
             case DISPLAYMODE_FSHDR_Gamma22:
             {
                 agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_FreesyncHDR_Gamma22;
-                agsDisplaySettings.flags = disableLocalDimming ? AGS_DISPLAYSETTINGSFLAG_DISABLE_LOCAL_DIMMING : 0; // Local dimming could be enabled or disabled for FS HDR based on preference.
+                agsDisplaySettings.disableLocalDimming = disableLocalDimming ? 1 : 0; // Local dimming could be enabled or disabled for FS HDR based on preference.
                 if (disableLocalDimming)
                     s_AGSDisplayInfo.maxLuminance = s_AGSDisplayInfo.avgLuminance;
                 break;
@@ -223,7 +223,7 @@ namespace CAULDRON_DX12
             case DISPLAYMODE_FSHDR_SCRGB:
             {
                 agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_FreesyncHDR_scRGB;
-                agsDisplaySettings.flags = disableLocalDimming ? AGS_DISPLAYSETTINGSFLAG_DISABLE_LOCAL_DIMMING : 0; // Local dimming could be enabled or disabled for FS HDR based on preference.
+                agsDisplaySettings.disableLocalDimming = disableLocalDimming ? 1 : 0; // Local dimming could be enabled or disabled for FS HDR based on preference.
                 if (disableLocalDimming)
                     s_AGSDisplayInfo.maxLuminance = s_AGSDisplayInfo.avgLuminance;
                 break;
@@ -245,7 +245,7 @@ namespace CAULDRON_DX12
                 agsDisplaySettings.maxContentLightLevel = 1000.0;
                 agsDisplaySettings.maxFrameAverageLightLevel = 400.0; // max and average content ligt level data will be used to do tonemapping on display
                 agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_HDR10_PQ;
-                agsDisplaySettings.flags = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
+                agsDisplaySettings.disableLocalDimming = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
                 break;
             }
 
@@ -265,7 +265,7 @@ namespace CAULDRON_DX12
                 agsDisplaySettings.maxContentLightLevel = 1000.0;
                 agsDisplaySettings.maxFrameAverageLightLevel = 400.0; // max and average content ligt level data will be used to do tonemapping on display
                 agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_HDR10_scRGB;
-                agsDisplaySettings.flags = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
+                agsDisplaySettings.disableLocalDimming = 0; // Local dimming always enabled for HDR, therefore 'disableLocalDimming' flag should be set to false ie 0.
                 break;
             }
         }

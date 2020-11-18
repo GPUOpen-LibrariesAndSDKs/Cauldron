@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -37,10 +37,14 @@
 
 using json = nlohmann::json;
 
-struct GLTFCommonTransformed
+class Matrix2
 {
-    std::vector<XMMATRIX> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
-    std::map<int, std::vector<XMMATRIX>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
+    XMMATRIX m_current;
+    XMMATRIX m_previous;
+public:
+    void Set(XMMATRIX m) { m_previous = m_current; m_current = m; }
+    XMMATRIX GetCurrent() const { return m_current; }
+    XMMATRIX GetPrevious() const { return m_previous; }
 };
 
 //
@@ -66,15 +70,16 @@ struct Light
 };
 
 
-
 const uint32_t LightType_Directional = 0;
 const uint32_t LightType_Point = 1;
 const uint32_t LightType_Spot = 2;
 
 struct per_frame
 {
-    XMMATRIX  mCameraViewProj;
-    XMMATRIX  mInverseCameraViewProj;
+    XMMATRIX mCameraCurrViewProj;
+    XMMATRIX mCameraPrevViewProj;
+
+    XMMATRIX  mInverseCameraCurrViewProj;
     XMVECTOR  cameraPos;
     float     iblFactor;
     float     emmisiveFactor;
@@ -111,10 +116,8 @@ public:
 
     std::vector<XMMATRIX> m_animatedMats;       // object space matrices of each node after being animated
 
-    // we keep the data for the last 2 frames, this is for computing motion vectors
-    GLTFCommonTransformed m_transformedData[2];
-    GLTFCommonTransformed *m_pCurrentFrameTransformedData;
-    GLTFCommonTransformed *m_pPreviousFrameTransformedData;
+    std::vector<Matrix2> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
+    std::map<int, std::vector<Matrix2>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
 
     per_frame m_perFrameData;
 
@@ -136,5 +139,5 @@ public:
     int AddLight(const tfNode& node, const tfLight& light);
 private:
     void InitTransformedData(); //this is called after loading the data from the GLTF
-    void TransformNodes(const tfNode *pRootNode, XMMATRIX world, const std::vector<tfNodeIdx> *pNodes, GLTFCommonTransformed *pTransformed) const;
+    void TransformNodes(XMMATRIX world, const std::vector<tfNodeIdx> *pNodes);
 };

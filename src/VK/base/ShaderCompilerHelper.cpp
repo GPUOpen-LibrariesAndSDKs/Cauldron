@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -65,9 +65,11 @@ namespace CAULDRON_VK
         // add the #defines
         //
         std::string defines;
-        for (auto it = pDefines->begin(); it != pDefines->end(); it++)
-            defines += "-D" + it->first + "=" + it->second + " ";
-
+        if (pDefines)
+        {
+            for (auto it = pDefines->begin(); it != pDefines->end(); it++)
+                defines += "-D" + it->first + "=" + it->second + " ";
+        }
         std::string commandLine;
         if (sourceType == SST_GLSL)
         {
@@ -117,9 +119,11 @@ namespace CAULDRON_VK
         }
 
         // add the #defines to the code to help debugging
-        for (auto it = pDefines->begin(); it != pDefines->end(); it++)
-            shaderCode += "#define " + it->first + " " + it->second + "\n";
-
+        if (pDefines)
+        {
+            for (auto it = pDefines->begin(); it != pDefines->end(); it++)
+                shaderCode += "#define " + it->first + " " + it->second + "\n";
+        }
         // concat the actual shader code
         shaderCode += code;
 
@@ -156,6 +160,7 @@ namespace CAULDRON_VK
         //
         size_t hash;
         hash = HashShaderString((GetShaderCompilerLibDir() + "\\").c_str(), pshader);
+        hash = Hash(pShaderEntryPoint, strlen(pShaderEntryPoint), hash);
         hash = Hash(shaderCompilerParams, strlen(shaderCompilerParams), hash);
         hash = Hash((char*)&shader_type, sizeof(shader_type), hash);
         if (pDefines != NULL)

@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -45,8 +45,10 @@ const int LightType_Spot = 2;
 
 struct PerFrame
 {
-    mat4          u_CameraViewProj;
-    mat4          u_mCameraViewProjInverse;
+    mat4          u_mCameraCurrViewProj;
+    mat4          u_mCameraPrevViewProj;
+    mat4          u_mCameraCurrViewProjInverse;
+
     vec4          u_CameraPos;
     float         u_iblFactor;
     float         u_EmissiveFactor;
@@ -54,5 +56,5 @@ struct PerFrame
 
     vec3          u_padding;
     int           u_lightCount;
-    Light         u_lights[4];
+    Light         u_lights[80];
 };

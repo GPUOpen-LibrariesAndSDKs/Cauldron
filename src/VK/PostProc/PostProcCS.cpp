@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -87,15 +87,22 @@ namespace CAULDRON_VK
         vkDestroyPipelineLayout(m_pDevice->GetDevice(), m_pipelineLayout, nullptr);
     }
 
-    void PostProcCS::Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo constantBuffer, VkDescriptorSet descSet, uint32_t dispatchX, uint32_t dispatchY, uint32_t dispatchZ)
+    void PostProcCS::Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo *pConstantBuffer, VkDescriptorSet descSet, uint32_t dispatchX, uint32_t dispatchY, uint32_t dispatchZ)
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;
 
         // Bind Descriptor sets
         //                
-        uint32_t uniformOffsets[1] = { (uint32_t)constantBuffer.offset };
-        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &descSet, 1, uniformOffsets);
+        int numUniformOffsets = 0;
+        uint32_t uniformOffset = 0;
+        if (pConstantBuffer != NULL && pConstantBuffer->buffer != NULL)
+        {
+            numUniformOffsets = 1;
+            uniformOffset = (uint32_t)pConstantBuffer->offset;
+        }
+
+        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &descSet, numUniformOffsets, &uniformOffset);
 
         // Bind Pipeline
         //

@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -21,19 +21,37 @@
 //  Constant buffers
 //--------------------------------------------------------------------------------------
 #ifdef ID_SKINNING_MATRICES
-cbuffer cbPerSkeleton : register(CB(ID_SKINNING_MATRICES))
+
+struct Matrix2
 {
-    matrix        myPerSkeleton_u_ModelMatrix[200];
+    matrix m_current;
+    matrix m_previous;
 };
 
-matrix GetSkinningMatrix(float4 Weights, uint4 Joints)
+cbuffer cbPerSkeleton : register(CB(ID_SKINNING_MATRICES))
+{
+    Matrix2 myPerSkeleton_u_ModelMatrix[200];
+};
+
+matrix GetCurrentSkinningMatrix(float4 Weights, uint4 Joints)
 {
     matrix skinningMatrix =
-        Weights.x * myPerSkeleton_u_ModelMatrix[Joints.x] +
-        Weights.y * myPerSkeleton_u_ModelMatrix[Joints.y] +
-        Weights.z * myPerSkeleton_u_ModelMatrix[Joints.z] +
-        Weights.w * myPerSkeleton_u_ModelMatrix[Joints.w];
+        Weights.x * myPerSkeleton_u_ModelMatrix[Joints.x].m_current +
+        Weights.y * myPerSkeleton_u_ModelMatrix[Joints.y].m_current +
+        Weights.z * myPerSkeleton_u_ModelMatrix[Joints.z].m_current +
+        Weights.w * myPerSkeleton_u_ModelMatrix[Joints.w].m_current;
     return skinningMatrix;
 }
+
+matrix GetPreviousSkinningMatrix(float4 Weights, uint4 Joints)
+{
+    matrix skinningMatrix =
+        Weights.x * myPerSkeleton_u_ModelMatrix[Joints.x].m_previous +
+        Weights.y * myPerSkeleton_u_ModelMatrix[Joints.y].m_previous +
+        Weights.z * myPerSkeleton_u_ModelMatrix[Joints.z].m_previous +
+        Weights.w * myPerSkeleton_u_ModelMatrix[Joints.w].m_previous;
+    return skinningMatrix;
+}
+
 #endif
 

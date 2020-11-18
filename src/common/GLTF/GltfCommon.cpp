@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -448,18 +448,17 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id) const
 //
 // Transforms a node hierarchy recursively 
 //
-void GLTFCommon::TransformNodes(const tfNode *pRootNode, XMMATRIX world, const std::vector<tfNodeIdx> *pNodes, GLTFCommonTransformed *pTransformed) const
+void GLTFCommon::TransformNodes(XMMATRIX world, const std::vector<tfNodeIdx> *pNodes)
 {
-    pTransformed->m_worldSpaceMats.resize(m_nodes.size());
+    m_worldSpaceMats.resize(m_nodes.size());
 
     for (uint32_t n = 0; n < pNodes->size(); n++)
     {
         uint32_t nodeIdx = pNodes->at(n);
 
         XMMATRIX m = m_animatedMats[nodeIdx] * world;
-        pTransformed->m_worldSpaceMats[nodeIdx] = m;
-
-        TransformNodes(pRootNode, m, &m_nodes[nodeIdx].m_children, pTransformed);
+        m_worldSpaceMats[nodeIdx].Set(m);
+        TransformNodes(m, &m_nodes[nodeIdx].m_children);
     }
 }
 
@@ -467,22 +466,15 @@ void GLTFCommon::TransformNodes(const tfNode *pRootNode, XMMATRIX world, const s
 // Initializes the GLTFCommonTransformed structure 
 //
 void GLTFCommon::InitTransformedData()
-{
-    // we need to init 2 frames, the current and the previous one, this is needed for the MVs
-    for (int frame = 0; frame < 2; frame++)
+{    
+    // initializes matrix buffers to have the same dimension as the nodes
+    m_worldSpaceMats.resize(m_nodes.size());
+
+    // same thing for the skinning matrices but using the size of the InverseBindMatrices
+    for (uint32_t i = 0; i < m_skins.size(); i++)
     {
-        // initializes matrix buffers to have the same dimension as the nodes
-        m_transformedData[frame].m_worldSpaceMats.resize(m_nodes.size());
-
-        // same thing for the skinning matrices but using the size of the InverseBindMatrices
-        for (uint32_t i = 0; i < m_skins.size(); i++)
-        {
-            m_transformedData[frame].m_worldSpaceSkeletonMats[i].resize(m_skins[i].m_InverseBindMatrices.m_count);
-        }
+        m_worldSpaceSkeletonMats[i].resize(m_skins[i].m_InverseBindMatrices.m_count);
     }
-
-    m_pCurrentFrameTransformedData = &m_transformedData[0];
-    m_pPreviousFrameTransformedData = &m_transformedData[1];
 
     // sets the animated data to the default values of the nodes
     // later on these values can be updated by the SetAnimationTime function
@@ -498,15 +490,10 @@ void GLTFCommon::InitTransformedData()
 //
 void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
 {
-    //swap transformation buffers, we need to keep the last frame data around so we can compute the motion vectors
-    GLTFCommonTransformed *pTmp = m_pCurrentFrameTransformedData;
-    m_pCurrentFrameTransformedData = m_pPreviousFrameTransformedData;
-    m_pPreviousFrameTransformedData = pTmp;
-
-    // transform all the nodes of the scene
+    // transform all the nodes of the scene (and make 
     //           
     std::vector<int> sceneNodes = { m_scenes[sceneIndex].m_nodes };
-    TransformNodes(m_nodes.data(), world, &sceneNodes, m_pCurrentFrameTransformedData);
+    TransformNodes(world, &sceneNodes);
 
     //process skeletons, takes the skinning matrices from the scene and puts them into a buffer that the vertex shader will consume
     //
@@ -516,10 +503,10 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
 
         //pick the matrices that affect the skin and multiply by the inverse of the bind         
         const XMMATRIX *pM = (const XMMATRIX *)skin.m_InverseBindMatrices.m_data;
-        std::vector<XMMATRIX> &skinningMats = m_pCurrentFrameTransformedData->m_worldSpaceSkeletonMats[i];
+        std::vector<Matrix2> &skinningMats = m_worldSpaceSkeletonMats[i];
         for (int j = 0; j < skin.m_InverseBindMatrices.m_count; j++)
         {
-            skinningMats[j] = XMMatrixMultiply(pM[j], m_pCurrentFrameTransformedData->m_worldSpaceMats[skin.m_jointsNodeIdx[j]]);
+            skinningMats[j].Set( XMMatrixMultiply(pM[j], m_worldSpaceMats[skin.m_jointsNodeIdx[j]].GetCurrent()));
         }
     }
 }
@@ -531,10 +518,7 @@ bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam) const
         return false;
     }
 
-    XMMATRIX *pMats = m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
-
-    XMMATRIX cameraMat = pMats[m_cameras[cameraIdx].m_nodeIndex];
-    pCam->SetMatrix(cameraMat);
+    pCam->SetMatrix(m_worldSpaceMats[m_cameras[cameraIdx].m_nodeIndex].GetCurrent());
     pCam->SetFov(m_cameras[cameraIdx].yfov, 1280, 720, m_cameras[cameraIdx].znear, m_cameras[cameraIdx].zfar);
 
     return true;
@@ -546,11 +530,12 @@ bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam) const
 //
 per_frame *GLTFCommon::SetPerFrameData(const Camera &cam)
 {
-    XMMATRIX *pMats = m_pCurrentFrameTransformedData->m_worldSpaceMats.data();
+    Matrix2  *pMats = m_worldSpaceMats.data();
 
     //Sets the camera
-    m_perFrameData.mCameraViewProj = cam.GetView() * cam.GetProjection();
-    m_perFrameData.mInverseCameraViewProj = XMMatrixInverse(nullptr, m_perFrameData.mCameraViewProj);
+    m_perFrameData.mCameraCurrViewProj = cam.GetView() * cam.GetProjection();
+    m_perFrameData.mCameraPrevViewProj = cam.GetPrevView() * cam.GetProjection();
+    m_perFrameData.mInverseCameraCurrViewProj = XMMatrixInverse(nullptr, m_perFrameData.mCameraCurrViewProj);
     m_perFrameData.cameraPos = cam.GetPosition();
 
     // Process lights
@@ -561,7 +546,7 @@ per_frame *GLTFCommon::SetPerFrameData(const Camera &cam)
 
         // get light data and node trans
         const tfLight &lightData = m_lights[m_lightInstances[i].m_lightId];
-        XMMATRIX lightMat = pMats[m_lightInstances[i].m_nodeIndex];
+        XMMATRIX lightMat = pMats[m_lightInstances[i].m_nodeIndex].GetCurrent();
 
         XMMATRIX lightView = XMMatrixInverse(nullptr, lightMat);
         if (lightData.m_type == LightType_Spot)

@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -72,9 +72,9 @@ VS_OUTPUT_SCENE gltfVertexFactory(VS_INPUT_SCENE input)
 
 #ifdef HAS_WEIGHTS_0
     matrix skinningMatrix;
-    skinningMatrix  = GetSkinningMatrix(input.Weights0, input.Joints0);
+    skinningMatrix  = GetCurrentSkinningMatrix(input.Weights0, input.Joints0);
 #ifdef HAS_WEIGHTS_1
-    skinningMatrix += GetSkinningMatrix(input.Weights1, input.Joints1);
+    skinningMatrix += GetCurrentSkinningMatrix(input.Weights1, input.Joints1);
 #endif
 #else
     matrix skinningMatrix =
@@ -91,9 +91,26 @@ VS_OUTPUT_SCENE gltfVertexFactory(VS_INPUT_SCENE input)
     Output.svPosition = mul(GetCameraViewProj(), float4(Output.WorldPos, 1));
 
 #ifdef HAS_MOTION_VECTORS
+
+    #ifdef HAS_WEIGHTS_0
+        matrix prevSkinningMatrix;
+        prevSkinningMatrix  = GetPreviousSkinningMatrix(input.Weights0, input.Joints0);
+    #ifdef HAS_WEIGHTS_1
+        prevSkinningMatrix += GetPreviousSkinningMatrix(input.Weights1, input.Joints1);
+    #endif
+    #else
+        matrix prevSkinningMatrix =
+        {
+            { 1, 0, 0, 0 },
+            { 0, 1, 0, 0 },
+            { 0, 0, 1, 0 },
+            { 0, 0, 0, 1 }
+        };
+    #endif
+
     Output.svCurrPosition = Output.svPosition; // current's frame vertex position 
 
-    matrix prevTransMatrix = mul(GetPrevWorldMatrix(), skinningMatrix);
+    matrix prevTransMatrix = mul(GetPrevWorldMatrix(), prevSkinningMatrix);
     float3 worldPrevPos = mul(prevTransMatrix, float4(input.Position, 1)).xyz;
     Output.svPrevPosition = mul(GetPrevCameraViewProj(), float4(worldPrevPos, 1));
 #endif

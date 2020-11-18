@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -66,7 +66,7 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(SkyDomeProc::Constants), (void **)&cbPerDraw, &constantBuffer);
         *cbPerDraw = constants;
 
-        m_skydome.Draw(cmd_buf, constantBuffer, m_descriptorSet);
+        m_skydome.Draw(cmd_buf, &constantBuffer, m_descriptorSet);
 
         SetPerfMarkerEnd(cmd_buf);
     }

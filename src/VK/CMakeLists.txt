@@ -16,7 +16,8 @@ set(GLTF_src
     GLTF/GltfMotionVectorsPass.cpp
     GLTF/GltfMotionVectorsPass.h
     GLTF/GLTFTexturesAndBuffers.cpp
-    GLTF/GLTFTexturesAndBuffers.h)
+    GLTF/GLTFTexturesAndBuffers.h
+)
 
 set(PostProc_src
     PostProc/Bloom.cpp
@@ -39,6 +40,8 @@ set(PostProc_src
     PostProc/Tonemapping.h
     PostProc/TonemappingCS.cpp
     PostProc/TonemappingCS.h
+    PostProc/TAA.cpp
+    PostProc/TAA.h
 )
 
 set(Base_src
@@ -50,6 +53,8 @@ set(Base_src
     base/DeviceProperties.h
     base/DynamicBufferRing.cpp
     base/DynamicBufferRing.h
+    base/GBuffer.cpp
+    base/GBuffer.h
     base/GPUTimestamps.cpp
     base/GPUTimestamps.h
     base/FreeSyncHDR.cpp
@@ -73,7 +78,8 @@ set(Base_src
     base/Texture.cpp
     base/Texture.h
     base/UploadHeap.cpp
-    base/UploadHeap.h)
+    base/UploadHeap.h
+)
 
 set(Extensions_src
     base/ExtFreeSyncHDR.cpp
@@ -87,7 +93,8 @@ set(Extensions_src
     base/ExtDebugUtils.cpp
     base/ExtDebugUtils.h
     base/ExtGPUValidation.cpp
-    base/ExtGPUValidation.h)
+    base/ExtGPUValidation.h
+)
 
 set(Widgets_src
     widgets/Axis.cpp
@@ -97,58 +104,66 @@ set(Widgets_src
     widgets/Wireframe.cpp
     widgets/Wireframe.h
     widgets/WireframeBox.h
-    widgets/WireframeSphere.h)
+    widgets/WireframeSphere.h
+)
 
-set(Shaders_src
+set(Shaders_PostProc_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blend.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blur.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/DownSamplePS.glsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTF_VS2PS_IO.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappers.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemapping.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAASharpenerCS.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAA.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappingCS.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.glsl
+)
+
+set(Shaders_GLTF_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPbrPass-vert.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTF_VS2PS_IO.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPBRLighting.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-frag.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFDepthPass-vert.glsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFPBRLighting.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFMotionVectorsPass-frag.glsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFMotionVectorsPass-vert.glsl
-	${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skinning.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFMotionVectorsPass-vert.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDome.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDomeProc.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/SkyDomeProc.hlsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappers.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemapping.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappingCS.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/functions.glsl
-    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/textures.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/PBRTextures.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shadowFiltering.h
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/PixelParams.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/skinning.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
-    )
+)
 
 set(media_src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
 )    
 
 copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
-copyCommand("${Shaders_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
+copyCommand("${Shaders_GLTF_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
+copyCommand("${Shaders_PostProc_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
 
-add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_src} ${media_src} ${Extensions_src})
+add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_GLTF_src} ${Shaders_PostProc_src} ${media_src} ${Extensions_src})
 
 target_link_libraries (${PROJECT_NAME} Cauldron_Common NJSON Vulkan::Vulkan)
 target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-source_group("GLTF"            FILES ${GLTF_src})
-source_group("PostProc"        FILES ${PostProc_src})
-source_group("Base"            FILES ${Base_src})
-source_group("Widgets"         FILES ${Widgets_src})
-source_group("Shaders"         FILES ${Shaders_src})
-source_group("media"           FILES ${media_src})
-source_group("extensions"      FILES ${Extensions_src})
- 
+source_group("GLTF"             FILES ${GLTF_src})
+source_group("PostProc"         FILES ${PostProc_src})
+source_group("PostProc Shaders" FILES ${Shaders_PostProc_src})
+source_group("Base"             FILES ${Base_src})
+source_group("Widgets"          FILES ${Widgets_src})
+source_group("GLTF Shaders"     FILES ${Shaders_GLTF_src})
+source_group("media"            FILES ${media_src})
+source_group("extensions"       FILES ${Extensions_src})
 
-set_source_files_properties(${Shaders_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
+set_source_files_properties(${Shaders_GLTF_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
+set_source_files_properties(${Shaders_PostProc_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
 set_source_files_properties(${media_src} PROPERTIES VS_TOOL_OVERRIDE "Media")
 

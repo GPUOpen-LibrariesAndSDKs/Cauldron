@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -16,20 +16,27 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 #pragma once
+
+#include "ResourceViewHeaps.h"
+#include "UploadHeap.h"
+#include "Misc/ImgLoader.h"
 
 namespace CAULDRON_DX12
 {
-    class Sharpen
+    class Buffer
     {
     public:
-        void OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool, DXGI_FORMAT outFormat);
-        void OnDestroy();
-
-        void UpdatePipelines(DXGI_FORMAT outFormat);
-        void Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pTAABufferSRV);
+        void InitFromMem(Device *pDevice, const char *pDebugName, UploadHeap *pUploadHeap, const void *pData, int numElements, int elementSize);
+        void Release();
+        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV);
 
     private:
-        PostProcPS m_sharpen;
+        Device                    *m_pDevice;
+        ID3D12Resource            *m_pBuffer;
+
+        int m_numElements;
+        int m_elementSize;
     };
 }

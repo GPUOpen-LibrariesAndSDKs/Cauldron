@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -57,7 +57,7 @@ void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane
         m_Proj = XMMatrixPerspectiveFovRH(fovV, m_aspectRatio, nearPlane, farPlane);
 }
 
-void Camera::SetMatrix(XMMATRIX cameraMatrix)
+void Camera::SetMatrix(const XMMATRIX cameraMatrix)
 {
     m_eyePos = cameraMatrix.r[3];
     m_View = XMMatrixInverse(nullptr, cameraMatrix);
@@ -112,17 +112,17 @@ void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float d
 {
     pitch = std::max(-XM_PIDIV2 + 1e-6f, std::min(pitch, XM_PIDIV2 - 1e-6f));
 
-    XMVECTOR eyePos = m_eyePos;
-    eyePos += GetSide() * x * distance / 10.0f;
-    eyePos += GetUp() * y * distance / 10.0f;
+    // Trucks camera, moves the camera parallel to the view plane.
+    m_eyePos += GetSide() * x * distance / 10.0f;
+    m_eyePos += GetUp() * y * distance / 10.0f;
 
+    // Orbits camera, rotates a camera about the target
     XMVECTOR dir = GetDirection();
     XMVECTOR pol = PolarToVector(yaw, pitch);
 
     XMVECTOR at = m_eyePos - dir * m_distance;   
-    eyePos = at + pol * distance;
 
-    LookAt(eyePos, at);
+    LookAt(at + pol * distance, at);
 }
 
 //--------------------------------------------------------------------------------------

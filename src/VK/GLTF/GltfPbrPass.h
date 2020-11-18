@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,6 +20,7 @@
 
 #include "GLTFTexturesAndBuffers.h"
 #include "PostProc/SkyDome.h"
+#include "Base/GBuffer.h"
 #include "../common/GLTF/GltfPbrMaterial.h"
 
 namespace CAULDRON_VK
@@ -60,14 +61,24 @@ namespace CAULDRON_VK
     public:
         struct per_object
         {
-            XMMATRIX mWorld;
+            XMMATRIX mCurrentWorld;
+            XMMATRIX mPreviousWorld;
 
             PBRMaterialParametersConstantBuffer m_pbrParams;
         };
 
+        struct BatchList
+        {
+            float m_depth;
+            PBRPrimitives *m_pPrimitive;
+            VkDescriptorBufferInfo m_perFrameDesc;
+            VkDescriptorBufferInfo m_perObjectDesc;
+            VkDescriptorBufferInfo *m_pPerSkeleton;
+            operator float() { return -m_depth; }
+        };
+
         void OnCreate(
             Device* pDevice,
-            VkRenderPass renderPass,
             UploadHeap* pUploadHeap,
             ResourceViewHeaps *pHeaps,
             DynamicBufferRing *pDynamicBufferRing,
@@ -76,16 +87,13 @@ namespace CAULDRON_VK
             SkyDome *pSkyDome,
             bool bUseSSAOMask,
             VkImageView ShadowMapView,
-            bool bExportForwardPass,
-            bool bExportSpecularRoughness,
-            bool bExportDiffuseColor,
-            bool bExportNormals,
-            VkSampleCountFlagBits sampleCount,
+            GBufferRenderPass *pRenderPass,
             AsyncPool *pAsyncPool = NULL
         );
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf);
+        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
+        void DrawBatchList(VkCommandBuffer commandBuffer, std::vector<BatchList> *pBatchList);
         void OnUpdateWindowSizeDependentResources(VkImageView SSAO);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
@@ -101,9 +109,8 @@ namespace CAULDRON_VK
 
         PBRMaterial m_defaultMaterial;
 
-        Device* m_pDevice;
-        VkRenderPass m_renderPass = VK_NULL_HANDLE;
-        VkSampleCountFlagBits m_sampleCount;
+        Device   *m_pDevice;
+        GBufferRenderPass *m_pRenderPass;
         VkSampler m_samplerPbr = VK_NULL_HANDLE, m_samplerShadow = VK_NULL_HANDLE;
 
         // PBR Brdf

@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "Base/Device.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/ShaderCompilerHelper.h"
 #include "CheckerboardFloor.h"
 
@@ -315,7 +316,7 @@ namespace CAULDRON_VK
 
         res = vkCreateGraphicsPipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
         assert(res == VK_SUCCESS);
-
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_pipeline, "CheckerBoardFloor P");
     }
 
     void CheckerBoardFloor::OnDestroy()

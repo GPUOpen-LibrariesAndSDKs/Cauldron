@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -54,7 +54,6 @@ struct DDS_HEADER
 
 //--------------------------------------------------------------------------------------
 // retrieve the GetDxgiFormat from a DDS_PIXELFORMAT
-// based on http://msdn.microsoft.com/en-us/library/windows/desktop/bb943991(v=vs.85).aspx
 //--------------------------------------------------------------------------------------
 static DXGI_FORMAT GetDxgiFormat(DDS_PIXELFORMAT pixelFmt)
 {

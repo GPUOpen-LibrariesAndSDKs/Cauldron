@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -263,7 +263,7 @@ namespace CAULDRON_VK
             data->dirX = 1.0f / (float)(m_Width >> mipLevel);
             data->dirY = 0.0f / (float)(m_Height >> mipLevel);
             data->mipLevel = mipLevel;
-            m_directionalBlur.Draw(cmd_buf, constantBuffer, m_horizontalMip[mipLevel].m_descriptorSet);
+            m_directionalBlur.Draw(cmd_buf, &constantBuffer, m_horizontalMip[mipLevel].m_descriptorSet);
 
             vkCmdEndRenderPass(cmd_buf);
         }
@@ -290,7 +290,7 @@ namespace CAULDRON_VK
             data->dirX = 0.0f / (float)(m_Width >> mipLevel);
             data->dirY = 1.0f / (float)(m_Height >> mipLevel);
             data->mipLevel = mipLevel;
-            m_directionalBlur.Draw(cmd_buf, constantBuffer, m_verticalMip[mipLevel].m_descriptorSet);
+            m_directionalBlur.Draw(cmd_buf, &constantBuffer, m_verticalMip[mipLevel].m_descriptorSet);
 
             vkCmdEndRenderPass(cmd_buf);
         }

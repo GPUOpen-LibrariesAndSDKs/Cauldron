@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -86,7 +86,7 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ToneMappingConsts), descriptorSet);
 
         // Draw!
-        m_toneMapping.Draw(cmd_buf, cbTonemappingHandle, descriptorSet, (width + 7) / 8, (height + 7) / 8, 1);
+        m_toneMapping.Draw(cmd_buf, &cbTonemappingHandle, descriptorSet, (width + 7) / 8, (height + 7) / 8, 1);
 
         SetPerfMarkerEnd(cmd_buf);
     }

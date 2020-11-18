@@ -16,27 +16,33 @@ Cauldron is compiled as a static library. To see it in action check projects bel
 - [GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample), a simple demo app to show off Cauldron's features
   ![GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample/raw/master/screenshot.png)
 
-
 # Cauldron Features
 
 - [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0) File loader
   - Animation for cameras, objects, skeletons and lights
   - Skinning
     - Baking skinning into buffers (DX12 only)
-  - Rendering techniques
-    - Motion vectors
-    - Depth pass only
-    - PBR Materials 
-      - Metallic-Roughness 
-      - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
-    - Lighting (KHR_lights_punctual extension)
-      - Spot Lights w/ Shadows (up to 4)
+  - PBR Materials 
+    - Metallic-Roughness 
+    - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
+  - Lighting 
+      - KHR_lights_punctual extension
+        - Point 
+        - Directional
+        - Spot Lights w/ Shadows (up to 4)
       - Image-based Lighting (IBL) CubeMaps
   - Shadow techniques
-    - shadow maps
+    - shadow maps (PCF)
     - shadow masks (DX12 only)
+- Configurable GBuffer, supported techniques:
+  - Full forward
+  - Motion vectors
+  - Normals
+  - Depth
+  - Specular-roughness
+  - Diffuse-alpha
 - Postprocessing
-  - TAA (DX12 only)
+  - TAA
   - Bloom
   - HDR/Tonemapping
 - Texture Loaders for DDS (including the BCn formats), JPEG and PNG formats

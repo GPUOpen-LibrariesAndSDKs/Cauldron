@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "textures.glsl"
-
+#include "PBRTextures.glsl"
 
 vec4 getPixelColor(VS2PS Input)
 {

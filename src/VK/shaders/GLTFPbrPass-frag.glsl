@@ -54,20 +54,24 @@ layout (location = 0) in VS2PS Input;
 // PS Outputs
 //--------------------------------------------------------------------------------------
 
-#ifdef ID_FORWARD_RT
-    layout (location = ID_FORWARD_RT) out vec4 Output_finalColor;
+#ifdef HAS_MOTION_VECTORS_RT
+layout(location = HAS_MOTION_VECTORS_RT) out vec2 Output_motionVect;
 #endif
 
-#ifdef ID_SPECULAR_ROUGHNESS_RT
-    layout (location = ID_SPECULAR_ROUGHNESS_RT) out vec4 Output_specularRoughness;
+#ifdef HAS_FORWARD_RT
+    layout (location = HAS_FORWARD_RT) out vec4 Output_finalColor;
 #endif
 
-#ifdef ID_DIFFUSE_RT
-    layout (location = ID_DIFFUSE_RT) out vec4 Output_diffuseColor;
+#ifdef HAS_SPECULAR_ROUGHNESS_RT
+    layout (location = HAS_SPECULAR_ROUGHNESS_RT) out vec4 Output_specularRoughness;
 #endif
 
-#ifdef ID_NORMALS_RT
-    layout (location = ID_NORMALS_RT) out vec4 Output_normal;
+#ifdef HAS_DIFFUSE_RT
+    layout (location = HAS_DIFFUSE_RT) out vec4 Output_diffuseColor;
+#endif
+
+#ifdef HAS_NORMALS_RT
+    layout (location = HAS_NORMALS_RT) out vec4 Output_normal;
 #endif
 
 //--------------------------------------------------------------------------------------
@@ -95,7 +99,8 @@ layout (scalar, set=0, binding = 0) uniform perFrame
 
 layout (scalar, set=0, binding = 1) uniform perObject 
 {
-    mat4 myPerObject_u_World;
+    mat4 myPerObject_u_mCurrWorld;
+    mat4 myPerObject_u_mPrevWorld;
 
 	PBRFactors u_pbrParams;
 };
@@ -123,19 +128,24 @@ void main()
     // convert to material roughness by squaring the perceptual roughness [2].
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
 
-#ifdef ID_SPECULAR_ROUGHNESS_RT
+#ifdef HAS_MOTION_VECTORS_RT
+    Output_motionVect = Input.CurrPosition.xy / Input.CurrPosition.w -
+                        Input.PrevPosition.xy / Input.PrevPosition.w;
+#endif
+
+#ifdef HAS_SPECULAR_ROUGHNESS_RT
     Output_specularRoughness = vec4(specularColor, alphaRoughness);
 #endif
 
-#ifdef ID_DIFFUSE_RT
+#ifdef HAS_DIFFUSE_RT
     Output_diffuseColor = vec4(diffuseColor, 0);
 #endif
 
-#ifdef ID_NORMALS_RT
+#ifdef HAS_NORMALS_RT
     Output_normal = vec4((getPixelNormal(Input) + 1) / 2, 0);
 #endif
 
-#ifdef ID_FORWARD_RT
+#ifdef HAS_FORWARD_RT
 	Output_finalColor = vec4(doPbrLighting(Input, myPerFrame, diffuseColor, specularColor, perceptualRoughness), alpha);
 #endif
 }

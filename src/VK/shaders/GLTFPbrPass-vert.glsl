@@ -19,9 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-//#extension GL_ARB_separate_shader_objects : enable
-//#extension GL_ARB_shading_language_420pack : enable
-
 //--------------------------------------------------------------------------------------
 //  Include IO structures
 //--------------------------------------------------------------------------------------
@@ -31,25 +28,37 @@
 //--------------------------------------------------------------------------------------
 // Constant buffers
 //--------------------------------------------------------------------------------------
+#include "perFrameStruct.h"
 
-layout (std140, binding = ID_PER_FRAME) uniform perFrame
+layout (std140, binding = ID_PER_FRAME) uniform _PerFrame 
 {
-    mat4 u_MVPMatrix;
-} myPerFrame;
+    PerFrame myPerFrame;
+};
 
 layout (std140, binding = ID_PER_OBJECT) uniform perObject
 {
-    mat4 u_ModelMatrix;
+    mat4 u_mCurrWorld;
+    mat4 u_mPrevWorld;
 } myPerObject;
 
 mat4 GetWorldMatrix()
 {
-    return myPerObject.u_ModelMatrix;
+    return myPerObject.u_mCurrWorld;
 }
 
 mat4 GetCameraViewProj()
 {
-    return myPerFrame.u_MVPMatrix;
+    return myPerFrame.u_mCameraCurrViewProj;
+}
+
+mat4 GetPrevWorldMatrix()
+{
+    return myPerObject.u_mPrevWorld;
+}
+
+mat4 GetPrevCameraViewProj()
+{
+    return myPerFrame.u_mCameraPrevViewProj;
 }
 
 #include "GLTFVertexFactory.glsl"

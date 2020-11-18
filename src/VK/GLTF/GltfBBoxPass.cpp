@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -74,7 +74,7 @@ namespace CAULDRON_VK
             if (pNode->meshIndex < 0)
                 continue;
 
-            XMMATRIX mWorldViewProj = pC->m_pCurrentFrameTransformedData->m_worldSpaceMats[i] * cameraViewProjMatrix;
+            XMMATRIX mWorldViewProj = pC->m_worldSpaceMats[i].GetCurrent() * cameraViewProjMatrix;
 
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)

@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,26 +18,12 @@
 // THE SOFTWARE.
 
 //--------------------------------------------------------------------------------------
-// I/O Structures
-//--------------------------------------------------------------------------------------
-
-struct VERTEX
-{
-    float2 vTexcoord : TEXCOORD;
-};
-
-struct PIXEL
-{
-    float4 HDR     : SV_Target0;
-    float4 History : SV_Target1;
-};
-
-//--------------------------------------------------------------------------------------
 // Texture definitions
 //--------------------------------------------------------------------------------------
+Texture2D<float4> TAABuffer : register(t0);
 
-Texture2D    TAABuffer  : register(t0);
-SamplerState TAASampler : register(s0);
+RWTexture2D<float4> HDR : register(u0);
+RWTexture2D<float4> History : register(u1);
 
 //--------------------------------------------------------------------------------------
 // Helper functions
@@ -79,25 +65,17 @@ float3 ReinhardInverse(in float3 sdr)
 //--------------------------------------------------------------------------------------
 // Main function
 //--------------------------------------------------------------------------------------
-
-PIXEL mainPS(VERTEX Input)
+[numthreads(8, 8, 1)]
+void mainCS(uint3 globalID : SV_DispatchThreadID, uint3 localID : SV_GroupThreadID, uint localIndex : SV_GroupIndex, uint3 groupID : SV_GroupID)
 {
-    PIXEL Output;
-
-    int3 dims;
-    TAABuffer.GetDimensions(0, dims.x, dims.y, dims.z);
-    const float2 texelSize = 1.0f / dims.xy;
-
-    const float3 center = TAABuffer.SampleLevel(TAASampler, Input.vTexcoord, 0.0f).xyz;
-    const float3 top    = TAABuffer.SampleLevel(TAASampler, Input.vTexcoord + float2( 0.0f,  1.0f) * texelSize, 0.0f).xyz;
-    const float3 left   = TAABuffer.SampleLevel(TAASampler, Input.vTexcoord + float2( 1.0f,  0.0f) * texelSize, 0.0f).xyz;
-    const float3 right  = TAABuffer.SampleLevel(TAASampler, Input.vTexcoord + float2(-1.0f,  0.0f) * texelSize, 0.0f).xyz;
-    const float3 bottom = TAABuffer.SampleLevel(TAASampler, Input.vTexcoord + float2( 0.0f, -1.0f) * texelSize, 0.0f).xyz;
+    const float3 center = TAABuffer[globalID.xy].xyz;
+    const float3 top    = TAABuffer[globalID.xy + uint2( 0,  1)].xyz;
+    const float3 left   = TAABuffer[globalID.xy + uint2( 1,  0)].xyz;
+    const float3 right  = TAABuffer[globalID.xy + uint2(-1,  0)].xyz;
+    const float3 bottom = TAABuffer[globalID.xy + uint2( 0, -1)].xyz;
 
     const float3 color = ApplySharpening(center, top, left, right, bottom);
 
-    Output.HDR = float4(ReinhardInverse(color), 1.0f);
-    Output.History = float4(center, 1.0f);
-
-    return Output;
+    HDR[globalID.xy] = float4(ReinhardInverse(color), 1.0f);
+    History[globalID.xy] = float4(center, 1.0f);
 }
