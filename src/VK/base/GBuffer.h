@@ -16,7 +16,8 @@ namespace CAULDRON_VK
         GBUFFER_MOTION_VECTORS = 4,
         GBUFFER_NORMAL_BUFFER = 8,
         GBUFFER_DIFFUSE = 16,
-        GBUFFER_SPECULAR_ROUGHNESS = 32
+        GBUFFER_SPECULAR_ROUGHNESS = 32,
+        GBUFFER_WORLD_COORD = 64
     } GBufferFlagBits;
 
     typedef uint32_t GBufferFlags;
@@ -81,6 +82,10 @@ namespace CAULDRON_VK
         // normal buffer
         Texture                         m_NormalBuffer;
         VkImageView                     m_NormalBufferSRV;
+
+        // world space coordinates
+        Texture                         m_WorldCoord;
+        VkImageView                     m_WorldCoordSRV;
 
         // HDR
         Texture                         m_HDR;

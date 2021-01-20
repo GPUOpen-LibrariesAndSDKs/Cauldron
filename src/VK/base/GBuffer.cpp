@@ -78,6 +78,13 @@ namespace CAULDRON_VK
             defines["HAS_NORMALS_RT"] = std::to_string(rtIndex++);
         }
 
+        // World Space Coordinates
+        //
+        if (m_flags & GBUFFER_WORLD_COORD)
+        {
+            defines["HAS_WORLD_COORD_RT"] = std::to_string(rtIndex++);
+        }
+
         // Diffuse
         //
         if (m_flags & GBUFFER_DIFFUSE)
@@ -146,6 +153,12 @@ namespace CAULDRON_VK
             assert(m_GBufferFlags & GBUFFER_NORMAL_BUFFER); // asserts if there if the RT is not present in the GBuffer
         }
 
+        if (flags & GBUFFER_WORLD_COORD)
+        {
+            addAttachment(m_formats[GBUFFER_WORLD_COORD], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            assert(m_GBufferFlags & GBUFFER_WORLD_COORD); // asserts if there if the RT is not present in the GBuffer
+        }
+
         if (flags & GBUFFER_DIFFUSE)
         {
             addAttachment(m_formats[GBUFFER_DIFFUSE], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
@@ -204,6 +217,20 @@ namespace CAULDRON_VK
         if (flags & GBUFFER_NORMAL_BUFFER)
         {
             pAttachments->push_back(m_NormalBufferSRV);
+
+            if (pClearValues)
+            {
+                VkClearValue cv;
+                cv.color = { 0.0f, 0.0f, 0.0f, 0.0f };
+                pClearValues->push_back(cv);
+            }
+        }
+
+        // World Space Coordinates
+        //
+        if (flags & GBUFFER_WORLD_COORD)
+        {
+            pAttachments->push_back(m_WorldCoordSRV);
 
             if (pClearValues)
             {
@@ -282,6 +309,14 @@ namespace CAULDRON_VK
             m_NormalBuffer.CreateSRV(&m_NormalBufferSRV);
         }
 
+        // World Space Coordinates
+        //
+        if (m_GBufferFlags & GBUFFER_WORLD_COORD)
+        {
+            m_WorldCoord.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_WORLD_COORD], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "m_WorldCoord");
+            m_WorldCoord.CreateSRV(&m_WorldCoordSRV);
+        }
+
         // Diffuse
         //
         if (m_GBufferFlags & GBUFFER_DIFFUSE)
@@ -320,6 +355,12 @@ namespace CAULDRON_VK
         {
             vkDestroyImageView(m_pDevice->GetDevice(), m_DiffuseSRV, nullptr);
             m_Diffuse.OnDestroy();
+        }
+
+        if (m_GBufferFlags & GBUFFER_WORLD_COORD)
+        {
+            vkDestroyImageView(m_pDevice->GetDevice(), m_WorldCoordSRV, nullptr);
+            m_WorldCoord.OnDestroy();
         }
 
         if (m_GBufferFlags & GBUFFER_NORMAL_BUFFER)
