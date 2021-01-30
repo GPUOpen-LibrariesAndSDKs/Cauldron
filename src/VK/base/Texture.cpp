@@ -272,7 +272,7 @@ namespace CAULDRON_VK
         image_info.queueFamilyIndexCount = 0;
         image_info.pQueueFamilyIndices = NULL;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; //TODO    
+        image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT; //TODO    
         image_info.flags = 0;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;   // VK_IMAGE_TILING_LINEAR should never be used and will never be faster
 
