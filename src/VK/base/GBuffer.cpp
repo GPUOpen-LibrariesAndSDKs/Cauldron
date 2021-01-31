@@ -127,7 +127,7 @@ namespace CAULDRON_VK
     //
     VkRenderPass GBuffer::CreateRenderPass(GBufferFlags flags, bool bClear)
     {
-        VkAttachmentDescription depthAttachment;
+        VkAttachmentDescription *pDepthAttachment = NULL;
         VkAttachmentDescription colorAttachments[10];
         uint32_t colorAttanchmentCount = 0;
 
@@ -173,11 +173,17 @@ namespace CAULDRON_VK
 
         if (flags & GBUFFER_DEPTH)
         {
-            addAttachment(m_formats[GBUFFER_DEPTH], m_sampleCount, previousDepth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &depthAttachment);
+            pDepthAttachment = new VkAttachmentDescription[1];
+            addAttachment(m_formats[GBUFFER_DEPTH], m_sampleCount, previousDepth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, pDepthAttachment);
             assert(m_GBufferFlags & GBUFFER_DEPTH); // asserts if there if the RT is not present in the GBuffer
         }
 
-        return CreateRenderPassOptimal(m_pDevice->GetDevice(), colorAttanchmentCount, colorAttachments, &depthAttachment);
+        VkRenderPass renderPass = CreateRenderPassOptimal(m_pDevice->GetDevice(), colorAttanchmentCount, colorAttachments, pDepthAttachment);
+
+        if (pDepthAttachment != NULL)
+            delete[] pDepthAttachment;
+
+        return renderPass;
     }
 
     void GBuffer::GetAttachmentList(GBufferFlags flags, std::vector<VkImageView> *pAttachments, std::vector<VkClearValue> *pClearValues)
