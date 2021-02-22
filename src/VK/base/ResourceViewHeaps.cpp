@@ -28,8 +28,9 @@ namespace CAULDRON_VK
         m_pDevice = pDevice;
         m_allocatedDescriptorCount = 0;
 
-        std::vector<VkDescriptorPoolSize> type_count =
+	std::vector<VkDescriptorPoolSize> type_count =
         {
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, cbvDescriptorCount },
             { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, cbvDescriptorCount },
             { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, srvDescriptorCount },
             { VK_DESCRIPTOR_TYPE_SAMPLER, samplerDescriptorCount },
