@@ -104,33 +104,6 @@ namespace CAULDRON_DX12
             m_pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_verticalMip[i].m_SRV);
             m_pResourceViewHeaps->AllocRTVDescriptor(1, &m_verticalMip[i].m_RTV);
         }
-
-        /*
-        float out[16];
-        for (int k = 3; k <= 16; k++)
-        {
-            GenerateGaussianWeights(k, out);
-
-            char str[1024];
-            int ii = 0;
-            ii += sprintf_s(&str[ii], 1024 - ii, "int s_lenght = %i; float s_coeffs[] = {", k);
-            for (int i = 0; i < k; i++)
-            {
-                ii += sprintf_s(&str[ii], 1024 - ii, "%f, ", out[i]);
-            }
-
-            float r = out[0];
-            for (int i = 1; i < k; i++)
-                r += 2 * out[i];
-
-            assert(r <= 1.0f && r>0.97f);
-
-
-            ii += sprintf_s(&str[ii], 1024 - ii, "}; // norm = %f\n", r);
-
-            OutputDebugStringA(str);
-        }
-    */
     }
 
     void BlurPS::OnCreateWindowSizeDependentResources(Device *pDevice, uint32_t Width, uint32_t Height, Texture *pInput, int mipCount)

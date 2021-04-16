@@ -162,7 +162,7 @@ namespace CAULDRON_DX12
         m_RootSignature->Release();
     }
 
-    void Wireframe::Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, XMMATRIX WorldViewProj, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
+    void Wireframe::Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, const math::Matrix4& WorldViewProj, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor)
     {
         ID3D12DescriptorHeap *pDescriptorHeaps[] = { m_pResourceViewHeaps->GetCBV_SRV_UAVHeap() };
 

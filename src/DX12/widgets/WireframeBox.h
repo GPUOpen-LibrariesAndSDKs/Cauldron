@@ -49,7 +49,7 @@ namespace CAULDRON_DX12
 
         void OnDestroy() {}
 
-        void Draw(ID3D12GraphicsCommandList* pCommandList, Wireframe *pWireframe, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
+        void Draw(ID3D12GraphicsCommandList* pCommandList, Wireframe *pWireframe, const math::Matrix4& worldMatrix, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor)
         {
             pWireframe->Draw(pCommandList, m_NumIndices, m_IBV, m_VBV, worldMatrix, vCenter, vRadius, vColor);
         }

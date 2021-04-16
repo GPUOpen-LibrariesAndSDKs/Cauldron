@@ -43,8 +43,9 @@ namespace CAULDRON_DX12
 
         ID3D12RootSignature	*m_RootSignature;
         ID3D12PipelineState	*m_PipelineRender;
+        ID3D12PipelineState *m_PipelineWireframeRender;
 
-        void DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perSceneDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton);
+        void DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perSceneDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton, bool bWireframe);
     };
 
     struct PBRMesh
@@ -57,8 +58,8 @@ namespace CAULDRON_DX12
     public:
         struct per_object
         {
-            XMMATRIX mCurrentWorld;
-            XMMATRIX mPreviousWorld;
+            math::Matrix4 mCurrentWorld;
+            math::Matrix4 mPreviousWorld;
 
             PBRMaterialParametersConstantBuffer m_pbrParams;
         };
@@ -87,8 +88,8 @@ namespace CAULDRON_DX12
 
         void OnDestroy();
         void OnUpdateWindowSizeDependentResources(Texture *pSSAO);
-        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
-        void DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList);
+        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent, bool bWireframe = false);
+        void DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList, bool bWireframe = false);
     private:
         Device                  *m_pDevice;
         GBufferRenderPass       *m_pGBufferRenderPass;

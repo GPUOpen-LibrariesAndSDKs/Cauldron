@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define TEXCOORD(id) CONCAT(Input.UV, id)
 #include "GLTFPbrPass-IO.h"
 
 #ifdef ID_normalTexture
@@ -42,7 +43,7 @@ float3 getNormalTexture(VS_OUTPUT_SCENE Input)
 
 // Find the normal for this fragment, pulling either from a predefined normal map
 // or from the interpolated mesh normal and tangent attributes.
-float3 getPixelNormal(VS_OUTPUT_SCENE Input)
+float3 getPixelNormal(VS_OUTPUT_SCENE Input, bool bIsFontFacing = false)
 {
     // Retrieve the tangent space matrix
 #ifndef HAS_TANGENT
@@ -74,6 +75,6 @@ float3 getPixelNormal(VS_OUTPUT_SCENE Input)
     float3 n = normalize(tbn[2].xyz);
 #endif
 
-    return n;
+    return n * (bIsFontFacing ? -1 : 1);
 }
 

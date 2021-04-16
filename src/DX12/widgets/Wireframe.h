@@ -39,7 +39,7 @@ namespace CAULDRON_DX12
             uint32_t sampleDescCount);
 
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, XMMATRIX WorldViewProj, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, const math::Matrix4& WorldViewProj, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor);
 
     private:
         DynamicBufferRing *m_pDynamicBufferRing;
@@ -50,10 +50,10 @@ namespace CAULDRON_DX12
 
         struct per_object
         {
-            XMMATRIX m_mWorldViewProj;
-            XMVECTOR m_vCenter;
-            XMVECTOR m_vRadius;
-            XMVECTOR m_vColor;
+            math::Matrix4 m_mWorldViewProj;
+            math::Vector4 m_vCenter;
+            math::Vector4 m_vRadius;
+            math::Vector4 m_vColor;
         };
     };
 }

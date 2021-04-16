@@ -20,18 +20,20 @@
 #pragma once
 #include "../json/json.h"
 
+#include "../../libs/vectormath/vectormath.hpp"
+
 using json = nlohmann::json;
 
 int GetFormatSize(int id);
 int GetDimensions(const std::string &str);
 void SplitGltfAttribute(std::string attribute, std::string *semanticName, uint32_t *semanticIndex);
 
-XMVECTOR GetVector(const json::array_t &accessor);
-XMMATRIX GetMatrix(const json::array_t &accessor);
+math::Vector4 GetVector(const json::array_t &accessor);
+math::Matrix4 GetMatrix(const json::array_t &accessor);
 std::string GetElementString(const json::object_t &root, const char *path, std::string pDefault);
 float GetElementFloat(const json::object_t &root, const char *path, float pDefault);
 int GetElementInt(const json::object_t &root, const char *path, int pDefault);
 bool GetElementBoolean(const json::object_t &root, const char *path, bool pDefault);
 json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t pDefault);
-XMVECTOR GetElementVector(json::object_t &root, const char *path, XMVECTOR default);
+math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 default);
 

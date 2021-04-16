@@ -275,12 +275,16 @@ namespace CAULDRON_DX12
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
         
-        // TODO: add view overrides and use defaults below if there's none
         switch (texDesc.Format)
         {
         // Override TYPELESS resources to prevent device removed. 
-        case DXGI_FORMAT_R32_TYPELESS: uavDesc.Format = DXGI_FORMAT_R32_UINT; break;
-        case DXGI_FORMAT_R16_TYPELESS: uavDesc.Format = DXGI_FORMAT_R16_UINT; break;
+        case DXGI_FORMAT_D32_FLOAT:
+        case DXGI_FORMAT_R32_TYPELESS: uavDesc.Format = DXGI_FORMAT_R32_UINT; 
+            break;
+        case DXGI_FORMAT_R16_TYPELESS: uavDesc.Format = DXGI_FORMAT_R16_UINT; 
+            break;
+        case DXGI_FORMAT_D16_UNORM: uavDesc.Format = DXGI_FORMAT_R16_UINT;
+            break;
         default:
             uavDesc.Format = texDesc.Format;
             break;
@@ -324,12 +328,16 @@ namespace CAULDRON_DX12
         }
         else
         {
-            // TODO: add view overrides and use defaults below if there's none
             switch (resourceDesc.Format)
             {
             // Override TYPELESS resources to prevent device removed.
-            case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
-            case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_FLOAT; break;
+            case DXGI_FORMAT_D32_FLOAT:
+            case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; 
+                break;
+            case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_FLOAT; 
+                break;
+            case DXGI_FORMAT_D16_UNORM: srvDesc.Format = DXGI_FORMAT_R16_UNORM;
+                break;
             default:
                 srvDesc.Format = m_pResource->GetDesc().Format;
                 break;
@@ -396,14 +404,14 @@ namespace CAULDRON_DX12
         CreateSRV(index, pRV, &srvDesc);
     }
 
-    void Texture::CreateDSV(uint32_t index, DSV* pRV, int arraySlice)
+    void Texture::CreateDSV(uint32_t index, DSV* pRV, int arraySlice, int arraySize)
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
 
         D3D12_DEPTH_STENCIL_VIEW_DESC DSViewDesc = {};
-        DSViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        DSViewDesc.Format = texDesc.Format;
         if (texDesc.SampleDesc.Count == 1)
         {
             if (texDesc.DepthOrArraySize == 1)
@@ -416,7 +424,7 @@ namespace CAULDRON_DX12
                 DSViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
                 DSViewDesc.Texture2DArray.MipSlice = 0;
                 DSViewDesc.Texture2DArray.FirstArraySlice = arraySlice;
-                DSViewDesc.Texture2DArray.ArraySize = 1;// texDesc.DepthOrArraySize;
+                DSViewDesc.Texture2DArray.ArraySize = arraySize;
             }
         }
         else
@@ -433,7 +441,7 @@ namespace CAULDRON_DX12
     INT32 Texture::InitDepthStencil(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc)
     {
         // depth buffers need to be created as typeless! That way we can create different views out of them
-        assert(pDesc->Format == DXGI_FORMAT_R32_TYPELESS);
+        //assert(pDesc->Format == DXGI_FORMAT_R32_TYPELESS);
 
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
@@ -503,7 +511,7 @@ namespace CAULDRON_DX12
         //
         UINT32 bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
         UINT32 pixelsPerBlock = 1;
-        if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
+        if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC7_UNORM_SRGB))
         {
             pixelsPerBlock = (4 * 4); // BC formats have 4*4 pixels per block
             pixelsPerBlock /= 4; // we need to divide by 4 because GetCopyableFootprints introduces a *2 stride divides the rows /4 
@@ -549,6 +557,11 @@ namespace CAULDRON_DX12
         {
             CreateTextureCommitted(pDevice, pFilename, useSRGB, resourceFlags);
             LoadAndUpload(pDevice, pUploadHeap, img, m_pResource);
+        }
+        else
+        {
+            Trace("Error loading texture from file: %s", pFilename);
+            assert(result && "Could not load requested file. Please make sure it exists on disk.");
         }
 
         delete(img);

@@ -24,6 +24,8 @@
 #include "Base/StaticBufferPool.h"
 #include "Base/DynamicBufferRing.h"
 
+#include "../../libs/vectormath/vectormath.hpp"
+
 namespace CAULDRON_DX12
 {
     class SkyDome
@@ -31,7 +33,7 @@ namespace CAULDRON_DX12
     public:
         void OnCreate(Device* pDevice, UploadHeap* pUploadHeap, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, DXGI_FORMAT outFormat, uint32_t sampleDescCount);
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX& invViewProj);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, const math::Matrix4& invViewProj);
         void GenerateDiffuseMapFromEnvironmentMap();
 
         void SetDescriptorDiff(uint32_t textureIndex, CBV_SRV_UAV *pTextureTable, uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc);

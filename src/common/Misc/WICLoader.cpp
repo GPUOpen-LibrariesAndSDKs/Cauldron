@@ -212,11 +212,9 @@ void WICLoader::MipImage(uint32_t width, uint32_t height)
     }        
 
 
-    // For cutouts we need we need to scale the alpha channel to match the coverage of the top MIP map
+    // For cutouts we need to scale the alpha channel to match the coverage of the top MIP map
     // otherwise cutouts seem to get thinner when smaller mips are used
-    // Credits: http://www.ludicon.com/castano/blog/articles/computing-alpha-mipmaps/
-    //
-    
+    // Credits: http://www.ludicon.com/castano/blog/articles/computing-alpha-mipmaps/    
     if (m_alphaTestCoverage < 1.0)
     {
         float ini = 0;

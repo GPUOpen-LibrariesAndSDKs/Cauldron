@@ -113,9 +113,7 @@ void AsyncPool::AddAsyncTask(std::function<void()> job, Sync *pSync)
 }
 
 //
-// ExecAsyncIfThereIsAPool, will use async if there is a pool, otherswise will run the taks synchronously
-//
-
+// ExecAsyncIfThereIsAPool, will use async if there is a pool, otherwise will run the task synchronously
 void ExecAsyncIfThereIsAPool(AsyncPool *pAsyncPool, std::function<void()> job)
 {
     // use MT if there is a pool

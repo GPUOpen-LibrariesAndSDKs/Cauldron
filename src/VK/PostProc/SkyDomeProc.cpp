@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/Texture.h"
 #include "SkyDomeProc.h"
@@ -69,29 +69,5 @@ namespace CAULDRON_VK
         m_skydome.Draw(cmd_buf, &constantBuffer, m_descriptorSet);
 
         SetPerfMarkerEnd(cmd_buf);
-    }
-
-    //
-    // TODO: These functions below should generate a diffuse and specular cubemap to be used in IBL
-    //
-
-    void SkyDomeProc::GenerateDiffuseMapFromEnvironmentMap()
-    {
-
-    }
-
-    void SkyDomeProc::CreateDiffCubeSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_CubeDiffuseTextureView, m_samplerDiffuseCube, descriptorSet);
-    }
-
-    void SkyDomeProc::CreateSpecCubeSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_CubeSpecularTextureView, m_samplerDiffuseCube, descriptorSet);
-    }
-
-    void SkyDomeProc::CreateBrdfSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_BrdfTextureView, m_samplerBDRF, descriptorSet);
     }
 }

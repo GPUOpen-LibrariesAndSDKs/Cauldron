@@ -25,16 +25,28 @@
 
 namespace CAULDRON_VK
 {
-    extern PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR g_vkGetPhysicalDeviceSurfaceCapabilities2KHR;
     extern PFN_vkGetDeviceProcAddr                        g_vkGetDeviceProcAddr;
+
+    // Functions for regular HDR ex: HDR10
+    extern PFN_vkGetPhysicalDeviceSurfaceCapabilities2KHR g_vkGetPhysicalDeviceSurfaceCapabilities2KHR;
+    extern PFN_vkGetPhysicalDeviceSurfaceFormats2KHR      g_vkGetPhysicalDeviceSurfaceFormats2KHR;
     extern PFN_vkSetHdrMetadataEXT                        g_vkSetHdrMetadataEXT;
+
+    // Functions for FSE required if trying to use Freesync HDR
     extern PFN_vkAcquireFullScreenExclusiveModeEXT        g_vkAcquireFullScreenExclusiveModeEXT;
     extern PFN_vkReleaseFullScreenExclusiveModeEXT        g_vkReleaseFullScreenExclusiveModeEXT;
-    extern PFN_vkGetPhysicalDeviceSurfaceFormats2KHR      g_vkGetPhysicalDeviceSurfaceFormats2KHR;
+
+    // Functions for Freesync HDR
     extern PFN_vkSetLocalDimmingAMD                       g_vkSetLocalDimmingAMD;
 
-    void ExtFreeSyncHdrCheckDeviceExtensions(DeviceProperties *pDP);
-    void ExtFreeSyncHdrCheckInstanceExtensions(InstanceProperties *pIP);
-    void ExtFreeSyncHdrGetProcAddresses(VkInstance instance, VkDevice device);
-    bool ExtFreeSyncHdrAreAllExtensionsPresent();
+    void ExtCheckHDRInstanceExtensions(InstanceProperties *pIP);
+    void ExtCheckHDRDeviceExtensions(DeviceProperties *pDP);
+    void ExtCheckFSEDeviceExtensions(DeviceProperties *pDP);
+    void ExtCheckFreeSyncHDRDeviceExtensions(DeviceProperties *pDP);
+
+    void ExtGetHDRFSEFreesyncHDRProcAddresses(VkInstance instance, VkDevice device);
+
+    bool ExtAreHDRExtensionsPresent();
+    bool ExtAreFSEExtensionsPresent();
+    bool ExtAreFreeSyncHDRExtensionsPresent();
 }

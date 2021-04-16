@@ -53,12 +53,12 @@ namespace CAULDRON_DX12
     public:
         struct per_frame
         {
-            XMMATRIX mViewProj;
+            math::Matrix4 mViewProj;
         };
 
         struct per_object
         {
-            XMMATRIX mWorld;
+            math::Matrix4 mWorld;
         };
 
         void OnCreate(
@@ -68,11 +68,12 @@ namespace CAULDRON_DX12
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-            AsyncPool *pAsyncPool = NULL);
+            AsyncPool *pAsyncPool = NULL,
+            DXGI_FORMAT depthFormat = DXGI_FORMAT_D32_FLOAT);
 
         void OnDestroy();
-        GltfDepthPass::per_frame *SetPerFrameConstants();
-        void Draw(ID3D12GraphicsCommandList* pCommandList);
+        GltfDepthPass::per_frame *SetPerFrameConstants(int passIndex = 0);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, int passIndex = 0);
     private:
         Device *m_pDevice;
         ResourceViewHeaps *m_pResourceViewHeaps;
@@ -86,9 +87,9 @@ namespace CAULDRON_DX12
 
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
         D3D12_STATIC_SAMPLER_DESC m_samplerDesc;
-        D3D12_GPU_VIRTUAL_ADDRESS m_perFrameDesc;
+        D3D12_GPU_VIRTUAL_ADDRESS m_perFrameDesc[5];
 
-        void CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive);
+        void CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive, DXGI_FORMAT depthFormat);
     };
 }
 

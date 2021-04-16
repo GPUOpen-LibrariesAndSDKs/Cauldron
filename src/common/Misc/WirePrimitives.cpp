@@ -37,13 +37,13 @@ void GenerateSphere(int sides, std::vector<unsigned short> &outIndices, std::vec
             outIndices.push_back(i + 2);
             i += 3;
 
-            XMVECTOR v1 = PolarToVector((roll    ) * (2.0f * XM_PI) / sides, (pitch    ) * (2.0f * XM_PI) / sides);
-            XMVECTOR v2 = PolarToVector((roll + 1) * (2.0f * XM_PI) / sides, (pitch    ) * (2.0f * XM_PI) / sides);
-            XMVECTOR v3 = PolarToVector((roll    ) * (2.0f * XM_PI) / sides, (pitch + 1) * (2.0f * XM_PI) / sides);
+            math::Vector4 v1 = PolarToVector((roll    ) * (2.0f * XM_PI) / sides, (pitch    ) * (2.0f * XM_PI) / sides);
+            math::Vector4 v2 = PolarToVector((roll + 1) * (2.0f * XM_PI) / sides, (pitch    ) * (2.0f * XM_PI) / sides);
+            math::Vector4 v3 = PolarToVector((roll    ) * (2.0f * XM_PI) / sides, (pitch + 1) * (2.0f * XM_PI) / sides);
 
-            outVertices.push_back(XMVectorGetX(v1)); outVertices.push_back(XMVectorGetY(v1)); outVertices.push_back(XMVectorGetZ(v1));
-            outVertices.push_back(XMVectorGetX(v2)); outVertices.push_back(XMVectorGetY(v2)); outVertices.push_back(XMVectorGetZ(v2));
-            outVertices.push_back(XMVectorGetX(v3)); outVertices.push_back(XMVectorGetY(v3)); outVertices.push_back(XMVectorGetZ(v3));
+            outVertices.push_back(v1.getX()); outVertices.push_back(v1.getY()); outVertices.push_back(v1.getZ());
+            outVertices.push_back(v2.getX()); outVertices.push_back(v2.getY()); outVertices.push_back(v2.getZ());
+            outVertices.push_back(v3.getX()); outVertices.push_back(v3.getY()); outVertices.push_back(v3.getZ());
         }
     }
 }

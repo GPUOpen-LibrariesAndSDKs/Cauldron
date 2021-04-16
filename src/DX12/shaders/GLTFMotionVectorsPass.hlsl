@@ -40,6 +40,7 @@ cbuffer cbPerObject : register(b1)
 //--------------------------------------------------------------------------------------
 
 #include "GLTFPbrPass-IO.h"
+#include "GLTFNormals.hlsl"
 
 //--------------------------------------------------------------------------------------
 // Vertex Shader
@@ -92,7 +93,7 @@ struct Output
 
 };
 
-Output mainPS(VS_OUTPUT_SCENE Input)
+Output mainPS(VS_OUTPUT_SCENE Input, bool bIsFontFacing : SV_IsFrontFace)
 {
     Output output;
     discardPixelIfAlphaCutOff(Input);
@@ -103,7 +104,7 @@ Output mainPS(VS_OUTPUT_SCENE Input)
 #endif
 
 #ifdef HAS_NORMALS
-    output.normals = float4((getPixelNormal(Input) + 1) / 2, 0);
+    output.normals = float4(getPixelNormal(Input, bIsFontFacing) / 2 + 0.5f, 0);
 #endif
 
     return output;

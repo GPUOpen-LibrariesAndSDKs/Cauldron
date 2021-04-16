@@ -1,12 +1,12 @@
-project (DXC)
+include(common)
 
-add_library(${PROJECT_NAME} SHARED IMPORTED GLOBAL)
+add_library(DXC INTERFACE)
+target_include_directories(DXC INTERFACE BEFORE "inc/")
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY IMPORTED_IMPLIB dxcompiler.lib)
+set(DXC_BIN
+    "${CMAKE_CURRENT_SOURCE_DIR}/bin/x64/dxcompiler.dll"
+    "${CMAKE_CURRENT_SOURCE_DIR}/bin/x64/dxil.dll"
+)
 
-set( SC_DEST_DIR ${CMAKE_HOME_DIRECTORY}/bin)
-
-file(MAKE_DIRECTORY ${SC_DEST_DIR})
-
-set(DXC_dlls bin/dxil.dll bin/dxcompiler.dll)
-file(COPY ${DXC_dlls} DESTINATION ${SC_DEST_DIR})
+copyTargetCommand("${DXC_BIN}" ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} copied_dxc_bin)
+add_dependencies(DXC copied_dxc_bin)

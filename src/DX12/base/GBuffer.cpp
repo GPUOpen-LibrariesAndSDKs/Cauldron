@@ -1,3 +1,22 @@
+// AMD Cauldron code
+// 
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files(the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions :
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
 #include "GBuffer.h"
 #include "Helper.h"
 
@@ -152,7 +171,8 @@ namespace CAULDRON_DX12
         // just allocate RTVs for everything (despite that we might only just use a few)
         
         pHeaps->AllocDSVDescriptor(1, &m_DepthBufferDSV);
-
+        pHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_DepthBufferSRV);
+        
         pHeaps->AllocRTVDescriptor(1, &m_HDRRTV);
         pHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_HDRSRV);
         pHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_HDRUAV);
@@ -179,15 +199,16 @@ namespace CAULDRON_DX12
     {
         if (m_GBufferFlags & GBUFFER_DEPTH)
         {
-            m_DepthBuffer.InitDepthStencil(m_pDevice, "m_depthbuffer", &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_TYPELESS, Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL));
+            m_DepthBuffer.InitDepthStencil(m_pDevice, "m_depthbuffer", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DEPTH], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL));
             m_DepthBuffer.CreateDSV(0, &m_DepthBufferDSV);
+            m_DepthBuffer.CreateSRV(0, &m_DepthBufferSRV);
         }
 
         // Create Texture + RTV, to hold the resolved scene 
         //
         if (m_GBufferFlags & GBUFFER_FORWARD)
         {
-            m_HDR.InitRenderTarget(m_pDevice, "m_HDR", &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS), D3D12_RESOURCE_STATE_RENDER_TARGET);
+            m_HDR.InitRenderTarget(m_pDevice, "m_HDR", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_FORWARD], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS), D3D12_RESOURCE_STATE_RENDER_TARGET);
             m_HDR.CreateSRV(0, &m_HDRSRV);
             m_HDR.CreateUAV(0, &m_HDRUAV);
             m_HDR.CreateRTV(0, &m_HDRRTV);
@@ -197,7 +218,7 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_MOTION_VECTORS)
         {
-            m_MotionVectors.InitRenderTarget(m_pDevice, "m_MotionVector", &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16_FLOAT, Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+            m_MotionVectors.InitRenderTarget(m_pDevice, "m_MotionVector", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_MOTION_VECTORS], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
             m_MotionVectors.CreateRTV(0, &m_MotionVectorsRTV);
             m_MotionVectors.CreateSRV(0, &m_MotionVectorsSRV);
         }
@@ -206,7 +227,7 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_NORMAL_BUFFER)
         {
-            m_NormalBuffer.InitRenderTarget(m_pDevice, "m_NormalBuffer", &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+            m_NormalBuffer.InitRenderTarget(m_pDevice, "m_NormalBuffer", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_NORMAL_BUFFER], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
             m_NormalBuffer.CreateRTV(0, &m_NormalBufferRTV);
             m_NormalBuffer.CreateSRV(0, &m_NormalBufferSRV);
         }
@@ -215,7 +236,7 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_DIFFUSE)
         {
-            m_Diffuse.InitRenderTarget(m_pDevice, "m_Diffuse", &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+            m_Diffuse.InitRenderTarget(m_pDevice, "m_Diffuse", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DIFFUSE], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
             m_Diffuse.CreateRTV(0, &m_DiffuseRTV);
             m_Diffuse.CreateSRV(0, &m_DiffuseSRV);
         }
@@ -224,7 +245,7 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS)
         {
-            m_SpecularRoughness.InitRenderTarget(m_pDevice, "m_SpecularRoughness", &CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+            m_SpecularRoughness.InitRenderTarget(m_pDevice, "m_SpecularRoughness", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_SPECULAR_ROUGHNESS], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
             m_SpecularRoughness.CreateRTV(0, &m_SpecularRoughnessRTV);
             m_SpecularRoughness.CreateSRV(0, &m_SpecularRoughnessSRV);
         }

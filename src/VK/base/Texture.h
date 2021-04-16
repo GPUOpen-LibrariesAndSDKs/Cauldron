@@ -37,9 +37,9 @@ namespace CAULDRON_VK
         virtual void OnDestroy();
 
         // load file into heap
-        INT32 Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name = NULL);
-        INT32 InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name = NULL);
-        INT32 InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, char *name = NULL);
+        INT32 Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, const char* name = nullptr);
+        INT32 InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, const char* name = nullptr);
+        INT32 InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, const char* name = nullptr);
         bool InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *szFilename, bool useSRGB = false, VkImageUsageFlags usageFlags = 0, float cutOff = 1.0f);
         bool InitFromData(Device* pDevice, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data, const char* name = nullptr);
 
@@ -58,7 +58,7 @@ namespace CAULDRON_VK
 
     private:
         Device         *m_pDevice = NULL;
-
+        std::string     m_name = "";
 #ifdef USE_VMA
         VmaAllocation    m_ImageAlloc = VK_NULL_HANDLE;
 #else

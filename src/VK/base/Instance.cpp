@@ -25,7 +25,6 @@
 #include "ExtValidation.h"
 #include "ExtFreeSyncHDR.h"
 #include "ExtDebugUtils.h"
-#include "ExtGPUValidation.h"
 
 
 namespace CAULDRON_VK

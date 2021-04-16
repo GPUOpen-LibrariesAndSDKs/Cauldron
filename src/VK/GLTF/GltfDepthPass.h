@@ -57,12 +57,12 @@ namespace CAULDRON_VK
     public:
         struct per_frame
         {
-            XMMATRIX mViewProj;
+            math::Matrix4 mViewProj;
         };
 
         struct per_object
         {
-            XMMATRIX mWorld;
+            math::Matrix4 mWorld;
         };
 
         void OnCreate(

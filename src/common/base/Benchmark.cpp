@@ -85,7 +85,7 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
     //get filename and open it
     std::string resultsFilename = benchmark.value("resultsFilename", "res.csv");
     bm.m_saveHeaders = true;
-    if(fopen_s(&bm.f, resultsFilename.c_str(), "a") != 0)
+    if(fopen_s(&bm.f, resultsFilename.c_str(), "w") != 0)
     {
         Trace(format("The file %s cannot be opened\n", resultsFilename.c_str()));
         exit(0);
@@ -96,7 +96,7 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
 
     bm.timeStep = benchmark.value("timeStep", 1.0f);
 
-    //set default timeStart/timEnd
+    // Set default timeStart/timeEnd
     bm.timeStart = 0;
     bm.timeEnd = 0;
     if ((pGltfLoader!=NULL) && (pGltfLoader->m_animations.size() > 0))
@@ -148,53 +148,69 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
     bm.m_pGltfLoader = pGltfLoader;    
 }
 
-float BenchmarkLoop(const std::vector<TimeStamp> &timeStamps, Camera *pCam, const std::string **pScreenShotName)
+float BenchmarkLoop(const std::vector<TimeStamp> &timeStamps, Camera *pCam, std::string& outScreenShotName)
 {
-    if (bm.frame < bm.warmUpFrames) 
+    if (bm.frame < bm.warmUpFrames) // warmup
     {
-        // warming up
         bm.frame++;
         return bm.time;
     }
-    else 
+
+    if (bm.time > bm.timeEnd) // are we done yet?
     {
-        // are we done yet?
-        if (bm.time > bm.timeEnd)
-        {
-            fclose(bm.f);
+        fclose(bm.f);
 
-            if (bm.exitWhenTimeEnds)
-            {
-                PostQuitMessage(0);
-                return bm.time; 
-            }
+        if (bm.exitWhenTimeEnds)
+        {
+            PostQuitMessage(0);
+            return bm.time; 
         }
+    }
 
-        SaveTimestamps(bm.time, timeStamps);
+    SaveTimestamps(bm.time, timeStamps);
         
-        // animate camera
-        if (bm.m_animationFound && (pCam != NULL))
+    // animate camera
+    if (bm.m_animationFound && (pCam != NULL))
+    {
+        // if GLTF has camera with cameraID then use that camera and its animation
+        if (bm.cameraId >= 0)
+        {                
+            bm.m_pGltfLoader->GetCamera(bm.cameraId, pCam);
+        }
+        else
         {
-            // if GLTF has camera with cameraID then use that camera and its animation
-            if (bm.cameraId >= 0)
-            {                
-                bm.m_pGltfLoader->GetCamera(bm.cameraId, pCam);
-            }
-            else
+            // cameraID is -1, then use our sequence
+            if (bm.time >= bm.m_nextTime)
             {
-                // cameraID is -1, then use our sequence
-                if (bm.time >= bm.m_nextTime)
+                bm.m_nextTime = bm.m_sequence.GetNextKeyTime(bm.time);
+
+                const BenchmarkSequence::KeyFrame keyFrame = bm.m_sequence.GetNextKeyFrame(bm.time);
+                
+                const bool bValidKeyframe = keyFrame.m_time >= 0;
+                if (bValidKeyframe)
                 {
-                    bm.m_nextTime = bm.m_sequence.GetNextKeyTime(bm.time);                    
-                    bm.m_sequence.GetKeyFrame(bm.time, pCam, pScreenShotName);
+                    if (keyFrame.m_camera == -1)
+                    {
+                        pCam->LookAt(keyFrame.m_from, keyFrame.m_to);
+                    }
+                    else
+                    {
+                        bm.m_pGltfLoader->GetCamera(keyFrame.m_camera, pCam);
+                    }
+
+                    const bool bShouldTakeScreenshot = !keyFrame.m_screenShotName.empty();
+                    if (bShouldTakeScreenshot)
+                    {
+                        outScreenShotName = keyFrame.m_screenShotName;
+                    }
                 }
             }
         }
-
-        float time = bm.time;
-        bm.time += bm.timeStep;
-        return time;
     }
+
+    float time = bm.time;
+    bm.time += bm.timeStep;
+    return time;
 }
 
 

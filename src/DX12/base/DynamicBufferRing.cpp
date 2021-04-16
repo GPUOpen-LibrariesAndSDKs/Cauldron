@@ -80,7 +80,7 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    D3D12_GPU_VIRTUAL_ADDRESS DynamicBufferRing::AllocConstantBuffer(uint32_t size, void *pInitData)
+    D3D12_GPU_VIRTUAL_ADDRESS DynamicBufferRing::AllocConstantBuffer(uint32_t size, const void *pInitData)
     {
         void *pBuffer;
         D3D12_GPU_VIRTUAL_ADDRESS bufferViewDesc;

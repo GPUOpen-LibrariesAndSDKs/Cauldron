@@ -12,6 +12,8 @@ Cauldron is compiled as a static library. To see it in action check projects bel
 - [FidelityFX-SSSR](https://github.com/GPUOpen-Effects/FidelityFX-SSSR) Stochastic Screen Space Reflections (SSSR)
 - [FidelityFX-LPM](https://github.com/GPUOpen-Effects/FidelityFX-LPM) Luma Preserving Mapper (LPM)
 - [FidelityFX-CACAO](https://github.com/GPUOpen-Effects/FidelityFX-CACAO) Combined Adaptive Compute Ambient Occlusion (CACAO)
+- [FidelityFX-VariableShading](https://github.com/GPUOpen-Effects/FidelityFX-VariableShading) Variable Rate Shading (VRS)
+- [FidelityFX-ParallelSort](https://github.com/GPUOpen-Effects/FidelityFX-ParallelSort) GPU-based optimised sorting
 - [TressFX](https://github.com/GPUOpen-Effects/TressFX), a library that simulates and renders realistic hair and fur
 - [GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample), a simple demo app to show off Cauldron's features
   ![GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample/raw/master/screenshot.png)

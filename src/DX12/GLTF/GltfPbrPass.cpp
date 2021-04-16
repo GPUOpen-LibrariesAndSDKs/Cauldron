@@ -274,8 +274,12 @@ namespace CAULDRON_DX12
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
                 PBRPrimitives *pPrimitive = &pMesh->m_pPrimitives[p];
-                pPrimitive->m_PipelineRender->Release();
-                pPrimitive->m_RootSignature->Release();
+                if (pPrimitive->m_PipelineRender)
+                    pPrimitive->m_PipelineRender->Release();
+                if (pPrimitive->m_PipelineWireframeRender)
+                    pPrimitive->m_PipelineWireframeRender->Release();
+                if (pPrimitive->m_RootSignature)
+                    pPrimitive->m_RootSignature->Release();
             }
         }
 
@@ -312,7 +316,7 @@ namespace CAULDRON_DX12
         // shadow buffer (only if we are doing lighting, for example in the forward pass)
         if (m_doLighting)
         {
-            descRange[desccRangeCnt].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);                                       // shadow buffer
+            descRange[desccRangeCnt].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxShadowInstances, 9);                    // shadow buffer
             rootParameter[rootParamCnt].InitAsDescriptorTable(1, &descRange[desccRangeCnt], D3D12_SHADER_VISIBILITY_PIXEL);
             desccRangeCnt++;
             rootParamCnt++;
@@ -367,8 +371,8 @@ namespace CAULDRON_DX12
         // Compile and create shaders
         //
         D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
-        CompileShaderFromFile("GLTFPbrPass-VS.hlsl", &defines, "mainVS", "-T vs_6_0", &shaderVert);
-        CompileShaderFromFile("GLTFPbrPass-PS.hlsl", &defines, "mainPS", "-T ps_6_0", &shaderPixel);
+        CompileShaderFromFile("GLTFPbrPass-VS.hlsl", &defines, "mainVS", "-T vs_6_0 -Zi -Od", &shaderVert);
+        CompileShaderFromFile("GLTFPbrPass-PS.hlsl", &defines, "mainPS", "-T ps_6_0 -Zi -Od", &shaderPixel);
 
         // Set blending
         //
@@ -410,6 +414,14 @@ namespace CAULDRON_DX12
             m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_PipelineRender))
         );
         SetName(pPrimitive->m_PipelineRender, "GltfPbrPass::m_PipelineRender");
+
+        // create wireframe pipeline
+        descPso.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+        descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        ThrowIfFailed(
+            m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_PipelineWireframeRender))
+        );
+        SetName(pPrimitive->m_PipelineWireframeRender, "GltfPbrPass::m_PipelineWireframeRender");
     }
 
     //--------------------------------------------------------------------------------------
@@ -417,7 +429,7 @@ namespace CAULDRON_DX12
     // BuildLists
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent)
+    void GltfPbrPass::BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent, bool bWireframe/*=false*/)
     {
         // loop through nodes
         //
@@ -433,7 +445,7 @@ namespace CAULDRON_DX12
             // skinning matrices constant buffer
             D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton = m_pGLTFTexturesAndBuffers->GetSkinningMatricesBuffer(pNode->skinIndex);
 
-            XMMATRIX mModelViewProj = pNodesMatrices[i].GetCurrent() * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraCurrViewProj;
+            math::Matrix4 mModelViewProj = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraCurrViewProj * pNodesMatrices[i].GetCurrent();
 
             // loop through primitives
             //
@@ -442,10 +454,11 @@ namespace CAULDRON_DX12
             {
                 PBRPrimitives *pPrimitive = &pMesh->m_pPrimitives[p];
 
-                if (pPrimitive->m_PipelineRender == NULL)
+                if ((bWireframe && pPrimitive->m_PipelineWireframeRender == NULL)
+                    ||(!bWireframe && pPrimitive->m_PipelineRender == NULL))
                     continue;
 
-                // do frustrum culling
+                // do frustum culling
                 //
                 tfPrimitives boundingBox = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p];
                 if (CameraFrustumToBoxCollision(mModelViewProj, boundingBox.m_center, boundingBox.m_radius))
@@ -463,8 +476,8 @@ namespace CAULDRON_DX12
 
                 // compute depth for sorting
                 //                
-                XMVECTOR v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
-                float depth = XMVectorGetW(XMVector4Transform(v, mModelViewProj));
+                math::Vector4 v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
+                float depth = (mModelViewProj * v).getW();
 
                 BatchList t;
                 t.m_depth = depth;
@@ -487,7 +500,7 @@ namespace CAULDRON_DX12
         }
     }
 
-    void GltfPbrPass::DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList)
+    void GltfPbrPass::DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList, bool bWireframe/*=false*/)
     {
         UserMarker marker(pCommandList, "GltfPbrPass::DrawBatchList");
 
@@ -498,11 +511,11 @@ namespace CAULDRON_DX12
 
         for (auto &t : *pBatchList)
         {
-            t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
+            t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton, bWireframe);
         }
     }
 
-    void PBRPrimitives::DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perFrameDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton)
+    void PBRPrimitives::DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perFrameDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton, bool bWireframe)
     {
         // Bind indices and vertices using the right offsets into the buffer
         //
@@ -538,7 +551,10 @@ namespace CAULDRON_DX12
 
         // Bind Pipeline
         //
-        pCommandList->SetPipelineState(m_PipelineRender);
+        if (bWireframe)
+            pCommandList->SetPipelineState(m_PipelineWireframeRender);
+        else
+            pCommandList->SetPipelineState(m_PipelineRender);
 
         // Draw
         //

@@ -51,7 +51,7 @@ float ColorSpacePrimaries[4][4][2] = {
     }
 };
 
-XMMATRIX CalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag)
+math::Matrix4 CalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag)
 {
     float Xw = xw / yw;
     float Yw = 1;
@@ -69,28 +69,34 @@ XMMATRIX CalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, float x
     float Yb = 1;
     float Zb = (1 - xb - yb) / yb;
 
-    XMMATRIX XRGB = XMMatrixSet(Xr, Xg, Xb, 0, Yr, Yg, Yb, 0, Zr, Zg, Zb, 0, 0, 0, 0, 1);
-    XMMATRIX XRGBInverse = XMMatrixInverse(nullptr, XRGB);
+    math::Matrix4 XRGB = math::Matrix4(
+        math::Vector4(Xr, Xg, Xb, 0),
+        math::Vector4(Yr, Yg, Yb, 0),
+        math::Vector4(Zr, Zg, Zb, 0),
+        math::Vector4(0, 0, 0, 1));
+    math::Matrix4 XRGBInverse =  math::inverse(XRGB);
 
-    XMVECTOR referenceWhite = XMVectorSet(Xw, Yw, Zw, 0);
-    XMVECTOR SRGB = XMVector3Transform(referenceWhite, XMMatrixTranspose(XRGBInverse));
+    math::Vector4 referenceWhite = math::Vector4(Xw, Yw, Zw, 0);
+    math::Vector4 SRGB = math::transpose(XRGBInverse) * referenceWhite;
+    
+    math::Matrix4 RegularResult = math::Matrix4(
+                                        math::Vector4(SRGB.getX() * Xr, SRGB.getY() * Xg, SRGB.getZ() * Xb, 0),
+                                        math::Vector4(SRGB.getX() * Yr, SRGB.getY() * Yg, SRGB.getZ() * Yb, 0),
+                                        math::Vector4(SRGB.getX() * Zr, SRGB.getY() * Zg, SRGB.getZ() * Zb, 0),
+                                        math::Vector4(0, 0, 0, 1));
 
-    XMMATRIX RegularResult = XMMatrixSet(XMVectorGetX(SRGB) * Xr, XMVectorGetY(SRGB) * Xg, XMVectorGetZ(SRGB) * Xb, 0,
-        XMVectorGetX(SRGB) * Yr, XMVectorGetY(SRGB) * Yg, XMVectorGetZ(SRGB) * Yb, 0,
-        XMVectorGetX(SRGB) * Zr, XMVectorGetY(SRGB) * Zg, XMVectorGetZ(SRGB) * Zb, 0,
-        0, 0, 0, 1);
     if (!scaleLumaFlag)
         return RegularResult;
 
-    XMMATRIX Scale = XMMatrixScaling(100, 100, 100);
-    XMMATRIX Result = Scale * RegularResult;
+    math::Matrix4 Scale = math::Matrix4::scale(math::Vector3(100, 100, 100));
+    math::Matrix4 Result = RegularResult * Scale;
     return Result;
 }
 
-XMMATRIX CalculateXYZToRGBMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag)
+math::Matrix4 CalculateXYZToRGBMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag)
 {
     auto RGBToXYZ = CalculateRGBToXYZMatrix(xw, yw, xr, yr, xg, yg, xb, yb, scaleLumaFlag);
-    return XMMatrixInverse(nullptr, RGBToXYZ);
+    return math::inverse(RGBToXYZ);
 }
 
 void FillDisplaySpecificPrimaries(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb)
@@ -108,22 +114,22 @@ void FillDisplaySpecificPrimaries(float xw, float yw, float xr, float yr, float 
     ColorSpacePrimaries[ColorSpace_Display][ColorPrimaries_BLUE][ColorPrimariesCoordinates_Y] = yb;
 }
 
-void SetupGamutMapperMatrices(ColorSpace gamutIn, ColorSpace gamutOut, XMMATRIX* inputToOutputRecMatrix)
+void SetupGamutMapperMatrices(ColorSpace gamutIn, ColorSpace gamutOut, math::Matrix4* inputToOutputRecMatrix)
 {
-    XMMATRIX intputGamut_To_XYZ = CalculateRGBToXYZMatrix(
+    math::Matrix4 intputGamut_To_XYZ = CalculateRGBToXYZMatrix(
         ColorSpacePrimaries[gamutIn][ColorPrimaries_WHITE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_WHITE][ColorPrimariesCoordinates_Y],
         ColorSpacePrimaries[gamutIn][ColorPrimaries_RED][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_RED][ColorPrimariesCoordinates_Y],
         ColorSpacePrimaries[gamutIn][ColorPrimaries_GREEN][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_GREEN][ColorPrimariesCoordinates_Y],
         ColorSpacePrimaries[gamutIn][ColorPrimaries_BLUE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutIn][ColorPrimaries_BLUE][ColorPrimariesCoordinates_Y],
         false);
 
-    XMMATRIX XYZ_To_OutputGamut = CalculateXYZToRGBMatrix(
+    math::Matrix4 XYZ_To_OutputGamut = CalculateXYZToRGBMatrix(
         ColorSpacePrimaries[gamutOut][ColorPrimaries_WHITE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_WHITE][ColorPrimariesCoordinates_Y],
         ColorSpacePrimaries[gamutOut][ColorPrimaries_RED][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_RED][ColorPrimariesCoordinates_Y],
         ColorSpacePrimaries[gamutOut][ColorPrimaries_GREEN][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_GREEN][ColorPrimariesCoordinates_Y],
         ColorSpacePrimaries[gamutOut][ColorPrimaries_BLUE][ColorPrimariesCoordinates_X], ColorSpacePrimaries[gamutOut][ColorPrimaries_BLUE][ColorPrimariesCoordinates_Y],
         false);
 
-    XMMATRIX intputGamut_To_OutputGamut = XYZ_To_OutputGamut * intputGamut_To_XYZ;
-    *inputToOutputRecMatrix = XMMatrixTranspose(intputGamut_To_OutputGamut);
+    math::Matrix4 intputGamut_To_OutputGamut = intputGamut_To_XYZ * XYZ_To_OutputGamut;
+    *inputToOutputRecMatrix = math::transpose(intputGamut_To_OutputGamut);
 }

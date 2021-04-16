@@ -24,6 +24,8 @@
 #include "Misc/Error.h"
 #include <vulkan/vulkan.h>
 
+#include <unordered_map>
+
 namespace CAULDRON_VK
 {
     static VkSurfaceFullScreenExclusiveWin32InfoEXT s_SurfaceFullScreenExclusiveWin32InfoEXT;
@@ -38,52 +40,93 @@ namespace CAULDRON_VK
     static VkDevice s_device;
     static VkSurfaceKHR s_surface;
     static VkPhysicalDevice s_physicalDevice;
-    static bool s_isfullScreen;
     static HWND s_hWnd = NULL;
 
-    void SetFreesync2Structures(HWND hWnd, VkSurfaceKHR surface)
+    static std::unordered_map<DisplayMode, VkSurfaceFormatKHR> availableDisplayModeSurfaceformats;
+
+    bool s_windowsHdrtoggle = false;
+
+    void SetHDRStructs(VkSurfaceKHR surface)
     {
-        s_SurfaceFullScreenExclusiveWin32InfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
-        s_SurfaceFullScreenExclusiveWin32InfoEXT.pNext = nullptr;
-        s_SurfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTOPRIMARY);
-
-        s_SurfaceFullScreenExclusiveInfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
-        s_SurfaceFullScreenExclusiveInfoEXT.pNext = &s_SurfaceFullScreenExclusiveWin32InfoEXT;
-        s_SurfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT;
-
         s_PhysicalDeviceSurfaceInfo2KHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
-        s_PhysicalDeviceSurfaceInfo2KHR.pNext = &s_SurfaceFullScreenExclusiveInfoEXT;
+        s_PhysicalDeviceSurfaceInfo2KHR.pNext = nullptr;
         s_PhysicalDeviceSurfaceInfo2KHR.surface = surface;
-    }
 
-    void SetCapabilitiesStructs()
-    {
         s_HdrMetadataEXT.sType = VK_STRUCTURE_TYPE_HDR_METADATA_EXT;
         s_HdrMetadataEXT.pNext = nullptr;
+    }
 
-        s_DisplayNativeHdrSurfaceCapabilitiesAMD.sType = VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD;
-        s_DisplayNativeHdrSurfaceCapabilitiesAMD.pNext = &s_HdrMetadataEXT;
+    void SetFSEStructures(HWND hWnd, PresentationMode fullscreenMode)
+    {
+        // Required final chaining order
+        // VkPhysicalDeviceSurfaceInfo2KHR -> VkSurfaceFullScreenExclusiveInfoEXT -> VkSurfaceFullScreenExclusiveWin32InfoEXT
+
+        s_PhysicalDeviceSurfaceInfo2KHR.pNext = &s_SurfaceFullScreenExclusiveInfoEXT;
+        s_SurfaceFullScreenExclusiveInfoEXT.pNext = &s_SurfaceFullScreenExclusiveWin32InfoEXT;
+
+        s_SurfaceFullScreenExclusiveInfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_INFO_EXT;
+        if (fullscreenMode == PRESENTATIONMODE_WINDOWED)
+            s_SurfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_DISALLOWED_EXT;
+        else if (fullscreenMode == PRESENTATIONMODE_BORDERLESS_FULLSCREEN)
+            s_SurfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_ALLOWED_EXT;
+        else if (fullscreenMode == PRESENTATIONMODE_EXCLUSIVE_FULLSCREEN)
+            s_SurfaceFullScreenExclusiveInfoEXT.fullScreenExclusive = VK_FULL_SCREEN_EXCLUSIVE_APPLICATION_CONTROLLED_EXT;
+
+        s_SurfaceFullScreenExclusiveWin32InfoEXT.sType = VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT;
+        s_SurfaceFullScreenExclusiveWin32InfoEXT.pNext = nullptr;
+        s_SurfaceFullScreenExclusiveWin32InfoEXT.hmonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+    }
+
+    void SetFreesyncHDRStructures()
+    {
+        // Required final chaning order
+        // VkSurfaceCapabilities2KHR -> VkDisplayNativeHdrSurfaceCapabilitiesAMD -> VkHdrMetadataEXT
 
         s_SurfaceCapabilities2KHR.sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR;
         s_SurfaceCapabilities2KHR.pNext = &s_DisplayNativeHdrSurfaceCapabilitiesAMD;
+
+        // This will cause validation error and complain as invalid structure attached.
+        // But we are hijacking hdr metadata struct and attaching it here to fill it with monitor primaries
+        // When getting surface capabilities
+        s_DisplayNativeHdrSurfaceCapabilitiesAMD.sType = VK_STRUCTURE_TYPE_DISPLAY_NATIVE_HDR_SURFACE_CAPABILITIES_AMD;
+        s_DisplayNativeHdrSurfaceCapabilitiesAMD.pNext = &s_HdrMetadataEXT;
     }
 
-    void SetFreesync2SwapchainStructure()
+    void SetSwapchainFreesyncHDRStructures(bool enableLocalDimming)
     {
+        // Required final chaning order
+        // VkSurfaceFullScreenExclusiveInfoEXT -> VkSurfaceFullScreenExclusiveWin32InfoEXT -> VkSwapchainDisplayNativeHdrCreateInfoAMD
+        s_SurfaceFullScreenExclusiveWin32InfoEXT.pNext = &s_SwapchainDisplayNativeHdrCreateInfoAMD;
+
         s_SwapchainDisplayNativeHdrCreateInfoAMD.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_DISPLAY_NATIVE_HDR_CREATE_INFO_AMD;
         s_SwapchainDisplayNativeHdrCreateInfoAMD.pNext = nullptr;
-        s_SwapchainDisplayNativeHdrCreateInfoAMD.localDimmingEnable = s_DisplayNativeHdrSurfaceCapabilitiesAMD.localDimmingSupport;
-
-        // Final order of chained structs is as follows:
-        // VkPhysicalDeviceSurfaceInfo2KHR -> VkSurfaceFullScreenExclusiveInfoEXT -> VkSurfaceFullScreenExclusiveWin32InfoEXT -> VkSwapchainDisplayNativeHdrCreateInfoAMD
-        // For now, this chaining order is important for this feature to work
-        // It makes sure all the required fullscreen surface info and monitor info is known to the driver for HDR and local dimming support.
-        s_SurfaceFullScreenExclusiveWin32InfoEXT.pNext = &s_SwapchainDisplayNativeHdrCreateInfoAMD;
+        // Enable local dimming if supported
+        // Must requry FS HDR display capabilities
+        // After value is set through swapchain creation when attached to swapchain pnext.
+        s_SwapchainDisplayNativeHdrCreateInfoAMD.localDimmingEnable = s_DisplayNativeHdrSurfaceCapabilitiesAMD.localDimmingSupport && enableLocalDimming;
     }
 
     VkSurfaceFullScreenExclusiveInfoEXT* GetVkSurfaceFullScreenExclusiveInfoEXT()
     {
         return &s_SurfaceFullScreenExclusiveInfoEXT;
+    }
+
+    void GetSurfaceFormats(uint32_t *pFormatCount, std::vector<VkSurfaceFormat2KHR> *surfFormats)
+    {
+        // Get the list of formats
+        //
+        VkResult res = g_vkGetPhysicalDeviceSurfaceFormats2KHR(s_physicalDevice, &s_PhysicalDeviceSurfaceInfo2KHR, pFormatCount, NULL);
+        assert(res == VK_SUCCESS);
+
+        uint32_t formatCount = *pFormatCount;
+        surfFormats->resize(formatCount);
+        for (UINT i = 0; i < formatCount; ++i)
+        {
+            (*surfFormats)[i].sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR;
+        }
+
+        res = g_vkGetPhysicalDeviceSurfaceFormats2KHR(s_physicalDevice, &s_PhysicalDeviceSurfaceInfo2KHR, &formatCount, (*surfFormats).data());
+        assert(res == VK_SUCCESS);
     }
 
     //--------------------------------------------------------------------------------------
@@ -97,9 +140,8 @@ namespace CAULDRON_VK
         s_device = device;
         s_surface = surface;
         s_physicalDevice = physicalDevice;
-        s_isfullScreen = false;
 
-        return ExtFreeSyncHdrAreAllExtensionsPresent();
+        return ExtAreFreeSyncHDRExtensionsPresent();
     }
 
     //--------------------------------------------------------------------------------------
@@ -107,37 +149,59 @@ namespace CAULDRON_VK
     // fsHdrEnumerateDisplayModes, enumerates availabe modes
     //
     //--------------------------------------------------------------------------------------
-    bool fsHdrEnumerateDisplayModes(std::vector<DisplayModes> *pModes)
+    bool fsHdrEnumerateDisplayModes(std::vector<DisplayMode>* pModes, bool includeFreesyncHDR, PresentationMode fullscreenMode, bool enableLocalDimming)
     {
         pModes->clear();
+        availableDisplayModeSurfaceformats.clear();
+
+        VkSurfaceFormatKHR surfaceFormat;
+        surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+        surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+
         pModes->push_back(DISPLAYMODE_SDR);
+        availableDisplayModeSurfaceformats[DISPLAYMODE_SDR] = surfaceFormat;
 
-        if (ExtFreeSyncHdrAreAllExtensionsPresent() == false)
-            return true;
-
-        // Note we are getting the caps of the fullscreen modes, that is where fsHdr really works.
-        SetFreesync2Structures(s_hWnd, s_surface);
-        SetCapabilitiesStructs();
-        fsHdrGetPhysicalDeviceSurfaceCapabilities2KHR(s_physicalDevice, s_surface, NULL);
-        SetFreesync2SwapchainStructure();
-
-        // Get the list of formats
-        //
-        uint32_t formatCount;
-        VkResult res = g_vkGetPhysicalDeviceSurfaceFormats2KHR(s_physicalDevice, &s_PhysicalDeviceSurfaceInfo2KHR, &formatCount, NULL);
-        assert(res == VK_SUCCESS);
-        if (res != VK_SUCCESS)
-            return false;
-
-        std::vector<VkSurfaceFormat2KHR> surfFormats(formatCount);
-        for (UINT i = 0; i < formatCount; ++i)
+        if (ExtAreHDRExtensionsPresent())
         {
-            surfFormats[i].sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR;
+            SetHDRStructs(s_surface);
+
+            uint32_t formatCount;
+            std::vector<VkSurfaceFormat2KHR> surfFormats;
+            GetSurfaceFormats(&formatCount, &surfFormats);
+
+            for (uint32_t i = 0; i < formatCount; i++)
+            {
+                if ((surfFormats[i].surfaceFormat.format == VK_FORMAT_A2R10G10B10_UNORM_PACK32 &&
+                    surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT)
+                    ||
+                    (surfFormats[i].surfaceFormat.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 &&
+                    surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT))
+                {
+                    // If surface formats have HDR10 format even before fullscreen surface is attached, it can only mean windows hdr toggle is on
+                    s_windowsHdrtoggle = true;
+                    break;
+                }
+            }
         }
-        res = g_vkGetPhysicalDeviceSurfaceFormats2KHR(s_physicalDevice, &s_PhysicalDeviceSurfaceInfo2KHR, &formatCount, surfFormats.data());
-        assert(res == VK_SUCCESS);
-        if (res != VK_SUCCESS)
-            return false;
+
+        if (ExtAreFSEExtensionsPresent())
+        {
+            SetFSEStructures(s_hWnd, fullscreenMode);
+        }
+
+        if (includeFreesyncHDR && ExtAreFreeSyncHDRExtensionsPresent())
+        {
+            SetFreesyncHDRStructures();
+
+            // Calling get capabilities here to query for local dimming support
+            fsHdrGetPhysicalDeviceSurfaceCapabilities2KHR(s_physicalDevice, s_surface, NULL);
+
+            SetSwapchainFreesyncHDRStructures(enableLocalDimming);
+        }
+
+        uint32_t formatCount;
+        std::vector<VkSurfaceFormat2KHR> surfFormats;
+        GetSurfaceFormats(&formatCount, &surfFormats);
 
         for (uint32_t i = 0; i < formatCount; i++)
         {
@@ -145,19 +209,35 @@ namespace CAULDRON_VK
                 surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_DISPLAY_NATIVE_AMD)
             {
                 pModes->push_back(DISPLAYMODE_FSHDR_Gamma22);
+                availableDisplayModeSurfaceformats[DISPLAYMODE_FSHDR_Gamma22] = surfFormats[i].surfaceFormat;
+            }
+            else if (surfFormats[i].surfaceFormat.format == VK_FORMAT_R16G16B16A16_SFLOAT &&
+                     surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_DISPLAY_NATIVE_AMD)
+            {
                 pModes->push_back(DISPLAYMODE_FSHDR_SCRGB);
-                break;
+                availableDisplayModeSurfaceformats[DISPLAYMODE_FSHDR_SCRGB] = surfFormats[i].surfaceFormat;
             }
         }
 
         for (uint32_t i = 0; i < formatCount; i++)
         {
-            if (surfFormats[i].surfaceFormat.format == VK_FORMAT_A2R10G10B10_UNORM_PACK32 &&
-                surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT)
+            if ((surfFormats[i].surfaceFormat.format == VK_FORMAT_A2R10G10B10_UNORM_PACK32 &&
+                 surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT)
+                 ||
+                (surfFormats[i].surfaceFormat.format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 &&
+                 surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_HDR10_ST2084_EXT))
             {
-                pModes->push_back(DISPLAYMODE_HDR10_2084);
+                if (availableDisplayModeSurfaceformats.find(DISPLAYMODE_HDR10_2084) == availableDisplayModeSurfaceformats.end())
+                {
+                    pModes->push_back(DISPLAYMODE_HDR10_2084);
+                    availableDisplayModeSurfaceformats[DISPLAYMODE_HDR10_2084] = surfFormats[i].surfaceFormat;
+                }
+            }
+            else if (surfFormats[i].surfaceFormat.format == VK_FORMAT_R16G16B16A16_SFLOAT &&
+                     surfFormats[i].surfaceFormat.colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT)
+            {
                 pModes->push_back(DISPLAYMODE_HDR10_SCRGB);
-                break;
+                availableDisplayModeSurfaceformats[DISPLAYMODE_HDR10_SCRGB] = surfFormats[i].surfaceFormat;
             }
         }
 
@@ -169,7 +249,7 @@ namespace CAULDRON_VK
     // fsHdrGetDisplayModeString
     //
     //--------------------------------------------------------------------------------------
-    const char *fsHdrGetDisplayModeString(DisplayModes displayMode)
+    const char *fsHdrGetDisplayModeString(DisplayMode displayMode)
     {
         // note that these string must match the order of the DisplayModes enum
         const char *DisplayModesStrings[]
@@ -189,37 +269,11 @@ namespace CAULDRON_VK
     // fsHdrGetFormat
     //
     //--------------------------------------------------------------------------------------
-    VkSurfaceFormatKHR fsHdrGetFormat(DisplayModes displayMode)
+    VkSurfaceFormatKHR fsHdrGetFormat(DisplayMode displayMode)
     {
         VkSurfaceFormatKHR surfaceFormat;
 
-        switch (displayMode)
-        {
-        case DISPLAYMODE_SDR:
-            surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
-            surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-            break;
-
-        case DISPLAYMODE_FSHDR_Gamma22:
-            surfaceFormat.format = VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-            surfaceFormat.colorSpace = VK_COLOR_SPACE_DISPLAY_NATIVE_AMD;
-            break;
-
-        case DISPLAYMODE_FSHDR_SCRGB:
-            surfaceFormat.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-            surfaceFormat.colorSpace = VK_COLOR_SPACE_DISPLAY_NATIVE_AMD;
-            break;
-
-        case DISPLAYMODE_HDR10_2084:
-            surfaceFormat.format = VK_FORMAT_A2R10G10B10_UNORM_PACK32;
-            surfaceFormat.colorSpace = VK_COLOR_SPACE_HDR10_ST2084_EXT;
-            break;
-
-        case DISPLAYMODE_HDR10_SCRGB:
-            surfaceFormat.format = VK_FORMAT_R16G16B16A16_SFLOAT;
-            surfaceFormat.colorSpace = VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT;
-            break;
-        }
+        surfaceFormat = availableDisplayModeSurfaceformats[displayMode];
 
         return surfaceFormat;
     }
@@ -229,20 +283,23 @@ namespace CAULDRON_VK
     // fsHdrSetDisplayMode
     //
     //--------------------------------------------------------------------------------------
-    bool fsHdrSetDisplayMode(DisplayModes displayMode, VkSwapchainKHR swapChain)
+    bool fsHdrSetDisplayMode(DisplayMode displayMode, VkSwapchainKHR swapChain)
     {
-        if (ExtFreeSyncHdrAreAllExtensionsPresent() == false)
+        if (!ExtAreHDRExtensionsPresent())
             return false;
 
         switch (displayMode)
         {
         case DISPLAYMODE_SDR:
+            // rec 709 primaries
             s_HdrMetadataEXT.displayPrimaryRed.x = 0.64f;
             s_HdrMetadataEXT.displayPrimaryRed.y = 0.33f;
             s_HdrMetadataEXT.displayPrimaryGreen.x = 0.30f;
             s_HdrMetadataEXT.displayPrimaryGreen.y = 0.60f;
             s_HdrMetadataEXT.displayPrimaryBlue.x = 0.15f;
             s_HdrMetadataEXT.displayPrimaryBlue.y = 0.06f;
+            s_HdrMetadataEXT.whitePoint.x = 0.3127f;
+            s_HdrMetadataEXT.whitePoint.y = 0.3290f;
             s_HdrMetadataEXT.minLuminance = 0.0f;
             s_HdrMetadataEXT.maxLuminance = 300.0f;
             break;
@@ -253,24 +310,30 @@ namespace CAULDRON_VK
             // use the values that we queried using VkGetPhysicalDeviceSurfaceCapabilities2KHR
             break;
         case DISPLAYMODE_HDR10_2084:
+            // rec 2020 primaries
             s_HdrMetadataEXT.displayPrimaryRed.x = 0.708f;
             s_HdrMetadataEXT.displayPrimaryRed.y = 0.292f;
             s_HdrMetadataEXT.displayPrimaryGreen.x = 0.170f;
             s_HdrMetadataEXT.displayPrimaryGreen.y = 0.797f;
             s_HdrMetadataEXT.displayPrimaryBlue.x = 0.131f;
             s_HdrMetadataEXT.displayPrimaryBlue.y = 0.046f;
+            s_HdrMetadataEXT.whitePoint.x = 0.3127f;
+            s_HdrMetadataEXT.whitePoint.y = 0.3290f;
             s_HdrMetadataEXT.minLuminance = 0.0f;
             s_HdrMetadataEXT.maxLuminance = 1000.0f; // This will cause tonemapping to happen on display end as long as it's greater than display's actual queried max luminance. The look will change and it will be display dependent!
             s_HdrMetadataEXT.maxContentLightLevel = 1000.0f;
             s_HdrMetadataEXT.maxFrameAverageLightLevel = 400.0f; // max and average content light level data will be used to do tonemapping on display
             break;
         case DISPLAYMODE_HDR10_SCRGB:
-            s_HdrMetadataEXT.displayPrimaryRed.x = 0.708f;
-            s_HdrMetadataEXT.displayPrimaryRed.y = 0.292f;
-            s_HdrMetadataEXT.displayPrimaryGreen.x = 0.170f;
-            s_HdrMetadataEXT.displayPrimaryGreen.y = 0.797f;
-            s_HdrMetadataEXT.displayPrimaryBlue.x = 0.131f;
-            s_HdrMetadataEXT.displayPrimaryBlue.y = 0.046f;
+            // rec 709 primaries
+            s_HdrMetadataEXT.displayPrimaryRed.x = 0.64f;
+            s_HdrMetadataEXT.displayPrimaryRed.y = 0.33f;
+            s_HdrMetadataEXT.displayPrimaryGreen.x = 0.30f;
+            s_HdrMetadataEXT.displayPrimaryGreen.y = 0.60f;
+            s_HdrMetadataEXT.displayPrimaryBlue.x = 0.15f;
+            s_HdrMetadataEXT.displayPrimaryBlue.y = 0.06f;
+            s_HdrMetadataEXT.whitePoint.x = 0.3127f;
+            s_HdrMetadataEXT.whitePoint.y = 0.3290f;
             s_HdrMetadataEXT.minLuminance = 0.0f;
             s_HdrMetadataEXT.maxLuminance = 1000.0f; // This will cause tonemapping to happen on display end as long as it's greater than display's actual queried max luminance. The look will change and it will be display dependent!
             s_HdrMetadataEXT.maxContentLightLevel = 1000.0f;
@@ -313,7 +376,6 @@ namespace CAULDRON_VK
             VkResult res = g_vkReleaseFullScreenExclusiveModeEXT(s_device, swapchain);
             assert(res == VK_SUCCESS);
         }
-        s_isfullScreen = fullscreen;
     }
 
     //--------------------------------------------------------------------------------------
@@ -336,5 +398,17 @@ namespace CAULDRON_VK
 
         if (pSurfCapabilities)
             *pSurfCapabilities = s_SurfaceCapabilities2KHR.surfaceCapabilities;
+    }
+
+    // We are turning off this HDR path for now
+    // Driver update to get this path working is coming soon.
+    #define WINDOW_HDR_PATH 0
+    const bool CheckIfWindowModeHdrOn()
+    {
+        #if WINDOW_HDR_PATH
+            return s_windowsHdrtoggle;
+        #else
+            return false;
+        #endif
     }
 }

@@ -23,15 +23,15 @@
 
 struct PBRMaterialParametersConstantBuffer
 {
-    XMVECTOR m_emissiveFactor;
+    math::Vector4 m_emissiveFactor;
 
     // pbrMetallicRoughness
-    XMVECTOR m_baseColorFactor;
-    XMVECTOR m_metallicRoughnessValues;
+    math::Vector4 m_baseColorFactor;
+    math::Vector4 m_metallicRoughnessValues;
 
     // KHR_materials_pbrSpecularGlossiness
-    XMVECTOR m_DiffuseFactor;
-    XMVECTOR m_specularGlossinessFactor;
+    math::Vector4 m_DiffuseFactor;
+    math::Vector4 m_specularGlossinessFactor;
 };
 
 

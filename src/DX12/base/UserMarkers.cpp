@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "UserMarkers.h"
 #include "../../libs/AGS/amd_ags.h"
-#include "pix.h"
+#include "../../libs/WinPixEventRuntime/pix3.h"
 
 namespace CAULDRON_DX12
 {

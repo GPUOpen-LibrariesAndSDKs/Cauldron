@@ -36,7 +36,7 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, int numIndices, VkDescriptorBufferInfo IBV, VkDescriptorBufferInfo VBV, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor);
+        void Draw(VkCommandBuffer cmd_buf, int numIndices, VkDescriptorBufferInfo IBV, VkDescriptorBufferInfo VBV, const math::Matrix4& worldMatrix, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor);
 
     private:
         Device* m_pDevice;
@@ -52,10 +52,10 @@ namespace CAULDRON_VK
 
         struct per_object
         {
-            XMMATRIX m_mWorldViewProj;
-            XMVECTOR m_vCenter;
-            XMVECTOR m_vRadius;
-            XMVECTOR m_vColor;
+            math::Matrix4 m_mWorldViewProj;
+            math::Vector4 m_vCenter;
+            math::Vector4 m_vRadius;
+            math::Vector4 m_vColor;
         };
     };
 }

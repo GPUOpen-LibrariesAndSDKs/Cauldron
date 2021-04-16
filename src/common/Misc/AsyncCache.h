@@ -80,7 +80,7 @@ public:
             }
         }
 
-        // If we have seen these shade before then:
+        // If we have seen these shaders before then:
         {
             // If there is a thread already trying to compile this shader then wait for that thread to finish
             if (it->second.m_Sync.Get() == 1)

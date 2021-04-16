@@ -22,8 +22,8 @@
 
 Camera::Camera()
 {
-    m_View = XMMatrixIdentity();
-    m_eyePos = XMVectorSet(0, 0, 0, 0);
+    m_View = math::Matrix4::identity();
+    m_eyePos = math::Vector4(0, 0, 0, 0);
     m_distance = -1;
 }
 
@@ -45,29 +45,27 @@ void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane
 
     float halfWidth = (float)width / 2.0f;
     float halfHeight = (float)height / 2.0f;
-    m_Viewport = XMMATRIX(
-        halfWidth, 0.0f, 0.0f, 0.0f,
-        0.0f, -halfHeight, 0.0f, 0.0f,
-        0.0f, 0.0f, 1.0f, 0.0f,
-        halfWidth, halfHeight, 0.0f, 1.0f);
+    m_Viewport = math::Matrix4(
+        math::Vector4(halfWidth, 0.0f, 0.0f, 0.0f),
+        math::Vector4(0.0f, -halfHeight, 0.0f, 0.0f),
+        math::Vector4(0.0f, 0.0f, 1.0f, 0.0f),
+        math::Vector4(halfWidth, halfHeight, 0.0f, 1.0f));
     
-    if (fovV==0)
-        m_Proj = XMMatrixOrthographicRH(height/40.0f, height/40.0f, nearPlane, farPlane);
+    if (fovV == 0)
+    {
+        float OrthoWidth = height / 40.f;
+        m_Proj = math::Matrix4::orthographic(-OrthoWidth/2.f, OrthoWidth/2.f, -OrthoWidth / 2.f, OrthoWidth / 2.f, nearPlane, farPlane);
+    }
     else
-        m_Proj = XMMatrixPerspectiveFovRH(fovV, m_aspectRatio, nearPlane, farPlane);
+        m_Proj = math::Matrix4::perspective(fovV, m_aspectRatio, nearPlane, farPlane);
 }
 
-void Camera::SetMatrix(const XMMATRIX cameraMatrix)
+void Camera::SetMatrix(const math::Matrix4& cameraMatrix)
 {
-    m_eyePos = cameraMatrix.r[3];
-    m_View = XMMatrixInverse(nullptr, cameraMatrix);
+    m_eyePos = cameraMatrix.getCol3();
+    LookAt(m_eyePos, m_eyePos + cameraMatrix * math::Vector4(0, 0, 1, 0));
 
-    XMFLOAT3 zBasis;
-    XMStoreFloat3(&zBasis, cameraMatrix.r[2]);
 
-    m_yaw = atan2f(zBasis.x, zBasis.z);
-    float fLen = sqrtf(zBasis.z * zBasis.z + zBasis.x * zBasis.x);
-    m_pitch = atan2f(zBasis.y, fLen);
 }
 
 //--------------------------------------------------------------------------------------
@@ -75,23 +73,19 @@ void Camera::SetMatrix(const XMMATRIX cameraMatrix)
 // LookAt, use this functions before calling update functions
 //
 //--------------------------------------------------------------------------------------
-void Camera::LookAt(XMVECTOR eyePos, XMVECTOR lookAt)
+void Camera::LookAt(const math::Vector4& eyePos, const math::Vector4& lookAt)
 {
     m_eyePos = eyePos;
     m_View = LookAtRH(eyePos, lookAt);
-    m_distance = XMVectorGetX(XMVector3Length(lookAt - eyePos));
+    m_distance = math::SSE::length(lookAt - eyePos);
 
-    XMMATRIX mInvView = XMMatrixInverse( nullptr, m_View );
-
-    XMFLOAT3 zBasis;
-    XMStoreFloat3( &zBasis, mInvView.r[2] );
-
-    m_yaw = atan2f( zBasis.x, zBasis.z );
-    float fLen = sqrtf( zBasis.z * zBasis.z + zBasis.x * zBasis.x );
-    m_pitch = atan2f( zBasis.y, fLen );
+	math::Vector4 zBasis = m_View.getRow(2);
+	m_yaw = atan2f(zBasis.getX(), zBasis.getZ());
+	float fLen = sqrtf(zBasis.getZ() * zBasis.getZ() + zBasis.getX() * zBasis.getX());
+	m_pitch = atan2f(zBasis.getY(), fLen);
 }
 
-void Camera::LookAt(float yaw, float pitch, float distance, XMVECTOR at )
+void Camera::LookAt(float yaw, float pitch, float distance, const math::Vector4& at )
 {   
     LookAt(at + PolarToVector(yaw, pitch)*distance, at);
 }
@@ -103,26 +97,26 @@ void Camera::LookAt(float yaw, float pitch, float distance, XMVECTOR at )
 //--------------------------------------------------------------------------------------
 void Camera::UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], double deltaTime)
 {   
-    m_eyePos += XMVector4Transform(MoveWASD(keyDown) * m_speed * (float)deltaTime, XMMatrixTranspose(m_View));
-    XMVECTOR dir = PolarToVector(yaw, pitch) * m_distance;   
+    m_eyePos += math::transpose(m_View) * (MoveWASD(keyDown) * m_speed * (float)deltaTime);
+    math::Vector4 dir = PolarToVector(yaw, pitch) * m_distance;
     LookAt(GetPosition(), GetPosition() - dir);
 }
 
 void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance)
 {
-    pitch = std::max(-XM_PIDIV2 + 1e-6f, std::min(pitch, XM_PIDIV2 - 1e-6f));
+    pitch = std::max(-XM_PIDIV2 + 1e-3f, std::min(pitch, XM_PIDIV2 - 1e-3f));
 
     // Trucks camera, moves the camera parallel to the view plane.
     m_eyePos += GetSide() * x * distance / 10.0f;
     m_eyePos += GetUp() * y * distance / 10.0f;
 
     // Orbits camera, rotates a camera about the target
-    XMVECTOR dir = GetDirection();
-    XMVECTOR pol = PolarToVector(yaw, pitch);
+    math::Vector4 dir = GetDirection();
+    math::Vector4 pol = PolarToVector(yaw, pitch);
 
-    XMVECTOR at = m_eyePos - dir * m_distance;   
+    math::Vector4 at = m_eyePos - (dir * m_distance);
 
-    LookAt(at + pol * distance, at);
+    LookAt(at + (pol * distance), at);
 }
 
 //--------------------------------------------------------------------------------------
@@ -132,11 +126,10 @@ void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float d
 //--------------------------------------------------------------------------------------
 void Camera::SetProjectionJitter(float jitterX, float jitterY)
 {
-    XMFLOAT4X4 Proj;
-    XMStoreFloat4x4(&Proj, m_Proj);
-    Proj.m[2][0] = jitterX;
-    Proj.m[2][1] = jitterY;
-    m_Proj = XMLoadFloat4x4(&Proj);
+	math::Vector4 proj = m_Proj.getCol2();
+	proj.setX(jitterX);
+	proj.setY(jitterY);
+	m_Proj.setCol2(proj);
 }
 
 void Camera::SetProjectionJitter(uint32_t width, uint32_t height, uint32_t &sampleIndex)
@@ -171,17 +164,17 @@ void Camera::SetProjectionJitter(uint32_t width, uint32_t height, uint32_t &samp
 // Get a vector pointing in the direction of yaw and pitch
 //
 //--------------------------------------------------------------------------------------
-XMVECTOR PolarToVector(float yaw, float pitch)
+math::Vector4 PolarToVector(float yaw, float pitch)
 {
-    return XMVectorSet(sinf(yaw) * cosf(pitch), sinf(pitch), cosf(yaw) * cosf(pitch), 0);    
+    return math::Vector4(sinf(yaw) * cosf(pitch), sinf(pitch), cosf(yaw) * cosf(pitch), 0);
 }
 
-XMMATRIX LookAtRH(XMVECTOR eyePos, XMVECTOR lookAt)
+math::Matrix4 LookAtRH(const math::Vector4& eyePos, const math::Vector4& lookAt)
 {
-    return XMMatrixLookAtRH(eyePos, lookAt, XMVectorSet(0, 1, 0, 0));
+    return math::Matrix4::lookAt(math::toPoint3(eyePos), math::toPoint3(lookAt), math::Vector3(0, 1, 0));
 }
 
-XMVECTOR MoveWASD(const bool keyDown[256])
+math::Vector4 MoveWASD(const bool keyDown[256])
 { 
     float scale = keyDown[VK_SHIFT] ? 5.0f : 1.0f;
     float x = 0, y = 0, z = 0;
@@ -211,5 +204,5 @@ XMVECTOR MoveWASD(const bool keyDown[256])
         y = -scale;
     }
 
-    return XMVectorSet(x, y, z, 0.0f);
+    return math::Vector4(x, y, z, 0.0f);
 }

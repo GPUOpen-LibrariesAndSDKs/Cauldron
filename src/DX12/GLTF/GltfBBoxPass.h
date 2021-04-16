@@ -39,7 +39,7 @@ namespace CAULDRON_DX12
             Wireframe *pWireframe);
 
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX cameraViewProjMatrix);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, math::Matrix4 cameraViewProjMatrix);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
         

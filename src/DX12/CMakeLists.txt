@@ -1,7 +1,3 @@
-project (Cauldron_DX12)
-
-add_compile_options(/MP)
-
 include(common)
 
 set(GLTF_src
@@ -48,6 +44,8 @@ set(PostProc_src
     PostProc/TonemappingCS.h
     PostProc/ShadowResolvePass.cpp
     PostProc/ShadowResolvePass.h
+    PostProc/MagnifierPS.h
+    PostProc/MagnifierPS.cpp
 )
 
 set(Base_src
@@ -61,6 +59,8 @@ set(Base_src
     base/DynamicBufferRing.h
     base/Fence.cpp
     base/Fence.h
+	base/FrameworkWindows.cpp
+	base/FrameworkWindows.h
     base/FreeSyncHDR.cpp
     base/FreeSyncHDR.h
     base/GBuffer.cpp
@@ -112,6 +112,7 @@ set(Shaders_PostProc_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAA.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAASharpenerCS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/motionBlur.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/MagnifierPS.hlsl
 )
 
 set(Shaders_GLTF_src
@@ -136,29 +137,20 @@ set(Shaders_GLTF_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
 )
 
-set(media_src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
-)
+add_library (Cauldron_DX12 STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} )
 
-copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
-copyCommand("${Shaders_GLTF_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX)
-copyCommand("${Shaders_PostProc_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX)
+target_link_libraries (Cauldron_DX12 Cauldron_Common D3D12X winpixeventruntimelib)
+target_include_directories (Cauldron_DX12 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_GLTF_src} ${Shaders_PostProc_src} ${media_src})
+copyTargetCommand("${Shaders_GLTF_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX copied_dx12_shaders_gltf_src)
+copyTargetCommand("${Shaders_PostProc_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX copied_dx12_shaders_postproc_src)
+add_dependencies(Cauldron_DX12 copied_dx12_shaders_gltf_src copied_dx12_shaders_postproc_src)
 
-target_link_libraries (${PROJECT_NAME} Cauldron_Common NJSON D3D12X)
-target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("GLTF"             FILES ${GLTF_src})
-source_group("PostProc"         FILES ${PostProc_src})
-source_group("PostProc Shaders" FILES ${Shaders_PostProc_src})
+source_group("PostProcess"      FILES ${PostProc_src})
 source_group("Base"             FILES ${Base_src})
 source_group("Widgets"          FILES ${Widgets_src})
-source_group("GLTF Shaders"     FILES ${Shaders_GLTF_src})
-source_group("media"            FILES ${media_src})
 
 set_source_files_properties(${Shaders_GLTF_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
 set_source_files_properties(${Shaders_PostProc_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
-set_source_files_properties(${media_src} PROPERTIES VS_TOOL_OVERRIDE "Media")
-
-

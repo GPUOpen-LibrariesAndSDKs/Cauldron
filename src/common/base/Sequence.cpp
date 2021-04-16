@@ -16,6 +16,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 #include "stdafx.h"
 #include "Sequence.h"
 
@@ -29,15 +30,25 @@ void BenchmarkSequence::ReadKeyframes(const json& jSequence, float timeStart, fl
     const json& keyFrames = jSequence["keyFrames"];
     for (const json& jkf : keyFrames)
     {
-        KeyFrame key;
+        KeyFrame key = {};
+        key.m_camera = -1;
 
         key.m_time = jkf["time"];
 
-        const json& jfrom = jkf["from"];
-        key.m_from = XMVectorSet(jfrom[0], jfrom[1], jfrom[2], 0);
+        auto find = jkf.find("camera");
+        if(find != jkf.cend())
+        { 
+            key.m_camera = find.value();
+        }
 
-        const json& jto = jkf["to"];
-        key.m_to = XMVectorSet(jto[0], jto[1], jto[2], 0);
+        if (key.m_camera == -1)
+        {
+            const json& jfrom = jkf["from"];
+            key.m_from = math::Vector4(jfrom[0], jfrom[1], jfrom[2], 0);
+
+            const json& jto = jkf["to"];
+            key.m_to = math::Vector4(jto[0], jto[1], jto[2], 0);
+        }
         
         key.m_screenShotName = jkf.value("screenShotName", "");
 
@@ -59,20 +70,19 @@ float BenchmarkSequence::GetNextKeyTime(float time)
     return -1;
 }
 
-bool BenchmarkSequence::GetKeyFrame(float time, Camera *pCam, const std::string **pScreenShotName)
+const BenchmarkSequence::KeyFrame BenchmarkSequence::GetNextKeyFrame(float time) const
 {
     for (int i = 0; i < m_keyFrames.size(); i++)
     {
-        KeyFrame &key = m_keyFrames[i];
+        const KeyFrame& key = m_keyFrames[i];
         if (key.m_time >= time)
         {
-            // shall we take a screenshot?
-            *pScreenShotName = (key.m_screenShotName.size() > 0) ? &key.m_screenShotName : NULL;
-
-            pCam->LookAt(key.m_from, key.m_to);
-            return true;
+            return key;
         }
     }
 
-    return false;
+    // key frame not found, return empty
+    KeyFrame invalidKey = KeyFrame{ 0 };
+    invalidKey.m_time = -1.0f;
+    return invalidKey;
 }

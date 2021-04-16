@@ -1,7 +1,3 @@
-project (Cauldron_VK)
-
-add_compile_options(/MP)
-
 include(common)
 
 set(GLTF_src
@@ -9,8 +5,8 @@ set(GLTF_src
     GLTF/GltfBBoxPass.h
     GLTF/GltfDepthPass.cpp
     GLTF/GltfDepthPass.h
-    GLTF/glTFHelpers.cpp
-    GLTF/glTFHelpers.h
+    GLTF/GltfHelpers.cpp
+    GLTF/GltfHelpers.h
     GLTF/GltfPbrPass.cpp
     GLTF/GltfPbrPass.h
     GLTF/GltfMotionVectorsPass.cpp
@@ -42,6 +38,8 @@ set(PostProc_src
     PostProc/TonemappingCS.h
     PostProc/TAA.cpp
     PostProc/TAA.h
+    PostProc/MagnifierPS.h
+    PostProc/MagnifierPS.cpp
 )
 
 set(Base_src
@@ -57,6 +55,8 @@ set(Base_src
     base/GBuffer.h
     base/GPUTimestamps.cpp
     base/GPUTimestamps.h
+	base/FrameworkWindows.cpp
+	base/FrameworkWindows.h
     base/FreeSyncHDR.cpp
     base/FreeSyncHDR.h
     base/Helper.cpp
@@ -86,14 +86,14 @@ set(Extensions_src
     base/ExtFreeSyncHDR.h
     base/ExtFp16.cpp
     base/ExtFp16.h
+    base/ExtRayTracing.cpp
+	base/ExtRayTracing.h
     base/ExtValidation.cpp
     base/ExtValidation.h
-    base/ExtDebugMarkers.cpp
-    base/ExtDebugMarkers.h
+	base/ExtVRS.cpp
+	base/ExtVRS.h
     base/ExtDebugUtils.cpp
     base/ExtDebugUtils.h
-    base/ExtGPUValidation.cpp
-    base/ExtGPUValidation.h
 )
 
 set(Widgets_src
@@ -117,6 +117,7 @@ set(Shaders_PostProc_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAA.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappingCS.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/MagnifierPS.glsl
 )
 
 set(Shaders_GLTF_src
@@ -141,29 +142,21 @@ set(Shaders_GLTF_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
 )
 
-set(media_src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
-)    
+add_library (Cauldron_VK STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Extensions_src})
 
-copyCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin)
-copyCommand("${Shaders_GLTF_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
-copyCommand("${Shaders_PostProc_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK)
+target_link_libraries (Cauldron_VK Cauldron_Common Vulkan::Vulkan)
+target_include_directories (Cauldron_VK PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_library (${PROJECT_NAME} STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} ${Shaders_GLTF_src} ${Shaders_PostProc_src} ${media_src} ${Extensions_src})
+copyTargetCommand("${Shaders_GLTF_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK copied_vk_shaders_gltf_src)
+copyTargetCommand("${Shaders_PostProc_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibVK copied_vk_shaders_postproc_src)
+add_dependencies(Cauldron_VK copied_vk_shaders_gltf_src copied_vk_shaders_postproc_src)
 
-target_link_libraries (${PROJECT_NAME} Cauldron_Common NJSON Vulkan::Vulkan)
-target_include_directories (${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 source_group("GLTF"             FILES ${GLTF_src})
-source_group("PostProc"         FILES ${PostProc_src})
-source_group("PostProc Shaders" FILES ${Shaders_PostProc_src})
+source_group("PostProcess"      FILES ${PostProc_src})
 source_group("Base"             FILES ${Base_src})
 source_group("Widgets"          FILES ${Widgets_src})
-source_group("GLTF Shaders"     FILES ${Shaders_GLTF_src})
-source_group("media"            FILES ${media_src})
-source_group("extensions"       FILES ${Extensions_src})
+source_group("Extensions"       FILES ${Extensions_src})
 
 set_source_files_properties(${Shaders_GLTF_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
 set_source_files_properties(${Shaders_PostProc_src} PROPERTIES VS_TOOL_OVERRIDE "Text")
-set_source_files_properties(${media_src} PROPERTIES VS_TOOL_OVERRIDE "Media")
-

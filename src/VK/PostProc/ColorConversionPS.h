@@ -29,7 +29,7 @@ namespace CAULDRON_VK
         void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
         void OnDestroy();
 
-        void UpdatePipelines(VkRenderPass renderPass, DisplayModes displayMode);
+        void UpdatePipelines(VkRenderPass renderPass, DisplayMode displayMode);
 
         void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV);
 
@@ -50,8 +50,8 @@ namespace CAULDRON_VK
 
         struct ColorConversionConsts
         {
-            XMMATRIX m_contentToMonitorRecMatrix;
-            DisplayModes m_displayMode;
+            math::Matrix4 m_contentToMonitorRecMatrix;
+            DisplayMode m_displayMode;
             float m_displayMinLuminancePerNits;
             float m_displayMaxLuminancePerNits;
         };

@@ -25,11 +25,11 @@
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
 #include "ExtDebugUtils.h"
-#include "ExtDebugMarkers.h"
 #include "ExtFreeSyncHDR.h"
 #include "ExtFp16.h"
+#include "ExtRayTracing.h"
+#include "ExtVRS.h"
 #include "ExtValidation.h"
-#include "ExtGPUValidation.h"
 #include "Misc/Misc.h"
 
 #ifdef USE_VMA
@@ -70,27 +70,23 @@ namespace CAULDRON_VK
     {
         pIp->AddInstanceExtensionName(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
         pIp->AddInstanceExtensionName(VK_KHR_SURFACE_EXTENSION_NAME);
-        pIp->AddInstanceLayerName("VK_LAYER_LUNARG_monitor");
-        ExtFreeSyncHdrCheckInstanceExtensions(pIp);
+        ExtCheckHDRInstanceExtensions(pIp);
         ExtDebugUtilsCheckInstanceExtensions(pIp);
         if (cpuValidationLayerEnabled)
         {
-            ExtDebugReportCheckInstanceExtensions(pIp);
-        }
-
-        if (gpuValidationLayerEnabled)
-        {
-            ExtGPUValidationCheckExtensions(pIp);
+            ExtDebugReportCheckInstanceExtensions(pIp, gpuValidationLayerEnabled);
         }
     }
 
     void Device::SetEssentialDeviceExtensions(DeviceProperties *pDp)
     {
         m_usingFp16 = ExtFp16CheckExtensions(pDp);
-        ExtFreeSyncHdrCheckDeviceExtensions(pDp);
-        ExtDebugMarkerCheckDeviceExtensions(pDp);
+        ExtRTCheckExtensions(pDp, m_rt10Supported, m_rt11Supported);
+        ExtVRSCheckExtensions(pDp, m_vrs1Supported, m_vrs2Supported);
+        ExtCheckHDRDeviceExtensions(pDp);
+        ExtCheckFSEDeviceExtensions(pDp);
+        ExtCheckFreeSyncHDRDeviceExtensions(pDp);
         pDp->AddDeviceExtensionName(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-        pDp->AddDeviceExtensionName(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
         pDp->AddDeviceExtensionName(VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME);
     }
 
@@ -215,6 +211,7 @@ namespace CAULDRON_VK
         physicalDeviceFeatures.vertexPipelineStoresAndAtomics = true;
         physicalDeviceFeatures.shaderImageGatherExtended = true;
         physicalDeviceFeatures.wideLines = true; //needed for drawing lines with a specific width.
+        physicalDeviceFeatures.independentBlend = true; // needed for having different blend for each render target 
 
         // enable feature to support fp16 with subgroup operations
         //
@@ -223,10 +220,16 @@ namespace CAULDRON_VK
         shaderSubgroupExtendedType.pNext = pDp->GetNext(); //used to be pNext of VkDeviceCreateInfo
         shaderSubgroupExtendedType.shaderSubgroupExtendedTypes = VK_TRUE;
 
+        VkPhysicalDeviceRobustness2FeaturesEXT robustness2 = {};
+        robustness2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+        robustness2.pNext = &shaderSubgroupExtendedType;
+        robustness2.nullDescriptor = VK_TRUE;
+
+        // to be able to bind NULL views
         VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = {};
         physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
         physicalDeviceFeatures2.features = physicalDeviceFeatures;
-        physicalDeviceFeatures2.pNext = &shaderSubgroupExtendedType;
+        physicalDeviceFeatures2.pNext = &robustness2;
 
         VkDeviceCreateInfo device_info = {};
         device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -265,9 +268,8 @@ namespace CAULDRON_VK
 
         // Init the extensions (if they have been enabled successfuly)
         //
-        ExtDebugMarkersGetProcAddresses(m_device);
         ExtDebugUtilsGetProcAddresses(m_device);
-        ExtFreeSyncHdrGetProcAddresses(m_instance, m_device);
+        ExtGetHDRFSEFreesyncHDRProcAddresses(m_instance, m_device);
     }
 
     void Device::GetDeviceInfo(std::string *deviceName, std::string *driverVersion)

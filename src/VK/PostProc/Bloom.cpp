@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/Imgui.h"
 #include "Base/Helper.h"
@@ -165,6 +165,8 @@ namespace CAULDRON_VK
                 fb_info.layers = 1;
                 VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_mip[i].m_frameBuffer);
                 assert(res == VK_SUCCESS);
+
+                SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_mip[i].m_frameBuffer, "BloomBlended");
             }
 
             // Set descriptors        
@@ -192,6 +194,8 @@ namespace CAULDRON_VK
                 fb_info.layers = 1;
                 VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_output.m_frameBuffer);
                 assert(res == VK_SUCCESS);
+
+                SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_output.m_frameBuffer, "BloomOutput");
             }
 
             // Set descriptors        
@@ -274,6 +278,9 @@ namespace CAULDRON_VK
             if (m_doBlur)
             {                
                 m_blur.Draw(cmd_buf, i);
+                // force wait for the draw to completely finish
+                // TODO: need to find a better way to do it
+                vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 0, NULL);
             }
 
             // blend with mip above   

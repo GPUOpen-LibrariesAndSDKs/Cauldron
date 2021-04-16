@@ -101,7 +101,7 @@ namespace CAULDRON_VK
                     }
 
                     // compute total
-                    TimeStamp ts = { "Total GPU Time (us)", float(microsecondsPerTick * (double)(TimingsInTicks[measurements - 1] - TimingsInTicks[0])) };
+                    TimeStamp ts = { "Total GPU Time", float(microsecondsPerTick * (double)(TimingsInTicks[measurements - 1] - TimingsInTicks[0])) };
                     pTimestamps->push_back(ts);
                 }
                 else

@@ -40,7 +40,8 @@ namespace CAULDRON_DX12
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-        AsyncPool *pAsyncPool)
+        AsyncPool* pAsyncPool,
+        DXGI_FORMAT depthFormat)
     {
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pHeaps;
@@ -139,12 +140,16 @@ namespace CAULDRON_DX12
                     const json &primitive = primitives[p];
                     DepthPrimitives *pPrimitive = &tfmesh->m_pPrimitives[p];
 
-                    ExecAsyncIfThereIsAPool(pAsyncPool, [this, i, &primitive, pPrimitive]()
+                    ExecAsyncIfThereIsAPool(pAsyncPool, [this, i, &primitive, pPrimitive, depthFormat]()
                     {
                         // Set Material
                         //
                         auto mat = primitive.find("material");
                         pPrimitive->m_pMaterial = (mat != primitive.end()) ? &m_materialsData[mat.value()] : &m_defaultMaterial;
+
+                        // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
+                        //
+                        DefineList defines = pPrimitive->m_pMaterial->m_defines;
 
                         // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things. 
                         //
@@ -153,7 +158,7 @@ namespace CAULDRON_DX12
                         {
                             const std::string semanticName = it.key();
                             if (
-                                (semanticName == "POSITION") ||
+                                (semanticName == "POSITION") || 
                                 (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
                                 (semanticName.substr(0, 6) == "JOINTS") || // for skinning
                                 (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) // if there is transparency this will make sure we use the texture coordinates of that texture
@@ -162,10 +167,6 @@ namespace CAULDRON_DX12
                                 requiredAttributes.push_back(semanticName);
                             }
                         }
-
-                        // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
-                        //
-                        DefineList defines = pPrimitive->m_pMaterial->m_defines;
 
                         // create an input layout from the required attributes
                         // shader's can tell the slots from the #defines
@@ -177,7 +178,7 @@ namespace CAULDRON_DX12
                         // Create Pipeline
                         //
                         bool bUsingSkinning = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i) != -1;
-                        CreatePipeline(bUsingSkinning, layout, defines, pPrimitive);
+                        CreatePipeline(bUsingSkinning, layout, defines, pPrimitive, depthFormat);
                     });
                 }
             }
@@ -197,8 +198,10 @@ namespace CAULDRON_DX12
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
                 DepthPrimitives *pPrimitive = &pMesh->m_pPrimitives[p];
-                pPrimitive->m_pipelineRender->Release();
-                pPrimitive->m_rootSignature->Release();
+                if (pPrimitive->m_pipelineRender)
+                    pPrimitive->m_pipelineRender->Release();
+                if (pPrimitive->m_rootSignature)
+                    pPrimitive->m_rootSignature->Release();
             }
         }
     }
@@ -208,10 +211,10 @@ namespace CAULDRON_DX12
     // CreatePipeline
     //
     //--------------------------------------------------------------------------------------
-    void GltfDepthPass::CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive)
+    void GltfDepthPass::CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList& defines, DepthPrimitives *pPrimitive, DXGI_FORMAT depthFormat)
     {
         bool bUsingTransparency = (pPrimitive->m_pMaterial->m_pTransparency != NULL);
-      
+
         /////////////////////////////////////////////
         // Create descriptors 
 
@@ -306,15 +309,20 @@ namespace CAULDRON_DX12
         if (bUsingTransparency)
             descPso.PS = shaderPixel;
         descPso.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-        descPso.RasterizerState.CullMode = (pPrimitive->m_pMaterial->m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT;
+        descPso.RasterizerState.DepthBias = 0;
+        descPso.RasterizerState.DepthBiasClamp = 0;
+        descPso.RasterizerState.SlopeScaledDepthBias = 1.0f; // makes shadow acne on sponza go away. but seems like need to adjust this per scene? dx11 shadow sample sets this to 1.0f. but they are using pcf offset primariliy to get rid of shadow acne
+        descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; //(pPrimitive->m_pMaterial->m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT; avoiding some light leaks
+        descPso.RasterizerState.DepthClipEnable = false;
         descPso.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         descPso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
         descPso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
         descPso.SampleMask = UINT_MAX;
         descPso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-        descPso.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+        descPso.DSVFormat = depthFormat;
         descPso.SampleDesc.Count = 1;
         descPso.NodeMask = 0;
+
         ThrowIfFailed(
             m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_pipelineRender))
         );
@@ -326,11 +334,10 @@ namespace CAULDRON_DX12
     // SetPerFrameConstants
     //
     //--------------------------------------------------------------------------------------
-    GltfDepthPass::per_frame *GltfDepthPass::SetPerFrameConstants()
+    GltfDepthPass::per_frame *GltfDepthPass::SetPerFrameConstants(int passIndex)
     {
         GltfDepthPass::per_frame *cbPerFrame;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(GltfDepthPass::per_frame), (void **)&cbPerFrame, &m_perFrameDesc);
-
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(GltfDepthPass::per_frame), (void **)&cbPerFrame, &m_perFrameDesc[passIndex]);
         return cbPerFrame;
     }
 
@@ -339,10 +346,8 @@ namespace CAULDRON_DX12
     // Draw
     //
     //--------------------------------------------------------------------------------------
-    void GltfDepthPass::Draw(ID3D12GraphicsCommandList* pCommandList)
+    void GltfDepthPass::Draw(ID3D12GraphicsCommandList* pCommandList, int passIndex)
     {
-        UserMarker marker(pCommandList, "DepthPass");
-
         // Set descriptor heaps
         pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         ID3D12DescriptorHeap *pDescriptorHeaps[] = { m_pResourceViewHeaps->GetCBV_SRV_UAVHeap(), m_pResourceViewHeaps->GetSamplerHeap() };
@@ -370,12 +375,6 @@ namespace CAULDRON_DX12
                 if (pPrimitive->m_pipelineRender == NULL)
                     continue;
 
-                // Set per Object constants
-                //
-                per_object cbPerObject;
-                cbPerObject.mWorld = pNodesMatrices[i].GetCurrent();
-                D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc= m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), &cbPerObject);
-
                 // Bind indices and vertices using the right offsets into the buffer
                 //
                 Geometry *pGeometry = &pPrimitive->m_geometry;
@@ -387,16 +386,22 @@ namespace CAULDRON_DX12
                 //                
                 pCommandList->SetGraphicsRootSignature(pPrimitive->m_rootSignature);
 
+                // Set per Object constants
+                //
+                per_object cbPerObject;
+                cbPerObject.mWorld = pNodesMatrices[i].GetCurrent();
+                D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), &cbPerObject);
+
                 if (pPrimitive->m_pMaterial->m_pTransparency == NULL)
                 {
-                    pCommandList->SetGraphicsRootConstantBufferView(0, m_perFrameDesc);
+                    pCommandList->SetGraphicsRootConstantBufferView(0, m_perFrameDesc[passIndex]);
                     pCommandList->SetGraphicsRootConstantBufferView(1, perObjectDesc);
                     if (pPerSkeleton != 0)
                         pCommandList->SetGraphicsRootConstantBufferView(2, pPerSkeleton);
                 }
                 else
                 {
-                    pCommandList->SetGraphicsRootConstantBufferView(0, m_perFrameDesc);
+                    pCommandList->SetGraphicsRootConstantBufferView(0, m_perFrameDesc[passIndex]);
                     pCommandList->SetGraphicsRootDescriptorTable(1, pPrimitive->m_pMaterial->m_pTransparency->GetGPU());
                     pCommandList->SetGraphicsRootConstantBufferView(2, perObjectDesc);
                     if (pPerSkeleton != 0)

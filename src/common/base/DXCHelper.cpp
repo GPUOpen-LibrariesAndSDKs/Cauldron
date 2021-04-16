@@ -91,6 +91,13 @@ public:
         size_t bytes;
         HRESULT hr = ReadFile(fullpath, (char**)&pData, (size_t*)&bytes, false) ? S_OK : E_FAIL;
 
+        if (hr == E_FAIL)
+        {
+            // return the failure here instead of crashing on CreateBlobWithEncodingFromPinned 
+            // to be able to report the error to the output console
+            return hr;
+        }
+
         IDxcBlobEncoding *pSource;
         ThrowIfFailed(m_pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)pData, (UINT32)bytes, CP_UTF8, &pSource));
 
@@ -151,6 +158,13 @@ bool DXCompileToDXO(size_t hash,
             defines[defineCount].Value = values[defineCount];
             defineCount++;
         }
+    }
+
+    // check whether DXCompiler is initialized
+    if (s_dxc_create_func == nullptr)
+    {
+        Trace("Error: s_dxc_create_func() is null, have you called InitDirectXCompiler() ?");
+        return false;
     }
 
     IDxcLibrary *pLibrary;
@@ -228,6 +242,13 @@ bool DXCompileToDXO(size_t hash,
             res = pCompiler->Compile(pSource, NULL, pEntryPointW, L"", ppArgs.data(), (UINT32)ppArgs.size(), defines, defineCount, &Includer, &pOpRes);
         }
 
+        // Clean up allocated memory
+        while (!ppArgs.empty())
+        {
+            LPCWSTR pWString = ppArgs.back();
+            ppArgs.pop_back();
+            free((void*)pWString);
+        }
 
         pSource->Release();
         pLibrary->Release();
@@ -251,6 +272,10 @@ bool DXCompileToDXO(size_t hash,
 
             pResult->Release();
 
+            // Make sure pError doesn't leak if it was allocated
+            if (pError)
+                pError->Release();
+
 #ifdef USE_DXC_SPIRV_FROM_DISK
             SaveFile(filenameOut.c_str(), *outSpvData, *outSpvSize, true);
 #endif
@@ -268,6 +293,10 @@ bool DXCompileToDXO(size_t hash,
 
             std::string errMsg = std::string((char*)pErrorUtf8->GetBufferPointer(), pErrorUtf8->GetBufferSize());
             Trace(errMsg);
+
+            // Make sure pResult doesn't leak if it was allocated
+            if (pResult)
+                pResult->Release();
 
             pErrorUtf8->Release();
         }

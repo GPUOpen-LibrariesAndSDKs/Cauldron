@@ -41,12 +41,11 @@ namespace CAULDRON_VK
         //
         VkPipelineShaderStageCreateInfo computeShader;
         DefineList defines;
+        if (pUserDefines)
+            defines = *pUserDefines;
         defines["WIDTH"] = std::to_string(dwWidth);
         defines["HEIGHT"] = std::to_string(dwHeight);
-        defines["DEPTH"] = std::to_string(dwDepth);
-
-        if (pUserDefines != NULL)
-            defines = *pUserDefines;
+        defines["DEPTH"] = std::to_string(dwDepth);        
 
         res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_COMPUTE_BIT, shaderFilename.c_str(), shaderEntryPoint.c_str(), shaderCompilerParams.c_str(), &defines, &computeShader);
         assert(res == VK_SUCCESS);

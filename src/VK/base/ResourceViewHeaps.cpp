@@ -118,7 +118,22 @@ namespace CAULDRON_VK
             layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
             layoutBindings[i].descriptorCount = 1;
             layoutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            layoutBindings[i].pImmutableSamplers = (pSamplers!=NULL)? &pSamplers[i]:NULL;
+            layoutBindings[i].pImmutableSamplers = (pSamplers != NULL) ? &pSamplers[i] : NULL;
+        }
+
+        return CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, pDescSetLayout, pDescriptorSet);
+    }
+
+    bool ResourceViewHeaps::AllocDescriptor(std::vector<uint32_t>& descriptorCounts, const VkSampler* pSamplers, VkDescriptorSetLayout* pDescSetLayout, VkDescriptorSet* pDescriptorSet)
+    {
+        std::vector<VkDescriptorSetLayoutBinding> layoutBindings(descriptorCounts.size());
+        for (int i = 0; i < descriptorCounts.size(); i++)
+        {
+            layoutBindings[i].binding = i;
+            layoutBindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            layoutBindings[i].descriptorCount = descriptorCounts[i];
+            layoutBindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+            layoutBindings[i].pImmutableSamplers = (pSamplers != NULL) ? &pSamplers[i] : NULL;
         }
 
         return CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, pDescSetLayout, pDescriptorSet);

@@ -42,6 +42,7 @@ namespace CAULDRON_DX12
 
         D3D12_BLEND_DESC blendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         D3D12_DEPTH_STENCIL_DESC depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_EQUAL;
         m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, 0, NULL, outFormat, sampleDescCount, &blendDesc, &depthStencilDesc);
     }
 
@@ -58,29 +59,4 @@ namespace CAULDRON_DX12
 
         m_skydome.Draw(pCommandList, 0, NULL, constantBuffer);
     }
-
-    //
-    // TODO: These functions below should generate a diffuse and specular cubemap to be used in IBL
-    //
-    /*
-    void SkyDomeProc::GenerateDiffuseMapFromEnvironmentMap()
-    {
-
-    }
-
-    void SkyDomeProc::CreateDiffCubeSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_CubeDiffuseTextureView, m_samplerDiffuseCube, descriptorSet);
-    }
-
-    void SkyDomeProc::CreateSpecCubeSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_CubeSpecularTextureView, m_samplerDiffuseCube, descriptorSet);
-    }
-
-    void SkyDomeProc::CreateBrdfSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_BrdfTextureView, m_samplerBDRF, descriptorSet);
-    }
-    */
 }

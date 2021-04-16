@@ -24,6 +24,9 @@
 #include <d3d11.h>
 #include "../Base/ShaderCompilerHelper.h"
 
+// For windows DPI scaling fetching
+#include <shellscalingapi.h>
+
 namespace CAULDRON_DX12
 {
     struct VERTEX_CONSTANT_BUFFER
@@ -36,7 +39,7 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void ImGUI::OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat)
+    void ImGUI::OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat, float fontSize/*= 13.f*/)
     {
         m_pResourceViewHeaps = pHeaps;
         m_pConstBuf = pConstantBufferRing;
@@ -45,6 +48,14 @@ namespace CAULDRON_DX12
         // Get UI texture 
         //
         ImGuiIO& io = ImGui::GetIO();
+
+        // Fixup font size based on scale factor
+        DEVICE_SCALE_FACTOR scaleFactor = GetScaleFactorForDevice(DEVICE_PRIMARY);
+        float textScale = scaleFactor / 100.f;
+        ImFontConfig font_cfg;
+        font_cfg.SizePixels = fontSize * textScale;
+        io.Fonts->AddFontDefault(&font_cfg);
+
         unsigned char* pixels;
         int width, height;
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);

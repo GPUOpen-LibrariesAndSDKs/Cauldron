@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "GltfBBoxPass.h"
 #include "GltfHelpers.h"
 #include "Base/ShaderCompilerHelper.h"
@@ -61,8 +61,8 @@ namespace CAULDRON_VK
     //
     //--------------------------------------------------------------------------------------
     void GltfBBoxPass::Draw(VkCommandBuffer cmd_buf
-        , const XMMATRIX& cameraViewProjMatrix
-        , const XMVECTOR& color)
+        , const math::Matrix4& cameraViewProjMatrix
+        , const math::Vector4& color)
     {
         SetPerfMarkerBegin(cmd_buf, "bounding boxes");
 
@@ -74,7 +74,7 @@ namespace CAULDRON_VK
             if (pNode->meshIndex < 0)
                 continue;
 
-            XMMATRIX mWorldViewProj = pC->m_worldSpaceMats[i].GetCurrent() * cameraViewProjMatrix;
+            math::Matrix4 mWorldViewProj =  cameraViewProjMatrix * pC->m_worldSpaceMats[i].GetCurrent();
 
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)

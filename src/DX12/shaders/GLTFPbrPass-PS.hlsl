@@ -138,7 +138,7 @@ struct Output
 #endif
 };
 
-Output mainPS(VS_OUTPUT_SCENE Input)
+Output mainPS(VS_OUTPUT_SCENE Input, bool bIsFontFacing : SV_IsFrontFace)
 {
     discardPixelIfAlphaCutOff(Input);
 
@@ -169,10 +169,11 @@ Output mainPS(VS_OUTPUT_SCENE Input)
 
 #ifdef HAS_FORWARD_RT
     output.finalColor = float4(doPbrLighting(Input, myPerFrame, diffuseColor, specularColor, perceptualRoughness), alpha);
+    output.finalColor = lerp(output.finalColor, float4(myPerFrame.u_WireframeOptions.rgb, 1.0), myPerFrame.u_WireframeOptions.w);
 #endif            
 
 #ifdef HAS_NORMALS_RT
-    output.normals = float4((getPixelNormal(Input) + 1) / 2, 0);
+    output.normals = float4(getPixelNormal(Input, bIsFontFacing) / 2 + 0.5f, 0);
 #endif
     
     return output;

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/FreesyncHDR.h"
 #include "Base/Texture.h"
@@ -86,7 +86,7 @@ namespace CAULDRON_VK
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorSetLayout, NULL);
     }
 
-    void ColorConversionPS::UpdatePipelines(VkRenderPass renderPass, DisplayModes displayMode)
+    void ColorConversionPS::UpdatePipelines(VkRenderPass renderPass, DisplayMode displayMode)
     {
         m_ColorConversion.UpdatePipeline(renderPass, NULL, VK_SAMPLE_COUNT_1_BIT);
 

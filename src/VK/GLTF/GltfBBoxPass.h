@@ -40,8 +40,8 @@ namespace CAULDRON_VK
             Wireframe *pWireframe);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, const XMMATRIX& cameraViewProjMatrix, const XMVECTOR& color);
-        inline void Draw(VkCommandBuffer cmd_buf, const XMMATRIX& cameraViewProjMatrix) { Draw(cmd_buf, cameraViewProjMatrix, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f)); }
+        void Draw(VkCommandBuffer cmd_buf, const math::Matrix4& cameraViewProjMatrix, const math::Vector4& color);
+        inline void Draw(VkCommandBuffer cmd_buf, const math::Matrix4& cameraViewProjMatrix) { Draw(cmd_buf, cameraViewProjMatrix, math::Vector4(1.0f, 1.0f, 1.0f, 1.0f)); }
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
 

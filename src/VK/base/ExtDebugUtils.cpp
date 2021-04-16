@@ -23,19 +23,15 @@
 
 namespace CAULDRON_VK
 {
-    static PFN_vkSetDebugUtilsObjectNameEXT    s_vkSetDebugUtilsObjectName = NULL;
-    
-    static bool s_bCanUseDebugUtils;
+    static PFN_vkSetDebugUtilsObjectNameEXT     s_vkSetDebugUtilsObjectName = nullptr;
+    static PFN_vkCmdBeginDebugUtilsLabelEXT     s_vkCmdBeginDebugUtilsLabel = nullptr;
+    static PFN_vkCmdEndDebugUtilsLabelEXT       s_vkCmdEndDebugUtilsLabel = nullptr;
+    static bool s_bCanUseDebugUtils = false;
     static std::mutex s_mutex;
 
     bool ExtDebugUtilsCheckInstanceExtensions(InstanceProperties *pDP)
     {
         s_bCanUseDebugUtils = pDP->AddInstanceExtensionName("VK_EXT_debug_utils");
-        if (s_bCanUseDebugUtils)
-        {
-            Trace("Note that the extension 'VK_EXT_debug_utils' is only available under tools that enable them, like RenderDoc\n");
-        }
-
         return s_bCanUseDebugUtils;
     }
 
@@ -46,30 +42,44 @@ namespace CAULDRON_VK
         if (s_bCanUseDebugUtils)
         {
             s_vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetDeviceProcAddr(device, "vkSetDebugUtilsObjectNameEXT");
+            s_vkCmdBeginDebugUtilsLabel = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdBeginDebugUtilsLabelEXT");
+            s_vkCmdEndDebugUtilsLabel = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetDeviceProcAddr(device, "vkCmdEndDebugUtilsLabelEXT");
         }
     }
 
-    void SetResourceName(VkDevice device, VkObjectType objectType, uint64_t handle, const char *pMsg)
+    void SetResourceName(VkDevice device, VkObjectType objectType, uint64_t handle, const char* name)
     {
-        assert(handle != VK_NULL_HANDLE);
-
-        size_t size = strlen(pMsg);
-        char  *uniName = (char  *)malloc(size +1); //yes, this will be causing leaks!
-        strcpy_s(uniName, size+1, pMsg);
-
-        const VkDebugUtilsObjectNameInfoEXT imageNameInfo =
+        if (s_vkSetDebugUtilsObjectName && handle && name)
         {
-            VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT, // sType
-            NULL,                                               // pNext
-            objectType,                                         // objectType
-            (uint64_t)handle,                                   // object
-            uniName,                                            // pObjectName
-        };
+            std::unique_lock<std::mutex> lock(s_mutex);
 
-        if (s_vkSetDebugUtilsObjectName != NULL)
+            VkDebugUtilsObjectNameInfoEXT nameInfo = {};
+            nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+            nameInfo.objectType = objectType;
+            nameInfo.objectHandle = handle;
+            nameInfo.pObjectName = name;
+            s_vkSetDebugUtilsObjectName(device, &nameInfo);
+        }
+    }
+
+    void SetPerfMarkerBegin(VkCommandBuffer cmd_buf, const char* name)
+    {
+        if (s_vkCmdBeginDebugUtilsLabel)
         {
-           std::unique_lock<std::mutex> lock(s_mutex);
-           s_vkSetDebugUtilsObjectName(device, &imageNameInfo);
+            VkDebugUtilsLabelEXT label = {};
+            label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+            label.pLabelName = name;
+            const float color[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+            memcpy( label.color, color, sizeof( color ) );
+            s_vkCmdBeginDebugUtilsLabel( cmd_buf, &label );
+        }
+    }
+
+    void SetPerfMarkerEnd(VkCommandBuffer cmd_buf)
+    {
+        if (s_vkCmdEndDebugUtilsLabel)
+        {
+            s_vkCmdEndDebugUtilsLabel(cmd_buf);
         }
     }
 }

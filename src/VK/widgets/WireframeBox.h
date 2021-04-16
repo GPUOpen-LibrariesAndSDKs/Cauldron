@@ -49,7 +49,7 @@ namespace CAULDRON_VK
 
         void OnDestroy() {}
 
-        void Draw(VkCommandBuffer cmd_buf, Wireframe *pWireframe, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
+        void Draw(VkCommandBuffer cmd_buf, Wireframe *pWireframe, const math::Matrix4& worldMatrix, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor)
         {
             pWireframe->Draw(cmd_buf, m_NumIndices, m_IBV, m_VBV, worldMatrix, vCenter, vRadius, vColor);
         }

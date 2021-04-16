@@ -40,7 +40,7 @@ vec3 Tonemap(vec3 color, float exposure, int tonemapper)
 
     switch (tonemapper)
     {
-        case 0: return TimothyTonemapper(color);
+        case 0: return AMDTonemapper(color);
         case 1: return DX11DSK(color);
         case 2: return Reinhard(color);
         case 3: return Uncharted2Tonemap(color);

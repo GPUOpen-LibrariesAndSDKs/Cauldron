@@ -27,7 +27,7 @@ namespace CAULDRON_DX12
     public:
         void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat);
         void OnDestroy();
-        void UpdatePipelines(DXGI_FORMAT outFormat, DisplayModes displayMode);
+        void UpdatePipelines(DXGI_FORMAT outFormat, DisplayMode displayMode);
         void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV);
 
     private:
@@ -37,8 +37,8 @@ namespace CAULDRON_DX12
 
         struct ColorConversionConsts
         {
-            XMMATRIX m_contentToMonitorRecMatrix;
-            DisplayModes m_displayMode;
+            math::Matrix4 m_contentToMonitorRecMatrix;
+            DisplayMode m_displayMode;
             float m_displayMinLuminancePerNits;
             float m_displayMaxLuminancePerNits;
         };

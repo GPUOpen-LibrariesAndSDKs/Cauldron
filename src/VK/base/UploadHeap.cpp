@@ -39,7 +39,6 @@ namespace CAULDRON_VK
         {
             VkCommandPoolCreateInfo cmd_pool_info = {};
             cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-            cmd_pool_info.pNext = NULL;
             cmd_pool_info.queueFamilyIndex = m_pDevice->GetGraphicsQueueFamilyIndex();
             cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             res = vkCreateCommandPool(m_pDevice->GetDevice(), &cmd_pool_info, NULL, &m_commandPool);
@@ -93,10 +92,8 @@ namespace CAULDRON_VK
 
         // Create fence
         {
-            VkFenceCreateInfo fence_ci;
+            VkFenceCreateInfo fence_ci = {};
             fence_ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            fence_ci.pNext = NULL;
-            fence_ci.flags = 0;
 
             res = vkCreateFence(m_pDevice->GetDevice(), &fence_ci, NULL, &m_fence);
             assert(res == VK_SUCCESS);
@@ -104,11 +101,8 @@ namespace CAULDRON_VK
 
         // Begin Command Buffer
         {
-            VkCommandBufferBeginInfo cmd_buf_info;
+            VkCommandBufferBeginInfo cmd_buf_info = {};
             cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-            cmd_buf_info.pNext = NULL;
-            cmd_buf_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-            cmd_buf_info.pInheritanceInfo = NULL;
 
             res = vkBeginCommandBuffer(m_pCommandBuffer, &cmd_buf_info);
             assert(res == VK_SUCCESS);
@@ -122,9 +116,9 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     void UploadHeap::OnDestroy()
     {
+        vkDestroyBuffer(m_pDevice->GetDevice(), m_buffer, NULL);
         vkUnmapMemory(m_pDevice->GetDevice(), m_deviceMemory);
         vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemory, NULL);
-        vkDestroyBuffer(m_pDevice->GetDevice(), m_buffer, NULL);
 
         vkFreeCommandBuffers(m_pDevice->GetDevice(), m_commandPool, 1, &m_pCommandBuffer);
         vkDestroyCommandPool(m_pDevice->GetDevice(), m_commandPool, NULL);
@@ -292,11 +286,8 @@ namespace CAULDRON_VK
         vkResetFences(m_pDevice->GetDevice(), 1, &m_fence);
 
         // Reset so it can be reused
-        VkCommandBufferBeginInfo cmd_buf_info;
+        VkCommandBufferBeginInfo cmd_buf_info = {};
         cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmd_buf_info.pNext = NULL;
-        cmd_buf_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        cmd_buf_info.pInheritanceInfo = NULL;
 
         res = vkBeginCommandBuffer(m_pCommandBuffer, &cmd_buf_info);
         assert(res == VK_SUCCESS);

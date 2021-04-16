@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.6)
 set(CMAKE_SUPPRESS_REGENERATION true)
 set(CMAKE_GENERATOR_PLATFORM x64)
 project (ImGUI)

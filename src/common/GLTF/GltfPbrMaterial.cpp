@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "GltfPbrMaterial.h"
-#include "gltfHelpers.h"
+#include "GltfHelpers.h"
 
 //
 // Set some default parameters 
@@ -29,10 +29,10 @@ void SetDefaultMaterialParamters(PBRMaterialParameters *pPbrMaterialParameters)
     pPbrMaterialParameters->m_doubleSided = false;
     pPbrMaterialParameters->m_blending = false;
 
-    pPbrMaterialParameters->m_params.m_emissiveFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    pPbrMaterialParameters->m_params.m_baseColorFactor = XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f);
-    pPbrMaterialParameters->m_params.m_metallicRoughnessValues = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    pPbrMaterialParameters->m_params.m_specularGlossinessFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_emissiveFactor = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_baseColorFactor = math::Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+    pPbrMaterialParameters->m_params.m_metallicRoughnessValues = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_specularGlossinessFactor = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 bool ProcessGetTextureIndexAndTextCoord(const json::object_t &material, const std::string &textureName, int *pIndex, int *pTexCoord)
@@ -103,7 +103,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
 
         float metallicFactor = GetElementFloat(pbrMetallicRoughness, "metallicFactor", 1.0);
         float roughnessFactor = GetElementFloat(pbrMetallicRoughness, "roughnessFactor", 1.0);
-        tfmat->m_params.m_metallicRoughnessValues = XMVectorSet(metallicFactor, roughnessFactor, 0, 0);
+        tfmat->m_params.m_metallicRoughnessValues = math::Vector4(metallicFactor, roughnessFactor, 0, 0);
         tfmat->m_params.m_baseColorFactor = GetVector(GetElementJsonArray(pbrMetallicRoughness, "baseColorFactor", ones));
 
         if (ProcessGetTextureIndexAndTextCoord(pbrMetallicRoughness, "baseColorTexture", &index, &texCoord))
@@ -135,7 +135,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
 
                 float glossiness = GetElementFloat(pbrSpecularGlossiness, "glossinessFactor", 1.0);
                 tfmat->m_params.m_DiffuseFactor = GetVector(GetElementJsonArray(pbrSpecularGlossiness, "diffuseFactor", ones));
-                tfmat->m_params.m_specularGlossinessFactor = XMVectorSetW(GetVector(GetElementJsonArray(pbrSpecularGlossiness, "specularFactor", ones)), glossiness);
+                tfmat->m_params.m_specularGlossinessFactor = math::Vector4(GetVector(GetElementJsonArray(pbrSpecularGlossiness, "specularFactor", ones)).getXYZ(), glossiness);
 
                 if (ProcessGetTextureIndexAndTextCoord(pbrSpecularGlossiness, "diffuseTexture", &index, &texCoord))
                 {

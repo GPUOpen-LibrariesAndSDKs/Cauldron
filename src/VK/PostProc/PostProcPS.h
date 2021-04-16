@@ -52,7 +52,6 @@ namespace CAULDRON_VK
         uint32_t m_NumIndices;
         VkIndexType m_indexType;
         VkDescriptorBufferInfo m_IBV;
-        VkDescriptorBufferInfo m_verticesView;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
         VkRenderPass m_renderPass = VK_NULL_HANDLE;

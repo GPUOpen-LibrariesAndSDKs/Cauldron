@@ -24,7 +24,14 @@
 
 namespace CAULDRON_VK
 {
-    enum DisplayModes
+    enum PresentationMode
+    {
+        PRESENTATIONMODE_WINDOWED,
+        PRESENTATIONMODE_BORDERLESS_FULLSCREEN,
+        PRESENTATIONMODE_EXCLUSIVE_FULLSCREEN
+    };
+
+    enum DisplayMode
     {
         DISPLAYMODE_SDR,
         DISPLAYMODE_FSHDR_Gamma22,
@@ -36,15 +43,17 @@ namespace CAULDRON_VK
     // only the swapchain should be using these functions
 
     bool fsHdrInit(VkDevice device, VkSurfaceKHR surface, VkPhysicalDevice physicalDevice, HWND hWnd);
-    bool fsHdrEnumerateDisplayModes(std::vector<DisplayModes> *pModes);
-    VkSurfaceFormatKHR fsHdrGetFormat(DisplayModes displayMode);
-    bool fsHdrSetDisplayMode(DisplayModes displayMode, VkSwapchainKHR swapChain);
-    const char *fsHdrGetDisplayModeString(DisplayModes displayMode);
+    bool fsHdrEnumerateDisplayModes(std::vector<DisplayMode> *pModes, bool includeFreesyncHDR, PresentationMode fullscreenMode = PRESENTATIONMODE_WINDOWED, bool enableLocalDimming = true);
+    VkSurfaceFormatKHR fsHdrGetFormat(DisplayMode displayMode);
+    bool fsHdrSetDisplayMode(DisplayMode displayMode, VkSwapchainKHR swapChain);
+    const char *fsHdrGetDisplayModeString(DisplayMode displayMode);
     const VkHdrMetadataEXT* fsHdrGetDisplayInfo();
 
     void fsHdrSetLocalDimmingMode(VkSwapchainKHR swapchain, VkBool32 localDimmingEnable);
     void fsHdrSetFullscreenState(bool fullscreen, VkSwapchainKHR swapchain);
 
     void fsHdrGetPhysicalDeviceSurfaceCapabilities2KHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR *pSurfCapabilities);
-    VkSurfaceFullScreenExclusiveInfoEXT* GetVkSurfaceFullScreenExclusiveInfoEXT();
+    VkSurfaceFullScreenExclusiveInfoEXT *GetVkSurfaceFullScreenExclusiveInfoEXT();
+
+    const bool CheckIfWindowModeHdrOn();
 }
