@@ -179,7 +179,6 @@ namespace CAULDRON_VK
         present.pResults = NULL;
 
         VkResult res = vkQueuePresentKHR(m_presentQueue, &present);
-        assert(res == VK_SUCCESS);
     }
 
     void SwapChain::SetFullScreen(bool fullscreen)
