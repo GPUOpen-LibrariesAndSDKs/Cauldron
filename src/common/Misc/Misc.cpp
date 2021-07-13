@@ -421,7 +421,12 @@ void Log::Trace(const char* LogString)
 
 Log::Log()
 {
-    m_FileHandle = CreateFileW(L"Cauldron.log", GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, nullptr);
+    PWSTR path = NULL;
+    SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path);
+    CreateDirectoryW((std::wstring(path) + L"\\AMD").c_str(), 0);
+    CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron\\").c_str(), 0);
+
+    m_FileHandle = CreateFileW((std::wstring(path)+L"\\AMD\\Cauldron\\Cauldron.log").c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, nullptr);
     assert(m_FileHandle != INVALID_HANDLE_VALUE);
 
     // Initialize the overlapped structure for asynchronous write

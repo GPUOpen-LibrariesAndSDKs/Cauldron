@@ -43,7 +43,7 @@ namespace CAULDRON_DX12
         m_BackBufferCount = numberBackBuffers;
 
         // Init FS HDR
-        fsHdrInit(pDevice->GetAGSContext(), pDevice->GetAGSGPUInfo(), hWnd, pDevice->GetAdapter());
+        fsHdrInit(pDevice->GetAGSContext(), pDevice->GetAGSGPUInfo(), hWnd);
 
         // set some safe format to start with
         m_swapChainFormat = fsHdrGetFormat(DISPLAYMODE_SDR);

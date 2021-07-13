@@ -96,7 +96,7 @@ void MagnifierPS::OnCreateWindowSizeDependentResources(Texture* pTexture)
 		image_info.queueFamilyIndexCount = 0;
 		image_info.pQueueFamilyIndices = NULL;
 		image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+		image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 		image_info.flags = 0;
 		image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
 		m_TexPassOutput.Init(m_pDevice, &image_info, "TexMagnifierOutput");
@@ -231,6 +231,11 @@ void MagnifierPS::DestroyDescriptorSets()
 {
 	m_pResourceViewHeaps->FreeDescriptor(m_DescriptorSet);
 	vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_DescriptorSetLayout, NULL);
+}
+
+void MagnifierPS::UpdatePipelines(VkRenderPass renderPass)
+{
+	m_ShaderMagnify.UpdatePipeline(renderPass, NULL, VK_SAMPLE_COUNT_1_BIT);
 }
 
 void MagnifierPS::BeginPass(VkCommandBuffer cmd, VkRect2D renderArea, SwapChain* pSwapChain)

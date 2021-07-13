@@ -116,7 +116,7 @@ namespace CAULDRON_VK
         return 0;
     }
 
-    INT32 Texture::InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, const char *name)
+    INT32 Texture::InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, const char *name, VkImageCreateFlagBits flags)
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -134,13 +134,13 @@ namespace CAULDRON_VK
         image_info.pQueueFamilyIndices = NULL;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         image_info.usage = usage; //TODO    
-        image_info.flags = 0;
+        image_info.flags = flags;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;   // VK_IMAGE_TILING_LINEAR should never be used and will never be faster
 
         return Init(pDevice, &image_info, name);
     }
 
-    void Texture::CreateRTV(VkImageView *pImageView, int mipLevel)
+    void Texture::CreateRTV(VkImageView *pImageView, int mipLevel, VkFormat format)
     {
         VkImageViewCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -155,7 +155,10 @@ namespace CAULDRON_VK
         {
             info.subresourceRange.layerCount = 1;
         }
-        info.format = m_format;
+        if (format == VK_FORMAT_UNDEFINED)
+            info.format = m_format;
+        else
+            info.format = format;
         if (m_format == VK_FORMAT_D32_SFLOAT)
             info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         else
@@ -405,7 +408,7 @@ namespace CAULDRON_VK
         //
         UINT32 bytesPerPixel = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
         UINT32 pixelsPerBlock = 1;
-        if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC7_UNORM_SRGB))
+        if (IsBCFormat(m_header.format))
         {
             pixelsPerBlock = 4*4; // BC formats have 4*4 pixels per block
         }
@@ -598,6 +601,7 @@ namespace CAULDRON_VK
         case DXGI_FORMAT_R10G10B10A2_UNORM: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
         case DXGI_FORMAT_R16G16B16A16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;
         case DXGI_FORMAT_R32G32B32A32_FLOAT: return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case DXGI_FORMAT_A8_UNORM:          return VK_FORMAT_R8_UNORM;
         default: assert(false);  return VK_FORMAT_UNDEFINED;
         }
     }

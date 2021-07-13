@@ -21,6 +21,8 @@
 #include "ShaderCompilerHelper.h"
 #include "base/ShaderCompilerCache.h"
 #include "Misc/AsyncCache.h"
+#include <codecvt>
+#include <locale>
 
 namespace CAULDRON_DX12
 {
@@ -38,9 +40,14 @@ namespace CAULDRON_DX12
 
     void CreateShaderCache()
     {
-        InitShaderCompilerCache("ShaderLibDX", "ShaderLibDX\\ShaderCacheDX");
-        CreateDirectoryA(GetShaderCompilerLibDir().c_str(), 0);
-        CreateDirectoryA(GetShaderCompilerCacheDir().c_str(), 0);
+        PWSTR path = NULL;
+        SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path);
+        std::wstring sShaderCachePathW = std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheDX";
+        CreateDirectoryW((std::wstring(path) + L"\\AMD").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheDX").c_str(), 0);
+
+        InitShaderCompilerCache("ShaderLibDX", std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sShaderCachePathW));
     }
 
     void DestroyShaderCache(Device *pDevice)

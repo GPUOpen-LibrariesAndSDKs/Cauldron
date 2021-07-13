@@ -599,7 +599,7 @@ bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam) const
     }
 
     pCam->SetMatrix(m_worldSpaceMats[m_cameras[cameraIdx].m_nodeIndex].GetCurrent());
-    pCam->SetFov(m_cameras[cameraIdx].yfov, 1280, 720, m_cameras[cameraIdx].znear, m_cameras[cameraIdx].zfar);
+    pCam->SetFov(m_cameras[cameraIdx].yfov, pCam->GetAspectRatio(), m_cameras[cameraIdx].znear, m_cameras[cameraIdx].zfar);
 
     return true;
 }

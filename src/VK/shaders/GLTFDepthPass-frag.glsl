@@ -31,6 +31,10 @@ precision highp float;
 #include "GLTF_VS2PS_IO.glsl"
 layout (location = 0) in VS2PS Input;
 
+#include "perFrameStruct.h"
+
+PerFrame myPerFrame;
+
 //--------------------------------------------------------------------------------------
 // Texture definitions
 //--------------------------------------------------------------------------------------
@@ -43,5 +47,6 @@ layout (location = 0) in VS2PS Input;
 
 void main()
 {
+	myPerFrame.u_LodBias = 0.0;
 	discardPixelIfAlphaCutOff(Input);
 }

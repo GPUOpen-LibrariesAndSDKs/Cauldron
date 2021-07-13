@@ -68,7 +68,8 @@ struct PerFrame
 
     float4        u_WireframeOptions;
 
-    int3          u_padding;
+    float         u_LodBias;
+    int2          u_padding;
 
     int           u_lightCount;
     Light         u_lights[MAX_LIGHT_INSTANCES];

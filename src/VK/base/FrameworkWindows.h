@@ -37,7 +37,7 @@ namespace CAULDRON_VK
 		virtual void OnDestroy() = 0;
 		virtual void OnRender() = 0;
 		virtual bool OnEvent(MSG msg) = 0;
-		virtual void OnResize() = 0;
+		virtual void OnResize(bool resizeRender) = 0;
 		virtual void OnUpdateDisplay() = 0;
 
 		// Device & swapchain management
@@ -51,9 +51,8 @@ namespace CAULDRON_VK
 		void HandleFullScreen();
 		void OnActivate(bool windowActive);
 		void OnWindowMove();
-		void UpdateDisplay(int displayMode);
-		void OnResize(uint32_t Width, uint32_t Height, bool forceManulResize);
-		void HandleResize(uint32_t Width, uint32_t Height) { OnResize(Width, Height, m_forceManualResize); }
+		void UpdateDisplay();
+		void OnResize(uint32_t Width, uint32_t Height);
 		void OnLocalDimmingChanged();
 
 		// Getters
@@ -90,13 +89,11 @@ namespace CAULDRON_VK
 		// Display management
 		HMONITOR                  m_monitor;
 		bool                      m_FreesyncHDROptionEnabled;
-		DisplayMode               m_currentDisplayMode;
 		DisplayMode               m_previousDisplayModeNamesIndex;
 		DisplayMode               m_currentDisplayModeNamesIndex ;
 		std::vector<DisplayMode>  m_displayModesAvailable;
 		std::vector<const char*>  m_displayModesNamesAvailable;
 		bool                      m_enableLocalDimming;
-		bool                      m_forceManualResize;
 
 		// System info
 		struct SystemInfo

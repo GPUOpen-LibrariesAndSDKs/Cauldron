@@ -25,15 +25,15 @@ namespace CAULDRON_DX12
     class ToneMapping
     {
     public:
-        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat);
+        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat, uint32_t srvTableSize = 1, const char* shaderSource = "Tonemapping.hlsl");
         void OnDestroy();
         void UpdatePipelines(DXGI_FORMAT outFormat);
-        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, bool gamma2 = false);
 
-    private:
+    protected:
         PostProcPS m_toneMapping;
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        struct ToneMappingConsts { float exposure; int toneMapper; int gamma2; };
     };
 }

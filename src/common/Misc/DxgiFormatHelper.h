@@ -30,3 +30,5 @@ DXGI_FORMAT ConvertIntoNonGammaFormat(DXGI_FORMAT format);
 DXGI_FORMAT ConvertIntoGammaFormat(DXGI_FORMAT format);
 
 DXGI_FORMAT SetFormatGamma(DXGI_FORMAT format, bool addGamma);
+
+bool IsBCFormat(DXGI_FORMAT format);

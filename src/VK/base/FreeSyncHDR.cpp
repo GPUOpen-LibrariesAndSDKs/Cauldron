@@ -155,7 +155,7 @@ namespace CAULDRON_VK
         availableDisplayModeSurfaceformats.clear();
 
         VkSurfaceFormatKHR surfaceFormat;
-        surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+        surfaceFormat.format = VK_FORMAT_R8G8B8A8_UNORM;
         surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 
         pModes->push_back(DISPLAYMODE_SDR);
@@ -182,6 +182,11 @@ namespace CAULDRON_VK
                     break;
                 }
             }
+        } else
+        {
+            s_PhysicalDeviceSurfaceInfo2KHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR;
+            s_PhysicalDeviceSurfaceInfo2KHR.pNext = nullptr;
+            s_PhysicalDeviceSurfaceInfo2KHR.surface = s_surface;
         }
 
         if (ExtAreFSEExtensionsPresent())

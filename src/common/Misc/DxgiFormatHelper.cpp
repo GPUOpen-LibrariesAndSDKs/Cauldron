@@ -188,6 +188,9 @@ size_t GetPixelByteSize(DXGI_FORMAT fmt)
 {
     switch (fmt)
     {
+    case(DXGI_FORMAT_A8_UNORM):
+        return 1;
+
     case(DXGI_FORMAT_R10G10B10A2_TYPELESS):
     case(DXGI_FORMAT_R10G10B10A2_UNORM):
     case(DXGI_FORMAT_R10G10B10A2_UINT):
@@ -303,4 +306,9 @@ DXGI_FORMAT SetFormatGamma(DXGI_FORMAT format, bool addGamma)
     }
 
     return format;
+}
+
+bool IsBCFormat(DXGI_FORMAT format)
+{
+    return (format >= DXGI_FORMAT_BC1_TYPELESS && format <= DXGI_FORMAT_BC5_SNORM) || (format >= DXGI_FORMAT_BC6H_TYPELESS && format <= DXGI_FORMAT_BC7_UNORM_SRGB);
 }

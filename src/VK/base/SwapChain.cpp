@@ -49,7 +49,7 @@ namespace CAULDRON_VK
         // set some safe format to start with
         m_displayMode = DISPLAYMODE_SDR;
         VkSurfaceFormatKHR surfaceFormat;
-        surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
+        surfaceFormat.format = VK_FORMAT_R8G8B8A8_UNORM;
         surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
         m_swapChainFormat = surfaceFormat;
 
@@ -83,8 +83,8 @@ namespace CAULDRON_VK
         // if SDR then use a gamma corrected swapchain so the blending is correct
         if (m_displayMode == DISPLAYMODE_SDR)
         {
-            assert(m_swapChainFormat.format == VK_FORMAT_B8G8R8A8_UNORM);
-            m_swapChainFormat.format = VK_FORMAT_B8G8R8A8_SRGB;
+            assert(m_swapChainFormat.format == VK_FORMAT_R8G8B8A8_UNORM);
+            m_swapChainFormat.format = VK_FORMAT_R8G8B8A8_SRGB;
         }
 
         CreateRenderPass();
@@ -209,8 +209,8 @@ namespace CAULDRON_VK
         // if SDR then use a gamma corrected swapchain so the blending is correct
         if (m_displayMode == DISPLAYMODE_SDR)
         {
-            assert(m_swapChainFormat.format == VK_FORMAT_B8G8R8A8_UNORM);
-            m_swapChainFormat.format = VK_FORMAT_B8G8R8A8_SRGB;
+            assert(m_swapChainFormat.format == VK_FORMAT_R8G8B8A8_UNORM);
+            m_swapChainFormat.format = VK_FORMAT_R8G8B8A8_SRGB;
         }
 
         VkResult res;

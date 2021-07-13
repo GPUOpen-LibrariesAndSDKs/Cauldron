@@ -34,30 +34,21 @@ Camera::Camera()
 //--------------------------------------------------------------------------------------
 void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane, float farPlane)
 {
-    m_aspectRatio = width * 1.f / height;
+    SetFov(fovV, width * 1.f / height, nearPlane, farPlane);
+}
+
+void Camera::SetFov(float fovV, float aspectRatio, float nearPlane, float farPlane)
+{
+    m_aspectRatio = aspectRatio;
 
     m_near = nearPlane;
     m_far = farPlane;
 
     m_fovV = fovV;
-    m_fovH = std::min<float>((m_fovV * width) / height, XM_PI / 2.0f);
-    m_fovV = m_fovH * height / width;
+    m_fovH = std::min<float>(m_fovV * aspectRatio, XM_PI / 2.0f);
+    m_fovV = m_fovH / aspectRatio;
 
-    float halfWidth = (float)width / 2.0f;
-    float halfHeight = (float)height / 2.0f;
-    m_Viewport = math::Matrix4(
-        math::Vector4(halfWidth, 0.0f, 0.0f, 0.0f),
-        math::Vector4(0.0f, -halfHeight, 0.0f, 0.0f),
-        math::Vector4(0.0f, 0.0f, 1.0f, 0.0f),
-        math::Vector4(halfWidth, halfHeight, 0.0f, 1.0f));
-    
-    if (fovV == 0)
-    {
-        float OrthoWidth = height / 40.f;
-        m_Proj = math::Matrix4::orthographic(-OrthoWidth/2.f, OrthoWidth/2.f, -OrthoWidth / 2.f, OrthoWidth / 2.f, nearPlane, farPlane);
-    }
-    else
-        m_Proj = math::Matrix4::perspective(fovV, m_aspectRatio, nearPlane, farPlane);
+    m_Proj = math::Matrix4::perspective(fovV, m_aspectRatio, nearPlane, farPlane);
 }
 
 void Camera::SetMatrix(const math::Matrix4& cameraMatrix)

@@ -59,8 +59,8 @@ struct PerFrame
     vec2          u_invScreenResolution;
 
     vec4          u_WireframeOptions;
-
-    vec3          u_padding;
+    float         u_LodBias;
+    vec2          u_padding;
     int           u_lightCount;
     Light         u_lights[MAX_LIGHT_INSTANCES];
 };

@@ -26,6 +26,7 @@ cbuffer cbPerFrame : register(b0)
 {
     float u_exposure : packoffset(c0.x);
     int   u_toneMapper : packoffset(c0.y);
+    int   u_gamma2 : packoffset(c0.z);
 }
 
 //--------------------------------------------------------------------------------------
@@ -91,6 +92,7 @@ float4 mainPS(VERTEX Input) : SV_Target
     float4 texColor = HDR.Sample(samLinearWrap, Input.vTexcoord);
 
     float3 color = Tonemap(texColor.rgb, u_exposure, u_toneMapper);
-
+    if (u_gamma2 == 1)
+        color = sqrt(color);
     return float4(color, 1);
 }

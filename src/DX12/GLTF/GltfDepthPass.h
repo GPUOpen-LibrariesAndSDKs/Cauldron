@@ -51,11 +51,6 @@ namespace CAULDRON_DX12
     class GltfDepthPass
     {
     public:
-        struct per_frame
-        {
-            math::Matrix4 mViewProj;
-        };
-
         struct per_object
         {
             math::Matrix4 mWorld;
@@ -72,7 +67,7 @@ namespace CAULDRON_DX12
             DXGI_FORMAT depthFormat = DXGI_FORMAT_D32_FLOAT);
 
         void OnDestroy();
-        GltfDepthPass::per_frame *SetPerFrameConstants(int passIndex = 0);
+        per_frame *SetPerFrameConstants(int passIndex = 0);
         void Draw(ID3D12GraphicsCommandList* pCommandList, int passIndex = 0);
     private:
         Device *m_pDevice;

@@ -138,7 +138,7 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
         Camera Cam;
         if (pGltfLoader->GetCamera(cameraId, &Cam) == false)
         {
-            Trace(format("The cameraId %i doesn't exits in the GLTF\n", cameraId));
+            Trace(format("The cameraId %i doesn't exist in the GLTF\n", cameraId));
             exit(0);
         }
         bm.m_animationFound = true;

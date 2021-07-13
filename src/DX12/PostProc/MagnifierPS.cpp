@@ -23,6 +23,7 @@
 #include "Base/DynamicBufferRing.h"
 #include "Base/UserMarkers.h"
 #include "Misc/Misc.h"
+#include "Misc/DxgiFormatHelper.h"
 
 #include <fstream>
 #include <sstream>
@@ -83,6 +84,7 @@ void MagnifierPS::OnCreateWindowSizeDependentResources(const Texture* pTexture)
 		m_TexPassOutput.CreateSRV(0, &m_SRVOutput);
 		m_TexPassOutput.CreateUAV(0, &m_UAVOutput);
 		m_TexPassOutput.CreateRTV(0, &m_RTVOutput);
+		m_TexPassOutput.CreateRTV(0, &m_RTVOutputSrgb, -1, -1, -1, ConvertIntoGammaFormat(textureDesc.Format));
 	}
 }
 
@@ -124,6 +126,7 @@ void MagnifierPS::InitializeHeaps()
 	m_pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_UAVOutput);
 	m_pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_SRVOutput);
 	m_pResourceViewHeaps->AllocRTVDescriptor(1, &m_RTVOutput);
+	m_pResourceViewHeaps->AllocRTVDescriptor(1, &m_RTVOutputSrgb);
 }
 
 void MagnifierPS::CompileShaders(StaticBufferPool* pStaticBufferPool, DXGI_FORMAT outFormat)
@@ -174,6 +177,11 @@ void MagnifierPS::CompileShaders(StaticBufferPool* pStaticBufferPool, DXGI_FORMA
 		, NUM_SAMPLERS, SamplerDescs
 		, outFormat);
 	return;
+}
+
+void MagnifierPS::UpdatePipeline(DXGI_FORMAT outFormat)
+{
+	m_ShaderMagnify.UpdatePipeline(outFormat);
 }
 
 void MagnifierPS::DestroyShaders()

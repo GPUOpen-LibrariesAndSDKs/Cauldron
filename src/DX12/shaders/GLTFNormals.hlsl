@@ -35,7 +35,9 @@ float2 getNormalUV(VS_OUTPUT_SCENE Input)
 float3 getNormalTexture(VS_OUTPUT_SCENE Input)
 {
 #ifdef ID_normalTexture
-    return normalTexture.Sample(samNormal, getNormalUV(Input)).rgb;
+    float2 xy = 2.0 * normalTexture.SampleBias(samNormal, getNormalUV(Input), myPerFrame.u_LodBias).rg - 1.0;
+    float  z = sqrt(1.0f - dot(xy, xy));
+    return float3(xy, z);
 #else 
     return float3(0, 0, 0);
 #endif
@@ -69,7 +71,7 @@ float3 getPixelNormal(VS_OUTPUT_SCENE Input, bool bIsFontFacing = false)
 
 #ifdef ID_normalTexture
     float3 n = getNormalTexture(Input);
-    n = normalize(mul(transpose(tbn),((2.0 * n - 1.0) /* * float3(u_NormalScale, u_NormalScale, 1.0) */)));
+    n = normalize(mul(transpose(tbn),(n /* * float3(u_NormalScale, u_NormalScale, 1.0) */)));
 #else
     // The tbn matrix is linearly interpolated, so we need to re-normalize
     float3 n = normalize(tbn[2].xyz);

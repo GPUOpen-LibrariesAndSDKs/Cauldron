@@ -28,8 +28,9 @@
 
 namespace CAULDRON_VK
 {
-    void TAA::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing)
+    void TAA::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing, bool sharpening)
     {
+        m_bSharpening = sharpening;
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pResourceViewHeaps;
         VkResult res;
@@ -97,6 +98,7 @@ namespace CAULDRON_VK
             m_pResourceViewHeaps->AllocDescriptor(m_TaaDescriptorSetLayout, &m_TaaDescriptorSet);
 
             m_TAA.OnCreate(m_pDevice, "TAA.hlsl", "main", "-T cs_6_0", m_TaaDescriptorSetLayout, 16, 16, 1, NULL);
+            m_TAAFirst.OnCreate(m_pDevice, "TAA.hlsl", "first", "-T cs_6_0", m_TaaDescriptorSetLayout, 16, 16, 1, NULL);
         }
 
         // Sharpener
@@ -125,15 +127,18 @@ namespace CAULDRON_VK
             m_pResourceViewHeaps->AllocDescriptor(m_SharpenDescriptorSetLayout, &m_SharpenDescriptorSet);
 
             m_Sharpen.OnCreate(m_pDevice, "TAASharpenerCS.hlsl", "mainCS", "-T cs_6_0", m_SharpenDescriptorSetLayout, 8, 8, 1, NULL);            
+            m_Post.OnCreate(m_pDevice, "TAASharpenerCS.hlsl", "postCS", "-T cs_6_0", m_SharpenDescriptorSetLayout, 8, 8, 1, NULL);
         }
     }
 
     void TAA::OnDestroy()
     {
         m_TAA.OnDestroy();
+        m_TAAFirst.OnDestroy();
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_TaaDescriptorSetLayout, NULL);
 
         m_Sharpen.OnDestroy();
+        m_Post.OnDestroy();
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_SharpenDescriptorSetLayout, NULL);
 
         for (int i = 0; i < 4; i++)
@@ -199,6 +204,8 @@ namespace CAULDRON_VK
         SetDescriptorSet(m_pDevice->GetDevice(), 0, m_TAABufferSRV, NULL, m_SharpenDescriptorSet);
         SetDescriptorSet(m_pDevice->GetDevice(), 1, m_pGBuffer->m_HDRSRV, m_SharpenDescriptorSet);
         SetDescriptorSet(m_pDevice->GetDevice(), 2, m_HistoryBufferSRV, m_SharpenDescriptorSet);
+
+        m_bFirst = true;
     }
 
     //--------------------------------------------------------------------------------------
@@ -252,8 +259,12 @@ namespace CAULDRON_VK
 
                 vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 2, barriers);
             }
-
-            m_TAA.Draw(cmd_buf, NULL, m_TaaDescriptorSet, (m_Width + 15) / 16, (m_Height + 15) / 16, 1);
+            if (m_bFirst)
+            {
+                m_bFirst = false;
+                m_TAAFirst.Draw(cmd_buf, NULL, m_TaaDescriptorSet, (m_Width + 15) / 16, (m_Height + 15) / 16, 1);
+            } else
+                m_TAA.Draw(cmd_buf, NULL, m_TaaDescriptorSet, (m_Width + 15) / 16, (m_Height + 15) / 16, 1);
         }
 
         {
@@ -292,9 +303,10 @@ namespace CAULDRON_VK
 
                 vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 3, barriers);
             }
-
-            m_Sharpen.Draw(cmd_buf, NULL, m_SharpenDescriptorSet, (m_Width + 7) / 8, (m_Height + 7) / 8, 1);
-
+            if( m_bSharpening )
+                m_Sharpen.Draw(cmd_buf, NULL, m_SharpenDescriptorSet, (m_Width + 7) / 8, (m_Height + 7) / 8, 1);
+            else
+                m_Post.Draw(cmd_buf, NULL, m_SharpenDescriptorSet, (m_Width + 7) / 8, (m_Height + 7) / 8, 1);
             {
                 VkImageMemoryBarrier barrier = {};
                 barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

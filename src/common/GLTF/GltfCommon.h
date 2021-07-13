@@ -90,8 +90,8 @@ struct per_frame
     float     invScreenResolution[2];
 
     math::Vector4 wireframeOptions;
-
-    uint32_t  padding[3];
+    float     lodBias = 0.0f;
+    uint32_t  padding[2];
     uint32_t  lightCount;
     Light     lights[MaxLightInstances];
 };

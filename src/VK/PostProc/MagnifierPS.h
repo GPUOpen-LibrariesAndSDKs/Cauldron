@@ -87,10 +87,11 @@ namespace CAULDRON_VK
 			, SwapChain*            pSwapChain = nullptr
 		);
 
+		inline Texture& GetPassOutput() { assert(!m_bOutputsToSwapchain); return m_TexPassOutput; }
 		inline VkImage GetPassOutputResource() const { assert(!m_bOutputsToSwapchain); return m_TexPassOutput.Resource(); }
 		inline VkImageView GetPassOutputSRV() const  { assert(!m_bOutputsToSwapchain); return m_SRVOutput; }
 		inline VkRenderPass GetPassRenderPass() const { assert(!m_bOutputsToSwapchain); return m_RenderPass; }
-
+		void UpdatePipelines(VkRenderPass renderPass);
 	private:
 
 		void CompileShaders(StaticBufferPool* pStaticBufferPool, VkFormat outFormat);
@@ -99,7 +100,6 @@ namespace CAULDRON_VK
 		void InitializeDescriptorSets();
 		void UpdateDescriptorSets(VkImageView ImageViewSrc);
 		void DestroyDescriptorSets();
-
 		VkDescriptorBufferInfo SetConstantBufferData(const PassParameters& params);
 		static void KeepMagnifierOnScreen(const PassParameters& params);
 

@@ -68,7 +68,7 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWi
     if (windowClass.hIcon == NULL)
     {
         DWORD dw = GetLastError();
-        if (dw == 0x715) // 0x715 is file not found.
+        if (dw == ERROR_RESOURCE_TYPE_NOT_FOUND)
             Trace("Warning: Icon file or .rc file not found, using default Windows app icon.");
         else
             Trace("Warning: error loading icon, using default Windows app icon.");
@@ -235,7 +235,7 @@ LRESULT CALLBACK WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
             {
                 RECT clientRect = {};
                 GetClientRect(hWnd, &clientRect);
-                pFrameworkInstance->HandleResize(clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+                pFrameworkInstance->OnResize(clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
                 bIsMinimized = (IsIconic(hWnd) == TRUE);
                 return 0;
             }
@@ -346,13 +346,11 @@ namespace CAULDRON_DX12
         // Display management
         , m_monitor()
         , m_FreesyncHDROptionEnabled(false)
-        , m_currentDisplayMode           (DISPLAYMODE_SDR)
         , m_previousDisplayModeNamesIndex(DISPLAYMODE_SDR)
         , m_currentDisplayModeNamesIndex (DISPLAYMODE_SDR)
         , m_displayModesAvailable()
         , m_displayModesNamesAvailable()
         , m_disableLocalDimming(false)
-        , m_forceManualResize(false)
 
         // System info
         , m_systemInfo() // initialized after device
@@ -417,7 +415,7 @@ namespace CAULDRON_DX12
             m_swapChain.SetFullScreen(false);
 
         // Fall back to SDR when app closes
-        if (m_currentDisplayMode != DISPLAYMODE_SDR)
+        if (m_displayModesAvailable[m_currentDisplayModeNamesIndex] != DISPLAYMODE_SDR)
             m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height, m_VsyncEnabled, DISPLAYMODE_SDR, false);
 
         m_swapChain.OnDestroyWindowSizeDependentResources();
@@ -466,7 +464,7 @@ namespace CAULDRON_DX12
             m_currentDisplayModeNamesIndex = m_previousDisplayModeNamesIndex;
         }
         // -------------------- For HDR only.
-
+        bool resizeResources = false;
         switch (m_fullscreenMode)
         {
         case PRESENTATIONMODE_WINDOWED:
@@ -474,7 +472,7 @@ namespace CAULDRON_DX12
             if (m_previousFullscreenMode == PRESENTATIONMODE_EXCLUSIVE_FULLSCREEN)
             {
                 m_swapChain.SetFullScreen(false);
-                m_forceManualResize = true;
+                resizeResources = true;
             }
 
             SetFullscreen(m_windowHwnd, false);
@@ -491,7 +489,7 @@ namespace CAULDRON_DX12
             else if (m_previousFullscreenMode == PRESENTATIONMODE_EXCLUSIVE_FULLSCREEN)
             {
                 m_swapChain.SetFullScreen(false);
-                m_forceManualResize = true;
+                resizeResources = true;
             }
 
             break;
@@ -505,7 +503,7 @@ namespace CAULDRON_DX12
             }
 
             m_swapChain.SetFullScreen(true);
-            m_forceManualResize = true;
+            resizeResources = true;
 
             break;
         }
@@ -513,9 +511,15 @@ namespace CAULDRON_DX12
 
         RECT clientRect = {};
         GetClientRect(m_windowHwnd, &clientRect);
-        OnResize(clientRect.right - clientRect.left, clientRect.bottom - clientRect.top, m_forceManualResize);
-        UpdateDisplay(m_displayModesAvailable[m_currentDisplayModeNamesIndex], m_disableLocalDimming);
-        m_forceManualResize = false;
+        uint32_t nw = clientRect.right - clientRect.left;
+        uint32_t nh = clientRect.bottom - clientRect.top;
+        resizeResources = (resizeResources && nw == m_Width && nh == m_Height);
+        OnResize(nw, nh);
+        if (resizeResources)
+        {
+            UpdateDisplay(m_disableLocalDimming);
+            OnResize(true);
+        }
     }
 
     void FrameworkWindows::OnActivate(bool WindowActive)
@@ -544,10 +548,13 @@ namespace CAULDRON_DX12
             return;
 
         // Fall back HDR to SDR when window is fullscreen but not the active window or foreground window
+        DisplayMode old = m_currentDisplayModeNamesIndex;
         m_currentDisplayModeNamesIndex = WindowActive && (m_fullscreenMode != PRESENTATIONMODE_WINDOWED) ? m_previousDisplayModeNamesIndex : DisplayMode::DISPLAYMODE_SDR;
-
-        OnResize(m_Width, m_Height, m_forceManualResize);
-        UpdateDisplay(m_displayModesAvailable[m_currentDisplayModeNamesIndex], m_disableLocalDimming);
+        if (old != m_currentDisplayModeNamesIndex)
+        {
+            UpdateDisplay(m_disableLocalDimming);
+            OnResize(true);
+        }
     }
 
     void FrameworkWindows::OnWindowMove()
@@ -558,57 +565,42 @@ namespace CAULDRON_DX12
             m_swapChain.EnumerateDisplayModes(&m_displayModesAvailable, &m_displayModesNamesAvailable);
             m_monitor = currentMonitor;
             m_previousDisplayModeNamesIndex = m_currentDisplayModeNamesIndex = DISPLAYMODE_SDR;
-            UpdateDisplay(m_displayModesAvailable[m_currentDisplayModeNamesIndex], m_disableLocalDimming);
+            UpdateDisplay(m_disableLocalDimming);
         }
     }
 
-    void FrameworkWindows::OnResize(uint32_t width, uint32_t height, bool forceManulResize)
+    void FrameworkWindows::OnResize(uint32_t width, uint32_t height)
     {
-        if (m_Width != width || m_Height != height || forceManulResize)
+        bool fr = (m_Width != width || m_Height != height);
+        m_Width = width;
+        m_Height = height;
+        if (fr)
         {
-            // Flush GPU
-            m_device.GPUFlush();
-
-            // Destroy resources (if we are not minimized)
-            if (m_Width > 0 && m_Height > 0)
-                m_swapChain.OnDestroyWindowSizeDependentResources();
-
-            m_Width = width;
-            m_Height = height;
-
-            // If resizing but not minimizing the recreate it with the new size
-            if (m_Width > 0 && m_Height > 0)
-                m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height, m_VsyncEnabled, m_currentDisplayMode, m_disableLocalDimming);
-
-            // Call sample defined OnResize()
-            OnResize();
+            UpdateDisplay(m_disableLocalDimming);
+            OnResize(true);
         }
     }
 
-    void FrameworkWindows::UpdateDisplay(int displayMode, bool disableLocalDimming)
+    void FrameworkWindows::UpdateDisplay(bool disableLocalDimming)
     {
         // Nothing was changed in UI
-        if (displayMode < 0)
+        if (m_displayModesAvailable[m_currentDisplayModeNamesIndex] < 0)
         {
             m_currentDisplayModeNamesIndex = m_previousDisplayModeNamesIndex;
             return;
         }
             
-        if (m_currentDisplayMode != displayMode || m_disableLocalDimming != disableLocalDimming)
-        {
-            // Flush GPU
-            m_device.GPUFlush();
+        // Flush GPU
+        m_device.GPUFlush();
 
-            m_swapChain.OnDestroyWindowSizeDependentResources();
+        m_swapChain.OnDestroyWindowSizeDependentResources();
 
-            m_currentDisplayMode = (DisplayMode)displayMode;
-            m_disableLocalDimming = disableLocalDimming;
+        m_disableLocalDimming = disableLocalDimming;
 
-            m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height, m_VsyncEnabled, m_currentDisplayMode, m_disableLocalDimming);
+        m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height, m_VsyncEnabled, m_displayModesAvailable[m_currentDisplayModeNamesIndex], m_disableLocalDimming);
 
-            // Call sample defined UpdateDisplay()
-            OnUpdateDisplay();
-        }
+        // Call sample defined UpdateDisplay()
+        OnUpdateDisplay();
     }
 
     void FrameworkWindows::BeginFrame()

@@ -26,6 +26,7 @@
 namespace CAULDRON_DX12
 {
     int                         s_displayIndexAGS;
+    int                         s_displayDeviceAGS;
     int                         s_displayIndexDXGI;
     AGSContext                 *s_pAGSContext;
     AGSGPUInfo                 *s_pGPUInfo;
@@ -35,9 +36,10 @@ namespace CAULDRON_DX12
     bool                        s_windowsHdrtoggle = false;
     DisplayMode                 s_previousDisplayMode = DISPLAYMODE_SDR;
 
-    bool fsHdrInit(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hWnd, IDXGIAdapter *adapter)
+    bool fsHdrInit(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hWnd)
     {
         s_displayIndexAGS = -1;
+        s_displayDeviceAGS = -1;
         s_displayIndexDXGI = -1;
         s_pAGSContext = pAGSContext;
         s_pGPUInfo = pGPUInfo;
@@ -46,14 +48,26 @@ namespace CAULDRON_DX12
         // Collect all monitor outputs to adapter selected
         UINT i = 0;
         IDXGIOutput *pOutput;
-        while (adapter->EnumOutputs(i, &pOutput) != DXGI_ERROR_NOT_FOUND)
+        IDXGIFactory* pFactory;
+        ThrowIfFailed(CreateDXGIFactory2(0, IID_PPV_ARGS(&pFactory)));
+        IDXGIAdapter* pa(0);
+        unsigned int a = 0;
+        HRESULT res(S_OK);
+        while ((res = pFactory->EnumAdapters(a, &pa)) == S_OK)
         {
-            IDXGIOutput6 *output6;
-            ThrowIfFailed(pOutput->QueryInterface(__uuidof(IDXGIOutput6), (void**)&output6));
-            s_pOutputs.push_back(output6);
-            pOutput->Release();
-            ++i;
+            a++;
+            while (pa->EnumOutputs(i, &pOutput) != DXGI_ERROR_NOT_FOUND)
+            {
+                IDXGIOutput6* output6;
+                ThrowIfFailed(pOutput->QueryInterface(__uuidof(IDXGIOutput6), (void**)&output6));
+                s_pOutputs.push_back(output6);
+                pOutput->Release();
+                ++i;
+            }
+            pa->Release();
         }
+        assert(res == DXGI_ERROR_NOT_FOUND);
+        pFactory->Release();
 
         return s_pAGSContext != NULL;
     }
@@ -115,8 +129,6 @@ namespace CAULDRON_DX12
         pModes->push_back(DISPLAYMODE_SDR);
 
         float bestIntersectArea = -1;
-        int bestDisplayIndex = -1;
-        UINT numDisplays = 0;
         bool hdrModesAdded = false;
         if (s_pAGSContext != NULL)
         {
@@ -128,31 +140,32 @@ namespace CAULDRON_DX12
             AGSDeviceInfo *devices = s_pGPUInfo->devices;
 
             // Find display, app window is rendering to in ags display list
-            numDisplays = devices[0].numDisplays;
-            for (unsigned int i = 0; i < numDisplays; i++)
-            {
-                RECT windowRect;
-                GetWindowRect(s_hWnd, &windowRect);
-                AGSRect AGSmonitorRect = devices[0].displays[i].currentResolution;
-                RECT monitorRect = { AGSmonitorRect.offsetX, AGSmonitorRect.offsetY, AGSmonitorRect.offsetX + AGSmonitorRect.width, AGSmonitorRect.offsetY + AGSmonitorRect.height };
-
-                if (FindBestDisplayIndex(&windowRect, &monitorRect, &bestIntersectArea))
+            for( int dv = 0; dv < s_pGPUInfo->numDevices; dv++ )
+                for (int i = 0; i < devices[dv].numDisplays; i++)
                 {
-                    bestDisplayIndex = i;
-                }
-            }
+                    RECT windowRect;
+                    GetWindowRect(s_hWnd, &windowRect);
+                    AGSRect AGSmonitorRect = devices[dv].displays[i].currentResolution;
+                    RECT monitorRect = { AGSmonitorRect.offsetX, AGSmonitorRect.offsetY, AGSmonitorRect.offsetX + AGSmonitorRect.width, AGSmonitorRect.offsetY + AGSmonitorRect.height };
 
-            s_displayIndexAGS = bestDisplayIndex;
+                    if (FindBestDisplayIndex(&windowRect, &monitorRect, &bestIntersectArea))
+                    {
+                        s_displayIndexAGS = i;
+                        s_displayDeviceAGS = dv;
+                    }
+                }
+
+
 
             // Check for FS HDR support
-            if (devices[0].displays[s_displayIndexAGS].freesyncHDR)
+            if (devices[s_displayDeviceAGS].displays[s_displayIndexAGS].freesyncHDR)
             {
                 pModes->push_back(DISPLAYMODE_FSHDR_Gamma22);
                 pModes->push_back(DISPLAYMODE_FSHDR_SCRGB);
             }
 
             // Check for HDR10 support
-            if (devices[0].displays[s_displayIndexAGS].HDR10)
+            if (devices[s_displayDeviceAGS].displays[s_displayIndexAGS].HDR10)
             {
                 hdrModesAdded = true;
                 pModes->push_back(DISPLAYMODE_HDR10_2084);
@@ -162,9 +175,7 @@ namespace CAULDRON_DX12
 
         // Find display, app window is rendering to in dxgi display list
         bestIntersectArea = -1;
-        bestDisplayIndex = -1;
-        numDisplays = (UINT)s_pOutputs.size();
-        for (UINT i = 0; i < numDisplays; i++)
+        for (UINT i = 0; i < (UINT)s_pOutputs.size(); i++)
         {
             RECT windowRect;
             GetWindowRect(s_hWnd, &windowRect);
@@ -175,11 +186,9 @@ namespace CAULDRON_DX12
 
             if (FindBestDisplayIndex(&windowRect, &monitorRect, &bestIntersectArea))
             {
-                bestDisplayIndex = i;
+                s_displayIndexDXGI = i;
             }
         }
-
-        s_displayIndexDXGI = bestDisplayIndex;
 
         DXGI_OUTPUT_DESC1 desc1;
         ThrowIfFailed(s_pOutputs[s_displayIndexDXGI]->GetDesc1(&desc1));
@@ -341,7 +350,7 @@ namespace CAULDRON_DX12
                 if (s_previousDisplayMode == DISPLAYMODE_FSHDR_Gamma22 || s_previousDisplayMode == DISPLAYMODE_FSHDR_SCRGB)
                 {
                     agsDisplaySettings.mode = AGSDisplaySettings::Mode::Mode_SDR;
-                    AGSReturnCode rc = agsSetDisplayMode(s_pAGSContext, 0, s_displayIndexAGS, &agsDisplaySettings);
+                    AGSReturnCode rc = agsSetDisplayMode(s_pAGSContext, s_displayDeviceAGS, s_displayIndexAGS, &agsDisplaySettings);
                     assert(rc == AGS_SUCCESS);
                     s_previousDisplayMode = displayMode;
                 }
@@ -380,7 +389,7 @@ namespace CAULDRON_DX12
                 agsDisplaySettings.chromaticityWhitePointY = s_desc1.WhitePoint[1];
                 agsDisplaySettings.minLuminance = s_desc1.MinLuminance;
                 agsDisplaySettings.maxLuminance = s_desc1.MaxLuminance;
-                AGSReturnCode rc = agsSetDisplayMode(s_pAGSContext, 0, s_displayIndexAGS, &agsDisplaySettings);
+                AGSReturnCode rc = agsSetDisplayMode(s_pAGSContext, s_displayDeviceAGS, s_displayIndexAGS, &agsDisplaySettings);
                 assert (rc == AGS_SUCCESS);
                 s_previousDisplayMode = displayMode;
                 return true;

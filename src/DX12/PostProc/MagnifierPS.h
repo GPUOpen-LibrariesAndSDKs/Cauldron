@@ -88,7 +88,9 @@ namespace CAULDRON_DX12
 		inline ID3D12Resource* GetPassOutputResource() const { return m_TexPassOutput.GetResource(); }
 		inline CBV_SRV_UAV GetPassOutputUAV()     const { return m_UAVOutput; }
 		inline RTV         GetPassOutputRTV()     const { return m_RTVOutput; }
+		inline RTV         GetPassOutputRTVSrgb()     const { return m_RTVOutputSrgb; }
 		inline CBV_SRV_UAV GetPassOutputSRV()     const { return m_SRVOutput; }
+		void UpdatePipeline(DXGI_FORMAT outFormat);
 
 	private:
 		void InitializeHeaps();
@@ -119,6 +121,7 @@ namespace CAULDRON_DX12
 		//
 		CBV_SRV_UAV m_UAVOutput;
 		RTV         m_RTVOutput;
+		RTV         m_RTVOutputSrgb;
 		CBV_SRV_UAV m_SRVOutput;
 
 		//

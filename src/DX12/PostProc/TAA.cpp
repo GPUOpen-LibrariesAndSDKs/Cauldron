@@ -30,8 +30,9 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void TAA::OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool)
+    void TAA::OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool, bool sharpening)
     {
+        m_bSharpening = sharpening;
         m_pDevice = pDevice;
 
         m_pResourceViewHeaps = pResourceViewHeaps;
@@ -43,8 +44,9 @@ namespace CAULDRON_DX12
             pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(5, &m_TaaTable);
 
             // Compile shader
-            D3D12_SHADER_BYTECODE shaderByteCode = {};
+            D3D12_SHADER_BYTECODE shaderByteCode = {}, shaderByteCodeFirst = {};
             CompileShaderFromFile("TAA.hlsl", NULL, "main", "-T cs_6_0", &shaderByteCode);
+            CompileShaderFromFile("TAA.hlsl", NULL, "first", "-T cs_6_0", &shaderByteCodeFirst);
 
             // Create root signature
             //
@@ -83,9 +85,11 @@ namespace CAULDRON_DX12
                 D3D12_COMPUTE_PIPELINE_STATE_DESC pipelineStateDesc = {};
                 pipelineStateDesc.pRootSignature = m_pTaaRootSignature;
                 pipelineStateDesc.CS = shaderByteCode;
-
                 pDevice->GetDevice()->CreateComputePipelineState(&pipelineStateDesc, IID_PPV_ARGS(&m_pTaaPipelineState));
                 SetName(m_pTaaPipelineState, "m_pTaaPipelineState");
+                pipelineStateDesc.CS = shaderByteCodeFirst;
+                pDevice->GetDevice()->CreateComputePipelineState(&pipelineStateDesc, IID_PPV_ARGS(&m_pFirstPipelineState));
+                SetName(m_pTaaPipelineState, "FirstTaaPipelineState");
             }
         }
 
@@ -94,10 +98,6 @@ namespace CAULDRON_DX12
         {
             // Alloc descriptors
             pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(3, &m_SharpenerTable);
-
-            // Compile shader
-            D3D12_SHADER_BYTECODE shaderByteCode = {};
-            CompileShaderFromFile("TAASharpenerCS.hlsl", NULL, "mainCS", "-T cs_6_0", &shaderByteCode);
 
             // Create root signature
             //
@@ -127,12 +127,28 @@ namespace CAULDRON_DX12
             // Create pipeline state
             //
             {
+                // Compile shader
+                D3D12_SHADER_BYTECODE shaderByteCode = {};
+                CompileShaderFromFile("TAASharpenerCS.hlsl", NULL, "mainCS", "-T cs_6_0", &shaderByteCode);
+
                 D3D12_COMPUTE_PIPELINE_STATE_DESC pipelineStateDesc = {};
                 pipelineStateDesc.pRootSignature = m_pSharpenerRootSignature;
                 pipelineStateDesc.CS = shaderByteCode;
 
                 pDevice->GetDevice()->CreateComputePipelineState(&pipelineStateDesc, IID_PPV_ARGS(&m_pSharpenerPipelineState));
                 SetName(m_pSharpenerPipelineState, "m_pSharpenerPipelineState");
+            }
+            {
+                // Compile shader
+                D3D12_SHADER_BYTECODE shaderByteCode = {};
+                CompileShaderFromFile("TAASharpenerCS.hlsl", NULL, "postCS", "-T cs_6_0", &shaderByteCode);
+
+                D3D12_COMPUTE_PIPELINE_STATE_DESC pipelineStateDesc = {};
+                pipelineStateDesc.pRootSignature = m_pSharpenerRootSignature;
+                pipelineStateDesc.CS = shaderByteCode;
+
+                pDevice->GetDevice()->CreateComputePipelineState(&pipelineStateDesc, IID_PPV_ARGS(&m_pPostPipelineState));
+                SetName(m_pPostPipelineState, "TAA Post PipelineState");
             }
         }
 
@@ -154,6 +170,7 @@ namespace CAULDRON_DX12
 
             if (m_pTaaPipelineState)
             {
+                m_pFirstPipelineState->Release();
                 m_pTaaPipelineState->Release();
                 m_pTaaPipelineState = NULL;
             }
@@ -169,7 +186,9 @@ namespace CAULDRON_DX12
             if (m_pSharpenerPipelineState)
             {
                 m_pSharpenerPipelineState->Release();
+                m_pPostPipelineState->Release();
                 m_pSharpenerPipelineState = NULL;
+                m_pPostPipelineState = 0;
             }
         }
     }
@@ -205,6 +224,8 @@ namespace CAULDRON_DX12
         m_TAABuffer.CreateSRV(0, &m_SharpenerTable);
         m_pGBuffer->m_HDR.CreateUAV(1, &m_SharpenerTable);
         m_HistoryBuffer.CreateUAV(2, &m_SharpenerTable);
+
+        m_bFirst = true;
     }
     
     //--------------------------------------------------------------------------------------
@@ -250,7 +271,12 @@ namespace CAULDRON_DX12
 
                 // Bind the pipeline state
                 //
-                pCommandList->SetPipelineState(m_pTaaPipelineState);
+                if (m_bFirst)
+                {
+                    m_bFirst = false;
+                    pCommandList->SetPipelineState(m_pFirstPipelineState);
+                } else
+                    pCommandList->SetPipelineState(m_pTaaPipelineState);
 
                 // Dispatch
                 //
@@ -277,7 +303,10 @@ namespace CAULDRON_DX12
                 pCommandList->SetDescriptorHeaps(ARRAYSIZE(pDescriptorHeaps), pDescriptorHeaps);
                 pCommandList->SetComputeRootSignature(m_pSharpenerRootSignature);
                 pCommandList->SetComputeRootDescriptorTable(0, m_SharpenerTable.GetGPU());
-                pCommandList->SetPipelineState(m_pSharpenerPipelineState);
+                if( m_bSharpening )
+                    pCommandList->SetPipelineState(m_pSharpenerPipelineState);
+                else
+                    pCommandList->SetPipelineState(m_pPostPipelineState);
 
                 uint32_t ThreadGroupCountX = (m_Width + 7) / 8;
                 uint32_t ThreadGroupCountY = (m_Height + 7) / 8;

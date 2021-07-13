@@ -48,6 +48,7 @@ namespace CAULDRON_DX12
         D3D12_CPU_DESCRIPTOR_HANDLE *GetCurrentBackBufferRTV();
         DXGI_FORMAT GetFormat();
         DisplayMode GetDisplayMode();
+        void SetVSync(bool on) { m_bVSyncOn = on; }
 
     private:
         void CreateRTV();

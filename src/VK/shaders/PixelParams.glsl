@@ -53,8 +53,10 @@ vec3 getPixelNormal(VS2PS Input)
 #endif
 
 #ifdef ID_normalTexture
-    vec3 n = texture(u_NormalSampler, UV).rgb;
-    n = normalize(tbn * ((2.0 * n - 1.0) /* * vec3(u_NormalScale, u_NormalScale, 1.0) */));
+    vec2 xy = 2.0 * texture(u_NormalSampler, UV, myPerFrame.u_LodBias).rg - 1.0;
+    float z = sqrt(1.0 - dot(xy, xy));
+    vec3 n = vec3(xy, z);
+    n = normalize(tbn * (n /* * vec3(u_NormalScale, u_NormalScale, 1.0) */));
 #else
     // The tbn matrix is linearly interpolated, so we need to re-normalize
     vec3 n = normalize(tbn[2].xyz);

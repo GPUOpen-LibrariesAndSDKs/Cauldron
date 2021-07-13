@@ -171,25 +171,16 @@ vec2 getDiffuseUV(VS2PS Input)
 vec4 getBaseColorTexture(VS2PS Input)
 {
 #ifdef ID_baseColorTexture
-    return texture(u_BaseColorSampler, getBaseColorUV(Input));
+    return texture(u_BaseColorSampler, getBaseColorUV(Input), myPerFrame.u_LodBias);
 #else
     return vec4(1, 1, 1, 1); //OPAQUE
-#endif
-}
-
-vec3 getNormalTexture(VS2PS Input)
-{
-#ifdef ID_normalTexture
-    return texture(u_NormalSampler, getNormalUV(Input)).rgb;
-#else
-    return vec3(0, 0, 0); //OPAQUE
 #endif
 }
 
 vec4 getDiffuseTexture(VS2PS Input)
 {
 #ifdef ID_diffuseTexture
-    return texture(u_diffuseSampler, getDiffuseUV(Input));
+    return texture(u_diffuseSampler, getDiffuseUV(Input), myPerFrame.u_LodBias);
 #else
     return vec4(1, 1, 1, 1); 
 #endif 
@@ -198,7 +189,7 @@ vec4 getDiffuseTexture(VS2PS Input)
 vec4 getMetallicRoughnessTexture(VS2PS Input)
 {
 #ifdef ID_metallicRoughnessTexture
-    return texture(u_MetallicRoughnessSampler, getMetallicRoughnessUV(Input));
+    return texture(u_MetallicRoughnessSampler, getMetallicRoughnessUV(Input), myPerFrame.u_LodBias);
 #else 
     return vec4(1, 1, 1, 1);
 #endif   
@@ -207,7 +198,7 @@ vec4 getMetallicRoughnessTexture(VS2PS Input)
 vec4 getSpecularGlossinessTexture(VS2PS Input)
 {
 #ifdef ID_specularGlossinessTexture    
-    return texture(u_specularGlossinessSampler, getSpecularGlossinessUV(Input));
+    return texture(u_specularGlossinessSampler, getSpecularGlossinessUV(Input), myPerFrame.u_LodBias);
 #else 
     return vec4(1, 1, 1, 1);
 #endif   

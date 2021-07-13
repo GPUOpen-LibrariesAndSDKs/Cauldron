@@ -29,12 +29,12 @@ public:
     void LookAt(const math::Vector4& eyePos, const math::Vector4& lookAt);
     void LookAt(float yaw, float pitch, float distance, const math::Vector4& at);
     void SetFov(float fov, uint32_t width, uint32_t height, float nearPlane, float farPlane);
+    void SetFov(float fov, float aspectRatio, float nearPlane, float farPlane);
     void UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance);
     void UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], double deltaTime);
 
     math::Matrix4 GetView() const { return m_View; }
     math::Matrix4 GetPrevView() const { return m_PrevView; }
-    math::Matrix4 GetViewport() const { return m_Viewport; }
     math::Vector4 GetPosition() const { return m_eyePos;   }
 
 	
@@ -45,6 +45,8 @@ public:
 
     float GetFovH() const { return m_fovH; }
     float GetFovV() const { return m_fovV; }
+
+    float GetAspectRatio() const { return m_aspectRatio; }
 
     float GetNearPlane() const { return m_near; }
     float GetFarPlane() const { return m_far; }
@@ -62,7 +64,6 @@ private:
     math::Matrix4       m_View;
     math::Matrix4       m_Proj;
     math::Matrix4       m_PrevView;
-    math::Matrix4       m_Viewport;
     math::Vector4       m_eyePos;
     float               m_distance;
     float               m_fovV, m_fovH;

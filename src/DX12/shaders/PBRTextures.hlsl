@@ -176,7 +176,7 @@ float2 getDiffuseUV(VS_OUTPUT_SCENE Input)
 float4 getBaseColorTexture(VS_OUTPUT_SCENE Input)
 {
 #ifdef ID_baseColorTexture
-    return baseColorTexture.Sample(samBaseColor, getBaseColorUV(Input));
+    return baseColorTexture.SampleBias(samBaseColor, getBaseColorUV(Input), myPerFrame.u_LodBias);
 #else 
     return float4(1, 1, 1, 1); //OPAQUE
 #endif
@@ -186,7 +186,7 @@ float4 getBaseColorTexture(VS_OUTPUT_SCENE Input)
 float4 getDiffuseTexture(VS_OUTPUT_SCENE Input)
 {
 #ifdef ID_diffuseTexture
-    return (diffuseTexture.Sample(samDiffuse, getDiffuseUV(Input)));
+    return diffuseTexture.SampleBias(samDiffuse, getDiffuseUV(Input), myPerFrame.u_LodBias);
 #else
     return float4(1, 1, 1, 1); 
 #endif 
@@ -195,7 +195,7 @@ float4 getDiffuseTexture(VS_OUTPUT_SCENE Input)
 float4 getMetallicRoughnessTexture(VS_OUTPUT_SCENE Input)
 {
 #ifdef ID_metallicRoughnessTexture
-    return metallicRoughnessTexture.Sample(samMetallicRoughness, getMetallicRoughnessUV(Input));
+    return metallicRoughnessTexture.SampleBias(samMetallicRoughness, getMetallicRoughnessUV(Input), myPerFrame.u_LodBias);
 #else 
     return float4(1, 1, 1, 1);
 #endif   
@@ -204,7 +204,7 @@ float4 getMetallicRoughnessTexture(VS_OUTPUT_SCENE Input)
 float4 getSpecularGlossinessTexture(VS_OUTPUT_SCENE Input)
 {
 #ifdef ID_specularGlossinessTexture    
-    return specularGlossinessTexture.Sample(samSpecularGlossiness, getSpecularGlossinessUV(Input));
+    return specularGlossinessTexture.SampleBias(samSpecularGlossiness, getSpecularGlossinessUV(Input), myPerFrame.u_LodBias);
 #else 
     return float4(1, 1, 1, 1);
 #endif   

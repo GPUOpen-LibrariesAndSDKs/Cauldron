@@ -22,7 +22,7 @@
 #include "Misc/Misc.h"
 #include "Base/Helper.h"
 
-#include <dxgi1_4.h>
+#include <dxgi1_6.h>
 #pragma comment(lib, "dxguid.lib")
 #include <DXGIDebug.h>
 
@@ -57,8 +57,21 @@ namespace CAULDRON_DX12
                 factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 
             IDXGIFactory* pFactory;
+            IDXGIFactory6* pFactory6;
+
             ThrowIfFailed(CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&pFactory)));
-            ThrowIfFailed(pFactory->EnumAdapters(0, &m_pAdapter));
+
+			// Try to get Factory6 in order to use EnumAdapterByGpuPreference method. If it fails, fall back to regular EnumAdapters.
+			if (S_OK == pFactory->QueryInterface(IID_PPV_ARGS(&pFactory6)))
+			{
+                ThrowIfFailed(pFactory6->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&m_pAdapter)));
+				pFactory6->Release();
+			}
+			else
+			{
+                ThrowIfFailed(pFactory->EnumAdapters(0, &m_pAdapter));
+			}
+            
             pFactory->Release();
         }
 
@@ -115,6 +128,8 @@ namespace CAULDRON_DX12
                 {
                     pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_CORRUPTION, true);
                     pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_ERROR, true);
+                    pInfoQueue->SetBreakOnSeverity(D3D12_MESSAGE_SEVERITY_WARNING, true);
+                    pInfoQueue->Release();
                 }
             }
         }

@@ -334,10 +334,10 @@ namespace CAULDRON_DX12
     // SetPerFrameConstants
     //
     //--------------------------------------------------------------------------------------
-    GltfDepthPass::per_frame *GltfDepthPass::SetPerFrameConstants(int passIndex)
+    per_frame *GltfDepthPass::SetPerFrameConstants(int passIndex)
     {
-        GltfDepthPass::per_frame *cbPerFrame;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(GltfDepthPass::per_frame), (void **)&cbPerFrame, &m_perFrameDesc[passIndex]);
+        per_frame *cbPerFrame;
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_frame), (void **)&cbPerFrame, &m_perFrameDesc[passIndex]);
         return cbPerFrame;
     }
 

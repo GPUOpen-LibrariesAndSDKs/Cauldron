@@ -192,11 +192,14 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    void Texture::CreateRTV(uint32_t index, RTV* pRV, int mipLevel, int arraySize, int firstArraySlice)
+    void Texture::CreateRTV(uint32_t index, RTV* pRV, int mipLevel, int arraySize, int firstArraySlice, DXGI_FORMAT format)
     {
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
         D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-        rtvDesc.Format = texDesc.Format;
+		if( format == DXGI_FORMAT_UNKNOWN )
+			rtvDesc.Format = texDesc.Format;
+		else
+			rtvDesc.Format = format;
         if (texDesc.DepthOrArraySize == 1)
         {
             assert(arraySize == -1);
@@ -511,7 +514,7 @@ namespace CAULDRON_DX12
         //
         UINT32 bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
         UINT32 pixelsPerBlock = 1;
-        if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC7_UNORM_SRGB))
+        if (IsBCFormat(m_header.format))
         {
             pixelsPerBlock = (4 * 4); // BC formats have 4*4 pixels per block
             pixelsPerBlock /= 4; // we need to divide by 4 because GetCopyableFootprints introduces a *2 stride divides the rows /4 

@@ -42,7 +42,7 @@ namespace CAULDRON_DX12
         DISPLAYMODE_HDR10_SCRGB
     };
 
-    bool fsHdrInit(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hwnd, IDXGIAdapter *adapter);
+    bool fsHdrInit(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hwnd);
     void fsHdrDestroy();
     bool fsHdrEnumerateDisplayModes(std::vector<DisplayMode> *pModes);
     DXGI_FORMAT fsHdrGetFormat(DisplayMode displayMode);
