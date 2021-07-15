@@ -97,6 +97,13 @@ namespace CAULDRON_VK
             defines["HAS_NORMALS_RT"] = std::to_string(rtIndex++);
         }
 
+        // World Space Coordinates
+        //
+        if (m_flags & GBUFFER_WORLD_COORD)
+        {
+            defines["HAS_WORLD_COORD_RT"] = std::to_string(rtIndex++);
+        }
+
         // Diffuse
         //
         if (m_flags & GBUFFER_DIFFUSE)
@@ -139,7 +146,7 @@ namespace CAULDRON_VK
     //
     VkRenderPass GBuffer::CreateRenderPass(GBufferFlags flags, bool bClear)
     {
-        VkAttachmentDescription depthAttachment;
+        VkAttachmentDescription *pDepthAttachment = NULL;
         VkAttachmentDescription colorAttachments[10];
         uint32_t colorAttanchmentCount = 0;
 
@@ -165,6 +172,12 @@ namespace CAULDRON_VK
             assert(m_GBufferFlags & GBUFFER_NORMAL_BUFFER); // asserts if there if the RT is not present in the GBuffer
         }
 
+        if (flags & GBUFFER_WORLD_COORD)
+        {
+            addAttachment(m_formats[GBUFFER_WORLD_COORD], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            assert(m_GBufferFlags & GBUFFER_WORLD_COORD); // asserts if there if the RT is not present in the GBuffer
+        }
+
         if (flags & GBUFFER_DIFFUSE)
         {
             addAttachment(m_formats[GBUFFER_DIFFUSE], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
@@ -179,11 +192,17 @@ namespace CAULDRON_VK
 
         if (flags & GBUFFER_DEPTH)
         {
-            addAttachment(m_formats[GBUFFER_DEPTH], m_sampleCount, previousDepth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &depthAttachment);
+            pDepthAttachment = new VkAttachmentDescription[1];
+            addAttachment(m_formats[GBUFFER_DEPTH], m_sampleCount, previousDepth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, pDepthAttachment);
             assert(m_GBufferFlags & GBUFFER_DEPTH); // asserts if there if the RT is not present in the GBuffer
         }
 
-        return CreateRenderPassOptimal(m_pDevice->GetDevice(), colorAttanchmentCount, colorAttachments, &depthAttachment);
+        VkRenderPass renderPass = CreateRenderPassOptimal(m_pDevice->GetDevice(), colorAttanchmentCount, colorAttachments, pDepthAttachment);
+
+        if (pDepthAttachment != NULL)
+            delete[] pDepthAttachment;
+
+        return renderPass;
     }
 
     void GBuffer::GetAttachmentList(GBufferFlags flags, std::vector<VkImageView> *pAttachments, std::vector<VkClearValue> *pClearValues)
@@ -223,6 +242,20 @@ namespace CAULDRON_VK
         if (flags & GBUFFER_NORMAL_BUFFER)
         {
             pAttachments->push_back(m_NormalBufferSRV);
+
+            if (pClearValues)
+            {
+                VkClearValue cv;
+                cv.color = { 0.0f, 0.0f, 0.0f, 0.0f };
+                pClearValues->push_back(cv);
+            }
+        }
+
+        // World Space Coordinates
+        //
+        if (flags & GBUFFER_WORLD_COORD)
+        {
+            pAttachments->push_back(m_WorldCoordSRV);
 
             if (pClearValues)
             {
@@ -281,7 +314,7 @@ namespace CAULDRON_VK
         //
         if (m_GBufferFlags & GBUFFER_FORWARD)
         {
-            m_HDR.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_FORWARD], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "m_HDR");
+            m_HDR.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_FORWARD], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT), false, "m_HDR");
             m_HDR.CreateSRV(&m_HDRSRV);
         }
 
@@ -289,7 +322,7 @@ namespace CAULDRON_VK
         //
         if (m_GBufferFlags & GBUFFER_MOTION_VECTORS)
         {
-            m_MotionVectors.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_MOTION_VECTORS], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "m_MotionVector");
+            m_MotionVectors.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_MOTION_VECTORS], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT), false, "m_MotionVector");
             m_MotionVectors.CreateSRV(&m_MotionVectorsSRV);
         }
 
@@ -297,15 +330,23 @@ namespace CAULDRON_VK
         //
         if (m_GBufferFlags & GBUFFER_NORMAL_BUFFER)
         {
-            m_NormalBuffer.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_NORMAL_BUFFER], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "m_NormalBuffer");
+            m_NormalBuffer.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_NORMAL_BUFFER], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT), false, "m_NormalBuffer");
             m_NormalBuffer.CreateSRV(&m_NormalBufferSRV);
+        }
+
+        // World Space Coordinates
+        //
+        if (m_GBufferFlags & GBUFFER_WORLD_COORD)
+        {
+            m_WorldCoord.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_WORLD_COORD], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT), false, "m_WorldCoord");
+            m_WorldCoord.CreateSRV(&m_WorldCoordSRV);
         }
 
         // Diffuse
         //
         if (m_GBufferFlags & GBUFFER_DIFFUSE)
         {
-            m_Diffuse.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_DIFFUSE], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "m_Diffuse");
+            m_Diffuse.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_DIFFUSE], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT), false, "m_Diffuse");
             m_Diffuse.CreateSRV(&m_DiffuseSRV);
         }
 
@@ -313,7 +354,7 @@ namespace CAULDRON_VK
         //
         if (m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS)
         {
-            m_SpecularRoughness.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_SPECULAR_ROUGHNESS], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT), false, "m_SpecularRoughness");
+            m_SpecularRoughness.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_SPECULAR_ROUGHNESS], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT), false, "m_SpecularRoughness");
             m_SpecularRoughness.CreateSRV(&m_SpecularRoughnessSRV);
         }
 
@@ -339,6 +380,12 @@ namespace CAULDRON_VK
         {
             vkDestroyImageView(m_pDevice->GetDevice(), m_DiffuseSRV, nullptr);
             m_Diffuse.OnDestroy();
+        }
+
+        if (m_GBufferFlags & GBUFFER_WORLD_COORD)
+        {
+            vkDestroyImageView(m_pDevice->GetDevice(), m_WorldCoordSRV, nullptr);
+            m_WorldCoord.OnDestroy();
         }
 
         if (m_GBufferFlags & GBUFFER_NORMAL_BUFFER)

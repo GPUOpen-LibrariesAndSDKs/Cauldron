@@ -568,6 +568,19 @@ namespace CAULDRON_VK
             att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
             att_states.push_back(att_state);
         }
+        if (defines.Has("HAS_WORLD_COORD_RT"))
+        {
+            VkPipelineColorBlendAttachmentState att_state = {};
+            att_state.colorWriteMask = 0xf;
+            att_state.blendEnable = VK_FALSE;
+            att_state.alphaBlendOp = VK_BLEND_OP_ADD;
+            att_state.colorBlendOp = VK_BLEND_OP_ADD;
+            att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+            att_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            att_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            att_states.push_back(att_state);
+        }
         if (defines.Has("HAS_MOTION_VECTORS_RT"))
         {
             VkPipelineColorBlendAttachmentState att_state = {};

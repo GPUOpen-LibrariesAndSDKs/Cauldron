@@ -74,6 +74,10 @@ layout(location = HAS_MOTION_VECTORS_RT) out vec2 Output_motionVect;
     layout (location = HAS_NORMALS_RT) out vec4 Output_normal;
 #endif
 
+#ifdef HAS_WORLD_COORD_RT
+    layout (location = HAS_WORLD_COORD_RT) out vec4 Output_worldCoord;
+#endif
+
 //--------------------------------------------------------------------------------------
 //
 // Constant Buffers 
@@ -139,6 +143,10 @@ void main()
 
 #ifdef HAS_DIFFUSE_RT
     Output_diffuseColor = vec4(diffuseColor, 0);
+#endif
+
+#ifdef HAS_WORLD_COORD_RT
+    Output_worldCoord = vec4(Input.WorldPos, 1);
 #endif
 
 #ifdef HAS_NORMALS_RT
