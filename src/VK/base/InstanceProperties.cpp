@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,6 +22,7 @@
 #include <cstring>
 
 #include "InstanceProperties.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {    
@@ -74,15 +75,29 @@ namespace CAULDRON_VK
         return res;
     }
 
-    bool InstanceProperties::Add(const char *instanceLayerName, const char *instanceExtensionName)
+    bool InstanceProperties::AddInstanceLayerName(const char *instanceLayerName)
     {
-        if (IsLayerPresent(instanceLayerName) && IsExtensionPresent(instanceExtensionName))
+        if (IsLayerPresent(instanceLayerName))
         {
             m_instance_layer_names.push_back(instanceLayerName);
-            m_instance_extension_names.push_back(instanceExtensionName);
-
             return true;
         }
+
+        Trace("The instance layer '%s' has not been found\n", instanceLayerName);
+
+        return false;
+    }
+
+    bool InstanceProperties::AddInstanceExtensionName(const char *instanceExtensionName)
+    {
+        if (IsExtensionPresent(instanceExtensionName))
+        {
+            m_instance_extension_names.push_back(instanceExtensionName);
+            return true;
+        }
+
+        Trace("The instance extension '%s' has not been found\n", instanceExtensionName);
+
         return false;
     }
 

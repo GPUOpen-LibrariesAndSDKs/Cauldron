@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -20,6 +20,7 @@
 
 #include <vector>
 #include <string>
+#include "Base/Benchmark.h"
 
 namespace CAULDRON_DX12
 {
@@ -34,22 +35,17 @@ namespace CAULDRON_DX12
     // For that it splits the readback heap in <numberOfBackBuffers> pieces and it reads 
     // from the last used chuck.
 
-    struct TimeStamp
-    {
-        std::string m_label;
-        float       m_microseconds;
-    };
-
     class GPUTimestamps
     {
     public:
         void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers);
         void OnDestroy();
 
-        void GetTimeStamp(ID3D12GraphicsCommandList *pCommandList, char *label);
+        void GetTimeStamp(ID3D12GraphicsCommandList *pCommandList, const char *label);
+        void GetTimeStampUser(const TimeStamp &ts);
         void CollectTimings(ID3D12GraphicsCommandList *pCommandList);
 
-        void OnBeginFrame(UINT64 gpuTicksPerSecond, std::vector<TimeStamp> *pTimestamp);
+        void OnBeginFrame(UINT64 gpuTicksPerSecond, std::vector<TimeStamp> *pTimestamps);
         void OnEndFrame();
 
     private:
@@ -62,5 +58,6 @@ namespace CAULDRON_DX12
         uint32_t m_NumberOfBackBuffers = 0;
 
         std::vector<std::string> m_labels[5];
+        std::vector<TimeStamp> m_cpuTimeStamps[5];
     };
 }

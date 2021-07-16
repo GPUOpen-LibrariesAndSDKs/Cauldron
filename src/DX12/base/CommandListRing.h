@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -23,15 +23,16 @@
 namespace CAULDRON_DX12
 {
     // This class manages command allocators and command lists. 
-    // For each backbuffer creates a command list allocator and creates <commandListsPerframe> command lists. 
+    // For each backbuffer creates a command list allocator and creates <commandListsPerFrame> command lists. 
     //
     class CommandListRing
     {
     public:
-        void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerframe, D3D12_COMMAND_QUEUE_DESC queueDesc);
+        void OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerBackBuffer, const D3D12_COMMAND_QUEUE_DESC& queueDesc);
         void OnDestroy();
         void OnBeginFrame();
-        ID3D12GraphicsCommandList *GetNewCommandList();
+        ID3D12GraphicsCommandList2 *GetNewCommandList();
+        ID3D12CommandAllocator *GetAllocator() { return m_pCurrentFrame->m_pCommandAllocator; }
 
     private:
         uint32_t m_frameIndex;
@@ -41,7 +42,7 @@ namespace CAULDRON_DX12
         struct CommandBuffersPerFrame
         {
             ID3D12CommandAllocator       *m_pCommandAllocator;
-            ID3D12GraphicsCommandList    **m_ppCommandList;
+            ID3D12GraphicsCommandList2    **m_ppCommandLists;
             uint32_t m_UsedCls;
         } *m_pCommandBuffers, *m_pCurrentFrame;
     };

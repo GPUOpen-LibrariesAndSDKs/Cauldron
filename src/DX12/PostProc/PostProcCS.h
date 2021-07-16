@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -17,16 +17,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 #pragma once
+#include "Base/ShaderCompiler.h"
 
 namespace CAULDRON_DX12
 {
+    class ResourceViewHeaps;
+
     class PostProcCS
     {
     public:
         PostProcCS();
         ~PostProcCS();
 
-		void OnCreate(
+        struct CreateParams
+        {
+            Device*                    pDevice = nullptr;
+            ResourceViewHeaps*         pResourceViewHeaps = nullptr;
+            std::string                shaderFilename;
+            std::string                shaderEntryPoint;
+            std::string                strShaderCompilerParams;
+            uint32_t                   UAVTableSize;
+            uint32_t                   SRVTableSize;
+            uint32_t                   dwWidth, dwHeight, dwDepth;
+            DefineList*                userDefines = 0;
+            uint32_t                   numStaticSamplers = 0;
+            D3D12_STATIC_SAMPLER_DESC* pStaticSamplers = 0;
+        };
+
+        void OnCreate(const PostProcCS::CreateParams& params);
+
+        void OnCreate( // LEGACY OnCreate()
             Device *pDevice,
             ResourceViewHeaps *pResourceViewHeaps,
             const std::string &shaderFilename,
@@ -37,14 +57,14 @@ namespace CAULDRON_DX12
             DefineList* userDefines = 0,
             uint32_t numStaticSamplers = 0,
             D3D12_STATIC_SAMPLER_DESC* pStaticSamplers = 0
-		);
+        );
         void OnDestroy();
-		void Draw(ID3D12GraphicsCommandList* pCommandList, D3D12_GPU_VIRTUAL_ADDRESS constantBuffer, CBV_SRV_UAV *pUAVTable, CBV_SRV_UAV *pSRVTable, uint32_t ThreadX, uint32_t ThreadY, uint32_t ThreadZ);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, D3D12_GPU_VIRTUAL_ADDRESS constantBuffer, CBV_SRV_UAV *pUAVTable, CBV_SRV_UAV *pSRVTable, uint32_t ThreadGroupCountX, uint32_t ThreadGroupCountY, uint32_t ThreadGroupCountZ);
     private:
         Device                      *m_pDevice;
         ResourceViewHeaps           *m_pResourceViewHeaps;
 
         ID3D12RootSignature	        *m_pRootSignature;
-		ID3D12PipelineState	        *m_pPipeline = NULL;
+        ID3D12PipelineState	        *m_pPipeline = NULL;
     };
 }

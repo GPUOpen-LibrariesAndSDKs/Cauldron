@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -43,12 +43,14 @@ namespace CAULDRON_DX12
         bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, D3D12_INDEX_BUFFER_VIEW *pIndexView);
         bool AllocConstantBuffer(uint32_t size, void **pData, D3D12_CONSTANT_BUFFER_VIEW_DESC  *pViewDesc);
 
-        bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut);
-        bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut);
+        bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, const void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut);
+        bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, const void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut);
         bool AllocConstantBuffer(uint32_t size, void *pData, D3D12_CONSTANT_BUFFER_VIEW_DESC  *pViewDesc);
 
         void UploadData(ID3D12GraphicsCommandList *pCmdList);
         void FreeUploadHeap();
+        
+        ID3D12Resource *GetResource();
 
     private:
         Device          *m_pDevice = nullptr;

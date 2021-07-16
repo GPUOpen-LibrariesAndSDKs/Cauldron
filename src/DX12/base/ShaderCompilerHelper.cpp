@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,259 +18,56 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include <D3DCompiler.h>
 #include "ShaderCompilerHelper.h"
-#include "Misc\Misc.h"
-#include "Misc\Cache.h"
-#include <dxcapi.h>
+#include "base/ShaderCompilerCache.h"
+#include "Misc/AsyncCache.h"
+#include <codecvt>
+#include <locale>
 
 namespace CAULDRON_DX12
 {
-#define SHADER_LIB_DIR "ShaderLibDX"
-#define SHADER_CACHE_DIR SHADER_LIB_DIR"\\ShaderCacheDX"
-
 #define USE_MULTITHREADED_CACHE 
-#define USE_SPIRV_FROM_DISK   
-
-
-    interface Includer : public ID3DInclude
-    {
-    public:
-        virtual ~Includer() {}
-
-        HRESULT Open(D3D_INCLUDE_TYPE IncludeType, LPCSTR pFileName, LPCVOID pParentData, LPCVOID *ppData, UINT *pBytes)
-        {
-            char fullpath[1024];
-            sprintf_s(fullpath, SHADER_LIB_DIR"\\%s", pFileName);
-            return ReadFile(fullpath, (char**)ppData, (size_t*)pBytes, false) ? S_OK : E_FAIL;
-        }
-        HRESULT Close(LPCVOID pData)
-        {
-            free((void*)pData);
-            return S_OK;
-        }
-    };
-
-    interface IncluderDxc : public IDxcIncludeHandler
-    {
-        IDxcLibrary *m_pLibrary; 
-    public:
-        IncluderDxc(IDxcLibrary *pLibrary) : m_pLibrary(pLibrary) {}
-        HRESULT QueryInterface(const IID &, void **) { return S_OK; }
-        ULONG AddRef() { return 0; }
-        ULONG Release() { return 0; }
-        HRESULT LoadSource(LPCWSTR pFilename, IDxcBlob **ppIncludeSource)
-        {
-            char fullpath[1024];
-            sprintf_s<1024>(fullpath, (SHADER_LIB_DIR"\\%S"), pFilename);
-
-            LPCVOID pData;
-            size_t bytes;
-            HRESULT hr = ReadFile(fullpath, (char**)&pData, (size_t*)&bytes, false) ? S_OK : E_FAIL;
-
-            IDxcBlobEncoding *pSource;
-            ThrowIfFailed(m_pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)pData, (UINT32)bytes, CP_UTF8, &pSource));
-
-            *ppIncludeSource = pSource;
-
-            return S_OK;
-        }
-    };
-
-    bool DXCompileToDXO(size_t hash,
-        const char *pSrcCode,
-        const DefineList* pDefines,
-        const char *pEntryPoint,
-        const char *pTarget,
-        UINT Flags1,
-        UINT Flags2,
-        char **outSpvData,
-        size_t *outSpvSize)
-    {
-        std::string filenameSpv = format(SHADER_CACHE_DIR"\\%p.dxo", hash);
-
-#ifdef USE_SPIRV_FROM_DISK
-        //std::string shader = GenerateSource(sourceType, shader_type, pshader, pEntryPoint, pDefines);
-        if (ReadFile(filenameSpv.c_str(), outSpvData, outSpvSize, true) == true)
-        {
-            Trace(format("thread 0x%04x compile: %p disk\n", GetCurrentThreadId(), hash));
-            return true;
-        }
-#endif
-        // create hlsl file for shader compiler to compile
-        //
-        std::string filenameHlsl = format(SHADER_CACHE_DIR"\\%p.hlsl", hash);
-        std::ofstream ofs(filenameHlsl, std::ofstream::out);
-        ofs << pSrcCode;
-        ofs.close();
-
-        // Choose compiler depending on the shader model
-        //
-        assert(isdigit(pTarget[3]));
-        if (pTarget[3] - '0' < 6)
-        {
-            std::vector<D3D_SHADER_MACRO> macros;
-            CompileMacros(pDefines, &macros);
-            macros.push_back(D3D_SHADER_MACRO{ NULL, NULL });
-
-            Includer Include;
-            ID3DBlob *pError1, *pCode1;
-            HRESULT res1 = D3DPreprocess(pSrcCode, strlen(pSrcCode), NULL, macros.data(), &Include, &pCode1, &pError1);
-            if (res1 == S_OK)
-            {
-                SaveFile(filenameHlsl.c_str(), pCode1->GetBufferPointer(), pCode1->GetBufferSize(), false);
-
-                ID3DBlob *pError, *pCode;
-                HRESULT res = D3DCompile(pCode1->GetBufferPointer(), pCode1->GetBufferSize(), NULL, NULL, NULL, pEntryPoint, pTarget, Flags1, Flags2, &pCode, &pError);
-                if (res == S_OK)
-                {
-                    pCode1->Release();
-
-                    *outSpvSize = pCode->GetBufferSize();
-                    *outSpvData = (char *)malloc(*outSpvSize);
-
-                    memcpy(*outSpvData, pCode->GetBufferPointer(), *outSpvSize);
-
-                    pCode->Release();
-
-                    SaveFile(filenameSpv.c_str(), *outSpvData, *outSpvSize, true);
-                    return true;
-                }
-                else
-                {
-                    const char *msg = (const char *)pError->GetBufferPointer();
-                    std::string err = format("*** Error compiling %p.hlsl ***\n%s\n", hash, msg);
-                    Trace(err);
-
-                    MessageBoxA(0, err.c_str(), "Error", 0);
-                    pError->Release();
-                }
-            }
-            else
-            {
-                const char *msg = (const char *)pError1->GetBufferPointer();
-                std::string err = format("*** Error preprocessing %p.hlsl ***\n%s\n", hash, msg);
-
-                MessageBoxA(0, err.c_str(), "Error", 0);
-                pError1->Release();
-            }
-        }
-        else
-        {       
-            wchar_t names[50][128];
-            wchar_t values[50][128];
-            DxcDefine defines[50];
-            int defineCount = 0;
-            for (auto it = pDefines->begin(); it != pDefines->end(); it++)
-            {
-                swprintf_s<128>(names[defineCount], L"%S", it->first.c_str());
-                swprintf_s<128>(values[defineCount], L"%S", it->second.c_str());
-                defines[defineCount].Name = names[defineCount];
-                defines[defineCount].Value = values[defineCount];
-                defineCount++;
-            }
-
-            IDxcLibrary *pLibrary;
-            ThrowIfFailed(DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary)));
-
-            IDxcBlobEncoding *pSource;
-            ThrowIfFailed(pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)pSrcCode, (UINT32)strlen(pSrcCode), CP_UTF8, &pSource));
-
-            IDxcCompiler *pCompiler;
-            ThrowIfFailed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
-
-            IncluderDxc Includer(pLibrary);
-
-            LPCWSTR ppArgs[] = { L"", L"" }; // debug info
-
-            wchar_t  pEntryPointW[256];
-            swprintf_s<256>(pEntryPointW, L"%S", pEntryPoint);
-
-            wchar_t  pTargetW[256];
-            swprintf_s<256>(pTargetW, L"%S", pTarget);
-
-            IDxcOperationResult *pResultPre;
-            HRESULT res1 = pCompiler->Preprocess(pSource, L"", NULL, 0, defines, defineCount, &Includer, &pResultPre);
-            if (res1 == S_OK)
-            {
-                IDxcBlob *pCode1;
-                pResultPre->GetResult(&pCode1);
-                SaveFile(filenameHlsl.c_str(), pCode1->GetBufferPointer(), pCode1->GetBufferSize(), false);
-                pCode1->Release();
-
-                IDxcOperationResult *pOpRes;
-                HRESULT res = pCompiler->Compile(pSource, NULL, pEntryPointW, pTargetW, ppArgs, _countof(ppArgs), defines, defineCount, &Includer, &pOpRes);
-
-                pSource->Release();
-                pLibrary->Release();
-                pCompiler->Release();
-
-                IDxcBlob *pResult = NULL;
-                IDxcBlobEncoding *pError = NULL;
-                if (pOpRes != NULL)
-                {
-                    pOpRes->GetResult(&pResult);
-                    pOpRes->GetErrorBuffer(&pError);
-                    pOpRes->Release();
-                }
-
-                if (pResult!=NULL && pResult->GetBufferSize()>0)
-                {
-                    *outSpvSize = pResult->GetBufferSize();
-                    *outSpvData = (char *)malloc(*outSpvSize);
-
-                    memcpy(*outSpvData, pResult->GetBufferPointer(), *outSpvSize);
-
-                    pResult->Release();
-
-                    SaveFile(filenameSpv.c_str(), *outSpvData, *outSpvSize, true);
-
-                    return true;
-                }
-                else
-                {
-                    IDxcBlobEncoding *pErrorUtf8;
-                    pLibrary->GetBlobAsUtf8(pError, &pErrorUtf8);
-
-                    std::string err = format("*** Error compiling %p.hlsl ***\n", hash);
-                    Trace(err);
-
-                    std::string filenameErr = format(SHADER_CACHE_DIR"\\%p.err", hash);
-                    SaveFile(filenameErr.c_str(), pErrorUtf8->GetBufferPointer(), pErrorUtf8->GetBufferSize(), false);
-
-                    pErrorUtf8->Release();
-                }
-            }
-        }
-
-        return false;
-    }
 
     Cache<D3D12_SHADER_BYTECODE> s_shaderCache;
 
     void DestroyShadersInTheCache()
     {
-        auto *database = s_shaderCache.GetDatabase();
-        for (auto it = database->begin(); it != database->end(); it++)
+        s_shaderCache.ForEach([](const Cache<D3D12_SHADER_BYTECODE>::DatabaseType::iterator& it)
         {
             free((void*)(it->second.m_data.pShaderBytecode));
-        }
+        });
+    }
+
+    void CreateShaderCache()
+    {
+        PWSTR path = NULL;
+        SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path);
+        std::wstring sShaderCachePathW = std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheDX";
+        CreateDirectoryW((std::wstring(path) + L"\\AMD").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheDX").c_str(), 0);
+
+        InitShaderCompilerCache("ShaderLibDX", std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sShaderCachePathW));
+    }
+
+    void DestroyShaderCache(Device *pDevice)
+    {
+        pDevice;
+        DestroyShadersInTheCache();
     }
 
     bool DXCompile(const char *pSrcCode,
         const DefineList* pDefines,
         const char *pEntryPoint,
-        const char *pTarget,
-        UINT Flags1,
-        UINT Flags2,
+        const char *pParams,
         D3D12_SHADER_BYTECODE* pOutBytecode)
     {
         //compute hash
         //
         size_t hash;
-        hash = HashShaderString(SHADER_LIB_DIR"\\", pSrcCode);
+        hash = HashShaderString((GetShaderCompilerLibDir() + "\\").c_str() , pSrcCode);
         hash = Hash(pEntryPoint, strlen(pEntryPoint), hash);
-        hash = Hash(pTarget, strlen(pTarget), hash);
+        hash = Hash(pParams, strlen(pParams), hash);
         if (pDefines != NULL)
         {
             hash = pDefines->Hash(hash);
@@ -285,13 +82,7 @@ namespace CAULDRON_DX12
             char *SpvData = NULL;
             size_t SpvSize = 0;
 
-#ifdef USE_SPIRV_FROM_DISK
-            std::string filenameSpv = format(SHADER_CACHE_DIR"\\%p.dxo", hash);
-            if (ReadFile(filenameSpv.c_str(), &SpvData, &SpvSize, true) == false)
-#endif
-            {
-                DXCompileToDXO(hash, pSrcCode, pDefines, pEntryPoint, pTarget, 0, 0, &SpvData, &SpvSize);
-            }
+            DXCompileToDXO(hash, pSrcCode, pDefines, pEntryPoint, pParams, &SpvData, &SpvSize);
 
             assert(SpvSize != 0);
             pOutBytecode->BytecodeLength = SpvSize;
@@ -309,22 +100,19 @@ namespace CAULDRON_DX12
         const char *pShaderCode,
         const DefineList* pDefines,
         const char *pEntrypoint,
-        const char *pTarget,
-        UINT Flags1,
-        UINT Flags2,
+        const char *pParams,
         D3D12_SHADER_BYTECODE* pOutBytecode)
     {
         assert(strlen(pShaderCode) > 0);
 
-        return DXCompile(pShaderCode, pDefines, pEntrypoint, pTarget, Flags1, Flags2, pOutBytecode);
+        return DXCompile(pShaderCode, pDefines, pEntrypoint, pParams, pOutBytecode);
     }
 
     bool CompileShaderFromFile(
         const char *pFilename,
         const DefineList* pDefines,
         const char *pEntryPoint,
-        const char *pTarget,
-        UINT Flags,
+        const char *pParams,
         D3D12_SHADER_BYTECODE* pOutBytecode)
     {
         char *pShaderCode;
@@ -332,41 +120,18 @@ namespace CAULDRON_DX12
 
         //append path
         char fullpath[1024];
-        sprintf_s(fullpath, SHADER_LIB_DIR"\\%s", pFilename);
+        sprintf_s(fullpath, "%s\\%s", GetShaderCompilerLibDir().c_str(), pFilename);
 
-        if (ReadFile(fullpath, &pShaderCode, &size, false))
-        {
-            return CompileShaderFromString(pShaderCode, pDefines, pEntryPoint, pTarget, Flags, 0, pOutBytecode);
-        }
-
-        assert(!"Some of the shaders have not been copied to the bin folder, try rebuilding the solution.");
-
-        return false;
-    }
-
-
-    void CreateShaderCache()
-    {        
-        CreateDirectoryA(SHADER_CACHE_DIR, 0);
-    }
-
-    void DestroyShaderCache(Device *pDevice)
+    bool result = false;
+    if (ReadFile(fullpath, &pShaderCode, &size, false))
     {
-        pDevice;
-        DestroyShadersInTheCache();
+        result = CompileShaderFromString(pShaderCode, pDefines, pEntryPoint, pParams, pOutBytecode);
+        free(pShaderCode);
     }
 
-    void CompileMacros(const DefineList *pMacros, std::vector<D3D_SHADER_MACRO> *pOut)
-    {
-        if (pMacros != NULL)
-        {
-            for (auto it = pMacros->begin(); it != pMacros->end(); it++)
-            {
-                D3D_SHADER_MACRO macro;
-                macro.Name = it->first.c_str();
-                macro.Definition = it->second.c_str();
-                pOut->push_back(macro);
-            }
-        }
+    assert(result && "Some of the shaders have not been copied to the bin folder, try rebuilding the solution.");
+
+return result;
     }
+
 }

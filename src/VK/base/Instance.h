@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -27,7 +27,8 @@ namespace CAULDRON_VK
     // Crate/Destroys a Vulkan instance
     //
 
-    VkInstance CreateInstance(VkApplicationInfo app_info, InstanceProperties *pIP);
+    bool CreateInstance(const char *pAppName, const char *pEngineName, VkInstance *pVulkanInstance, VkPhysicalDevice *pPhysicalDevice, InstanceProperties *pIp);
+    VkInstance CreateInstance(VkApplicationInfo app_info, InstanceProperties *pIp);
     void DestroyInstance(VkInstance instance);
 }
 

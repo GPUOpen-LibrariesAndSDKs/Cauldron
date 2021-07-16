@@ -1,5 +1,5 @@
-// AMD AMDUtils code
-// 
+// AMD Cauldron code
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,21 +18,16 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <string>
 #include <vector>
+#include <string>
+#include "Base/Benchmark.h"
 
 namespace CAULDRON_VK
 {
     // This class helps insert queries in the command buffer and readback the results.
-    // The tricky part in fact is reading back the results without stalling the GPU. 
-    // For that it splits the readback heap in <numberOfBackBuffers> pieces and it reads 
+    // The tricky part in fact is reading back the results without stalling the GPU.
+    // For that it splits the readback heap in <numberOfBackBuffers> pieces and it reads
     // from the last used chuck.
-
-    struct TimeStamp
-    {
-        std::string m_label;
-        float       m_microseconds;
-    };
 
     class GPUTimestamps
     {
@@ -41,7 +36,7 @@ namespace CAULDRON_VK
         void OnDestroy();
 
         void GetTimeStamp(VkCommandBuffer cmd_buf, const char *label);
-
+        void GetTimeStampUser(TimeStamp ts);
         void OnBeginFrame(VkCommandBuffer cmd_buf, std::vector<TimeStamp> *pTimestamp);
         void OnEndFrame();
 
@@ -56,5 +51,6 @@ namespace CAULDRON_VK
         uint32_t m_NumberOfBackBuffers = 0;
 
         std::vector<std::string> m_labels[5];
+        std::vector<TimeStamp> m_cpuTimeStamps[5];
     };
 }

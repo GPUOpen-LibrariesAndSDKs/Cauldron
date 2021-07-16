@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -23,7 +23,15 @@
 #include "WICLoader.h"
 #include "Misc/Misc.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "../stb/stb_image.h"
+
+//#define USE_WIC
+
+#ifdef USE_WIC
+#include "wincodec.h"
 static IWICImagingFactory *m_pWICFactory = NULL;
+#endif
 
 WICLoader::~WICLoader()
 {
@@ -32,38 +40,42 @@ WICLoader::~WICLoader()
 
 bool WICLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
 {
+#ifdef USE_WIC
     HRESULT hr = S_OK;
 
     if (m_pWICFactory == NULL)
     {
         hr = CoInitialize(NULL);
+        assert(SUCCEEDED(hr));
         hr = CoCreateInstance(CLSID_WICImagingFactory, nullptr,CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_pWICFactory));
+        assert(SUCCEEDED(hr));
     }
 
     IWICStream* pWicStream;
     hr = m_pWICFactory->CreateStream(&pWicStream);
+    assert(SUCCEEDED(hr));
 
     wchar_t  uniName[1024];
     swprintf(uniName, 1024, L"%S", pFilename);
     hr = pWicStream->InitializeFromFilename(uniName, GENERIC_READ);
     //assert(hr == S_OK);
-    if (hr != S_OK)
+    if (FAILED(hr))
         return false;
 
     IWICBitmapDecoder *pBitmapDecoder;
     hr = m_pWICFactory->CreateDecoderFromStream(pWicStream, NULL, WICDecodeMetadataCacheOnDemand, &pBitmapDecoder);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     IWICBitmapFrameDecode *pFrameDecode;
     hr = pBitmapDecoder->GetFrame(0, &pFrameDecode);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     IWICFormatConverter *pIFormatConverter;
     hr = m_pWICFactory->CreateFormatConverter(&pIFormatConverter);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     hr = pIFormatConverter->Initialize( pFrameDecode, GUID_WICPixelFormat32bppRGBA, WICBitmapDitherTypeNone, NULL, 100.0, WICBitmapPaletteTypeCustom);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
 
     uint32_t width, height;
     pFrameDecode->GetSize(&width, &height);
@@ -72,19 +84,23 @@ bool WICLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
     int bufferSize = width * height * 4;
     m_pData = (char *)malloc(bufferSize);
     hr = pIFormatConverter->CopyPixels( NULL, width * 4, bufferSize, (BYTE*)m_pData);
-    assert(hr == S_OK);
+    assert(SUCCEEDED(hr));
+#else
+    int32_t width, height, channels;
+    m_pData = (char*)stbi_load(pFilename, &width, &height, &channels, STBI_rgb_alpha);
+#endif
 
     // compute number of mips
     //
-    uint32_t _width  = width;
-    uint32_t _height = height;
+    uint32_t mipWidth  = width;
+    uint32_t mipHeight = height;
     uint32_t mipCount = 0;
     for(;;)
     {
         mipCount++;
-        if (_width > 1) _width >>= 1;
-        if (_height > 1) _height >>= 1;
-        if (_width == 1 && _height == 1)
+        if (mipWidth > 1) mipWidth >>= 1;
+        if (mipHeight > 1) mipHeight >>= 1;
+        if (mipWidth == 1 && mipHeight == 1)
             break;
     }
 
@@ -107,9 +123,11 @@ bool WICLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
     else
         m_alphaTestCoverage = 1.0f;
 
+#ifdef USE_WIC
     pIFormatConverter->Release();
     pBitmapDecoder->Release();
     pWicStream->Release();
+#endif
 
     return true;
 }
@@ -124,7 +142,7 @@ void WICLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, ui
     MipImage(bytesWidth / 4, height);
 }
 
-float WICLoader::GetAlphaCoverage(uint32_t width, uint32_t height, float scale, int cutoff)
+float WICLoader::GetAlphaCoverage(uint32_t width, uint32_t height, float scale, int cutoff) const
 {
     double val = 0;
 
@@ -196,11 +214,9 @@ void WICLoader::MipImage(uint32_t width, uint32_t height)
     }
 
 
-    // For cutouts we need we need to scale the alpha channel to match the coverage of the top MIP map
+    // For cutouts we need to scale the alpha channel to match the coverage of the top MIP map
     // otherwise cutouts seem to get thinner when smaller mips are used
-    // Credits: http://the-witness.net/news/2010/09/computing-alpha-mipmaps/
-    //
-
+    // Credits: http://www.ludicon.com/castano/blog/articles/computing-alpha-mipmaps/
     if (m_alphaTestCoverage < 1.0)
     {
         float ini = 0;

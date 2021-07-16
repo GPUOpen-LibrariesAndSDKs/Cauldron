@@ -1,5 +1,5 @@
-// AMD AMDUtils code
-// 
+// AMD Cauldron code
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,24 +19,28 @@
 
 #pragma once
 #include "PostProcPS.h"
-#include "base/Texture.h"
-#include "base/UploadHeap.h"
+#include "Base/Texture.h"
+#include "Base/UploadHeap.h"
 
-#include "../DirextXMath/Inc/DirectXMath.h"
-using namespace DirectX;
+#include "../../libs/vectormath/vectormath.hpp"
 
 namespace CAULDRON_VK
 {
     class SkyDome
     {
     public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, char *pDiffuseCubemap, char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount);
+        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount);
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX invViewProj);
+        void Draw(VkCommandBuffer cmd_buf, const math::Matrix4& invViewProj);
         void GenerateDiffuseMapFromEnvironmentMap();
 
         void SetDescriptorDiff(uint32_t index, VkDescriptorSet descriptorSet);
         void SetDescriptorSpec(uint32_t index, VkDescriptorSet descriptorSet);
+
+        VkImageView GetCubeDiffuseTextureView() const;
+        VkImageView GetCubeSpecularTextureView() const;
+        VkSampler GetCubeDiffuseTextureSampler() const;
+        VkSampler GetCubeSpecularTextureSampler() const;
 
     private:
         Device* m_pDevice;

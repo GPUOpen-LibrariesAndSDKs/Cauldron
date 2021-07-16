@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -25,19 +25,12 @@
 #include "WICLoader.h"
 
 
-ImgLoader *GetImageLoader(const char *pFilename)
+ImgLoader *CreateImageLoader(const char *pFilename)
 {
     // get the last 4 char (assuming this is the file extension)
     size_t len = strlen(pFilename);
-    char ext[5] = { 0 };
-    for (int i = 0; i < 4; ++i)
-    {
-        ext[i] = tolower(pFilename[len - 4 + i]);
-    }
-
-    // check if the extension is known
-    uint32_t ext4CC = *reinterpret_cast<const uint32_t *>(ext);
-    if (ext4CC == 'sdd.')
+    const char* ext = pFilename + (len - 4);
+    if(_stricmp(ext, ".dds") == 0)
     {
         return new DDSLoader();
     }

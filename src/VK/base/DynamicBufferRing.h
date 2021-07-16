@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -44,6 +44,7 @@ namespace CAULDRON_VK
         VkResult OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize, char *name = nullptr);
         void OnDestroy();
         bool AllocConstantBuffer(uint32_t size, void **pData, VkDescriptorBufferInfo *pOut);
+        VkDescriptorBufferInfo AllocConstantBuffer(uint32_t size, void *pData);
         bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, VkDescriptorBufferInfo *pOut);
         bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, VkDescriptorBufferInfo *pOut);
         void OnBeginFrame();

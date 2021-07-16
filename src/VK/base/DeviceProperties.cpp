@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,6 +21,7 @@
 #include <cstring>
 
 #include "DeviceProperties.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {    
@@ -48,13 +49,16 @@ namespace CAULDRON_VK
         return res;
     }
 
-    bool DeviceProperties::Add(const char *deviceExtensionName)
+    bool DeviceProperties::AddDeviceExtensionName(const char *deviceExtensionName)
     {
         if (IsExtensionPresent(deviceExtensionName))
         {
             m_device_extension_names.push_back(deviceExtensionName);
             return true;
         }
+
+        Trace("The device extension '%s' has not been found", deviceExtensionName);
+
         return false;
     }
 

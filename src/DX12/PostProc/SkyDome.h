@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,19 +19,21 @@
 #pragma once
 
 #include "PostProcPS.h"
-#include "Base\Texture.h"
-#include "Base\UploadHeap.h"
-#include "Base\StaticBufferPool.h"
-#include "Base\DynamicBufferRing.h"
+#include "Base/Texture.h"
+#include "Base/UploadHeap.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/DynamicBufferRing.h"
+
+#include "../../libs/vectormath/vectormath.hpp"
 
 namespace CAULDRON_DX12
 {
     class SkyDome
     {
     public:
-        void OnCreate(Device* pDevice, UploadHeap* pUploadHeap, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, char *pDiffuseCubemap, char *pSpecularCubemap, DXGI_FORMAT outFormat, uint32_t sampleDescCount);
+        void OnCreate(Device* pDevice, UploadHeap* pUploadHeap, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, DXGI_FORMAT outFormat, uint32_t sampleDescCount);
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX& invViewProj);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, const math::Matrix4& invViewProj);
         void GenerateDiffuseMapFromEnvironmentMap();
 
         void SetDescriptorDiff(uint32_t textureIndex, CBV_SRV_UAV *pTextureTable, uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc);

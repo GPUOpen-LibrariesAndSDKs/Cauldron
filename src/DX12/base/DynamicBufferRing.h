@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Misc\Ring.h"
+#include "Misc/Ring.h"
 #include "ResourceViewHeaps.h"
 
 namespace CAULDRON_DX12
@@ -46,6 +46,7 @@ namespace CAULDRON_DX12
         bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, D3D12_INDEX_BUFFER_VIEW *pView);
         bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, D3D12_VERTEX_BUFFER_VIEW *pView);
         bool AllocConstantBuffer(uint32_t size, void **pData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferViewDesc);
+        D3D12_GPU_VIRTUAL_ADDRESS AllocConstantBuffer(uint32_t size, const void *pInitData);
         void OnBeginFrame();
 
     private:

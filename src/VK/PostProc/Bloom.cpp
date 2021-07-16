@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -17,14 +17,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
-#include "base/DynamicBufferRing.h"
-#include "base/StaticBufferPool.h"
-#include "base/DebugMarkersExt.h"
-#include "base/UploadHeap.h"
-#include "base/Imgui.h"
-#include "base/Helper.h"
-#include "base/Texture.h"
+#include "stdafx.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/ExtDebugUtils.h"
+#include "Base/UploadHeap.h"
+#include "Base/Imgui.h"
+#include "Base/Helper.h"
+#include "Base/Texture.h"
 
 #include "PostProcPS.h"
 
@@ -102,7 +102,7 @@ namespace CAULDRON_VK
             cb.blendConstants[2] = 1.0f;
             cb.blendConstants[3] = 1.0f;
 
-            m_blendAdd.OnCreate(pDevice, m_blendPass, "blend.glsl", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout, &cb);
+            m_blendAdd.OnCreate(pDevice, m_blendPass, "blend.glsl", "main", "", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout, &cb);
         }
 
         {
@@ -165,6 +165,8 @@ namespace CAULDRON_VK
                 fb_info.layers = 1;
                 VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_mip[i].m_frameBuffer);
                 assert(res == VK_SUCCESS);
+
+                SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_mip[i].m_frameBuffer, "BloomBlended");
             }
 
             // Set descriptors
@@ -192,6 +194,8 @@ namespace CAULDRON_VK
                 fb_info.layers = 1;
                 VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_output.m_frameBuffer);
                 assert(res == VK_SUCCESS);
+
+                SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_output.m_frameBuffer, "BloomOutput");
             }
 
             // Set descriptors
@@ -274,6 +278,9 @@ namespace CAULDRON_VK
             if (m_doBlur)
             {
                 m_blur.Draw(cmd_buf, i);
+                // force wait for the draw to completely finish
+                // TODO: need to find a better way to do it
+                vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 0, NULL);
             }
 
             // blend with mip above
@@ -330,7 +337,7 @@ namespace CAULDRON_VK
             }
 
             if (m_doUpscale)
-                m_blendAdd.Draw(cmd_buf, constantBuffer, m_mip[i].m_descriptorSet);
+                m_blendAdd.Draw(cmd_buf, &constantBuffer, m_mip[i].m_descriptorSet);
 
             vkCmdEndRenderPass(cmd_buf);
             SetPerfMarkerEnd(cmd_buf);

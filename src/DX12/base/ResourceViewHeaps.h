@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,6 +19,7 @@
 #pragma once
 
 #include "Device.h"
+#include "assert.h"
 
 namespace CAULDRON_DX12
 {
@@ -63,6 +64,7 @@ namespace CAULDRON_DX12
             GPUDescriptor.ptr += i * m_descriptorSize;
             return GPUDescriptor;
         }
+
     private:
         friend class StaticResourceViewHeapDX12;
         friend class DynamicResourceViewHeapDX12;
@@ -93,11 +95,11 @@ namespace CAULDRON_DX12
     class StaticResourceViewHeap
     {
     public:
-        void OnCreate(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t descriptorCount);
+        void OnCreate(Device* pDevice, D3D12_DESCRIPTOR_HEAP_TYPE heapType, uint32_t descriptorCount, bool forceCPUVisible = false);
         void OnDestroy();
         bool AllocDescriptor(uint32_t size, ResourceView *pRV)
         {
-            if ((m_index + size) >= m_descriptorCount)
+            if ((m_index + size) > m_descriptorCount)
             {
                 assert(!"StaticResourceViewHeapDX12 heap ran of memory, increase its size");
                 return false;

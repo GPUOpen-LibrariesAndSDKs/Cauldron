@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -17,10 +17,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "json.hpp"
+#include "stdafx.h"
+#include "GltfHelpers.h"
+#include "Base/ShaderCompilerHelper.h"
+#include "Base/ResourceViewHeaps.h"
+#include "Base/ExtDebugUtils.h"
+#include "Base/Helper.h"
+#include "Misc/Async.h"
 
-#include "Misc/Cache.h"
-
+#include "GLTF/GltfPbrMaterial.h"
 #include "GltfDepthPass.h"
 
 #include "glTFHelpers.h"
@@ -45,7 +50,8 @@ namespace CAULDRON_VK
         ResourceViewHeaps *pHeaps,
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
-        GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers)
+        GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
+        AsyncPool *pAsyncPool)
     {
         m_pDevice = pDevice;
         m_renderPass = renderPass;
@@ -87,12 +93,12 @@ namespace CAULDRON_VK
         //
         if (j3.find("materials") != j3.end())
         {
-            json::array_t materials = j3["materials"];
+            const json &materials = j3["materials"];
 
             m_materialsData.resize(materials.size());
             for (uint32_t i = 0; i < materials.size(); i++)
             {
-                json::object_t material = materials[i];
+                const json &material = materials[i];
 
                 DepthMaterial *tfmat = &m_materialsData[i];
 
@@ -108,15 +114,24 @@ namespace CAULDRON_VK
                 {
                     tfmat->m_defines["DEF_alphaCutoff"] = std::to_string(GetElementFloat(material, "alphaCutoff", 0.5));
 
-                    int id = GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1);
-                    if (id >= 0)
+                    auto pbrMetallicRoughnessIt = material.find("pbrMetallicRoughness");
+                    if (pbrMetallicRoughnessIt != material.end())
                     {
-                        // allocate descriptor table for the texture
-                        tfmat->m_textureCount = 1;
-                        m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, &m_sampler, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
-                        VkImageView textureView = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
-                        SetDescriptorSet(m_pDevice->GetDevice(), 0, textureView, nullptr, tfmat->m_descriptorSet);
-                        tfmat->m_defines["ID_baseColorTexture"] = "0";
+                        const json &pbrMetallicRoughness = pbrMetallicRoughnessIt.value();
+
+                        int id = GetElementInt(pbrMetallicRoughness, "baseColorTexture/index", -1);
+                        if (id >= 0)
+                        {
+                            tfmat->m_defines["MATERIAL_METALLICROUGHNESS"] = "1";
+
+                            // allocate descriptor table for the texture
+                            tfmat->m_textureCount = 1;
+                            tfmat->m_defines["ID_baseColorTexture"] = "0";
+                            tfmat->m_defines["ID_baseTexCoord"] = std::to_string(GetElementInt(pbrMetallicRoughness, "baseColorTexture/texCoord", 0));
+                            m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, &m_sampler, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
+                            VkImageView textureView = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
+                            SetDescriptorSet(m_pDevice->GetDevice(), 0, textureView, &m_sampler, tfmat->m_descriptorSet);
+                        }
                     }
                 }
             }
@@ -126,98 +141,66 @@ namespace CAULDRON_VK
         //
         if (j3.find("meshes") != j3.end())
         {
-            const json::array_t &meshes = j3["meshes"];
-            const json::array_t &accessors = j3["accessors"];
+            const json &meshes = j3["meshes"];
 
             m_meshes.resize(meshes.size());
             for (uint32_t i = 0; i < meshes.size(); i++)
             {
                 DepthMesh *tfmesh = &m_meshes[i];
-                const json::array_t &primitives = meshes[i]["primitives"];
+                const json &primitives = meshes[i]["primitives"];
                 tfmesh->m_pPrimitives.resize(primitives.size());
 
                 for (uint32_t p = 0; p < primitives.size(); p++)
                 {
-                    json::object_t primitive = primitives[p];
+                    const json &primitive = primitives[p];
                     DepthPrimitives *pPrimitive = &tfmesh->m_pPrimitives[p];
 
-                    // Set Material
-                    //
-                    auto mat = primitive.find("material");
-                    if (mat != primitive.end())
-                        pPrimitive->m_pMaterial = &m_materialsData[mat->second];
-                    else
-                        pPrimitive->m_pMaterial = &m_defaultMaterial;
-
-                    bool isTransparent = pPrimitive->m_pMaterial->m_defines.find("DEF_alphaMode_OPAQUE") == pPrimitive->m_pMaterial->m_defines.end();
-
-                    // Defines for the shader compiler, they will hold the PS and VS bindings for the geometry, io and textures
-                    //
-                    DefineList attributeDefines;
-
-                    // Set input layout from glTF attributes and set VS bindings
-                    //
-                    std::vector<tfAccessor> vertexBuffers;
-                    std::vector<VkVertexInputAttributeDescription> layout;
-
-                    const json::object_t &attribute = primitive["attributes"];
-                    for (auto it = attribute.begin(); it != attribute.end(); it++)
+                    ExecAsyncIfThereIsAPool(pAsyncPool, [this, i, &primitive, pPrimitive]()
                     {
-                        std::string semanticName = it->first;
-
-                        // For the depth pass we are only interested in a few attributes
+                        // Set Material
                         //
-                        if (
-                            (semanticName == "POSITION") || // for obvious reasons
-                            ((isTransparent == true) && (semanticName == "TEXCOORD_0")) ||  // in case the material is transparent
-                            (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
-                            (semanticName.substr(0, 6) == "JOINTS") // for skinning
-                            )
+                        auto mat = primitive.find("material");
+                        if (mat != primitive.end())
+                            pPrimitive->m_pMaterial = &m_materialsData[mat.value()];
+                        else
+                            pPrimitive->m_pMaterial = &m_defaultMaterial;
+
+                        // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things.
+                        //
+                        std::vector<std::string > requiredAttributes;
+                        for (auto const & it : primitive["attributes"].items())
                         {
-                            const json::object_t &accessor = accessors[it->second];
-
-                            // Get VB accessors
-                            //
-                            tfAccessor vertexBuffer;
-                            m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetBufferDetails(it->second, &vertexBuffer);
-                            vertexBuffers.push_back(vertexBuffer);
-
-                            // let the compiler know we have this stream
-                            attributeDefines[std::string("ID_4VS_") + it->first] = std::to_string(layout.size());
-
-                            // Create Input Layout
-                            //
-                            VkVertexInputAttributeDescription l;
-                            l.location = (uint32_t)layout.size();
-                            l.format = GetFormat(accessor.at("type"), accessor.at("componentType"));
-                            l.offset = 0;
-                            l.binding = (uint32_t)layout.size();
-                            layout.push_back(l);
+                            const std::string semanticName = it.key();
+                            if (
+                                (semanticName == "POSITION") ||
+                                (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
+                                (semanticName.substr(0, 6) == "JOINTS") || // for skinning
+                                (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) // if there is transparency this will make sure we use the texture coordinates of that texture
+                                )
+                            {
+                                requiredAttributes.push_back(semanticName);
+                            }
                         }
-                    }
 
-                    // Get Index and vertex buffer buffer accessors and create the geometry
-                    //
-                    tfAccessor indexBuffer;
-                    pGLTFTexturesAndBuffers->m_pGLTFCommon->GetBufferDetails(primitive["indices"], &indexBuffer);
-                    pGLTFTexturesAndBuffers->CreateGeometry(indexBuffer, vertexBuffers, &pPrimitive->m_Geometry);
+                        // holds all the #defines from materials, geometry and texture IDs, the VS & PS shaders need this to get the bindings and code paths
+                        //
+                        DefineList defines = pPrimitive->m_pMaterial->m_defines;
 
-                    // Set PS bindings
-                    {
-                        if (isTransparent)
+                        // create an input layout from the required attributes
+                        // shader's can tell the slots from the #defines
+                        //
+                        std::vector<VkVertexInputAttributeDescription> inputLayout;
+                        m_pGLTFTexturesAndBuffers->CreateGeometry(primitive, requiredAttributes, inputLayout, defines, &pPrimitive->m_geometry);
+
+                        // Create Pipeline
+                        //
                         {
-                            attributeDefines[std::string("ID_4PS_TEXCOORD_0")] = std::to_string(0);
+                            int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
+                            int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
+                            CreateDescriptors(inverseMatrixBufferSize, &defines, pPrimitive);
+                            CreatePipeline(inputLayout, defines, pPrimitive);
                         }
-                    }
-
-                    // Create Pipeline
-                    //
-                    {
-                        int skinId = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->FindMeshSkinId(i);
-                        int inverseMatrixBufferSize = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->GetInverseBindMatricesBufferSizeByID(skinId);
-                        CreateDescriptors(pDevice, inverseMatrixBufferSize, &attributeDefines, pPrimitive);
-                        CreatePipeline(pDevice, layout, &attributeDefines, pPrimitive);
-                    }
+                    });
                 }
             }
         }
@@ -258,7 +241,7 @@ namespace CAULDRON_VK
     // CreateDescriptors for a combination of material and geometry
     //
     //--------------------------------------------------------------------------------------
-    void GltfDepthPass::CreateDescriptors(Device *pDevice, int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive)
+    void GltfDepthPass::CreateDescriptors(int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive)
     {
         std::vector<VkDescriptorSetLayoutBinding> layout_bindings(2);
         layout_bindings[0].binding = 0;
@@ -319,7 +302,7 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, nullptr, &pPrimitive->m_pipelineLayout);
         assert(res == VK_SUCCESS);
-
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pPrimitive->m_pipelineLayout, "GltfDepthPass PL");
     }
 
     //--------------------------------------------------------------------------------------
@@ -327,18 +310,15 @@ namespace CAULDRON_VK
     // CreatePipeline
     //
     //--------------------------------------------------------------------------------------
-    void GltfDepthPass::CreatePipeline(Device *pDevice, std::vector<VkVertexInputAttributeDescription> layout, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive)
+    void GltfDepthPass::CreatePipeline(std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, DepthPrimitives *pPrimitive)
     {
         /////////////////////////////////////////////
         // Compile and create shaders
 
         VkPipelineShaderStageCreateInfo vertexShader, fragmentShader = {};
         {
-            // Create #defines based on material properties and vertex attributes
-            DefineList defines = pPrimitive->m_pMaterial->m_defines + (*pAttributeDefines);
-
-            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFDepthPass-vert.glsl", "main", &defines, &vertexShader);
-            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFDepthPass-frag.glsl", "main", &defines, &fragmentShader);
+            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_VERTEX_BIT, "GLTFDepthPass-vert.glsl", "main", "", &defines, &vertexShader);
+            VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_FRAGMENT_BIT, "GLTFDepthPass-frag.glsl", "main", "", &defines, &fragmentShader);
         }
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader, fragmentShader };
 
@@ -496,6 +476,7 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &pPrimitive->m_pipeline);
         assert(res == VK_SUCCESS);
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)pPrimitive->m_pipeline, "GltfDepthPass P");
     }
 
     //--------------------------------------------------------------------------------------
@@ -523,7 +504,7 @@ namespace CAULDRON_VK
         // loop through nodes
         //
         std::vector<tfNode> *pNodes = &m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_nodes;
-        XMMATRIX *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_transformedData.m_worldSpaceMats.data();
+        Matrix2 *pNodesMatrices = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_worldSpaceMats.data();
 
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
@@ -547,11 +528,11 @@ namespace CAULDRON_VK
                 per_object *cbPerObject;
                 VkDescriptorBufferInfo perObjectDesc;
                 m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), (void **)&cbPerObject, &perObjectDesc);
-                cbPerObject->mWorld = pNodesMatrices[i];
+                cbPerObject->mWorld = pNodesMatrices[i].GetCurrent();
 
                 // Bind indices and vertices using the right offsets into the buffer
                 //
-                Geometry *pGeometry = &pPrimitive->m_Geometry;
+                Geometry *pGeometry = &pPrimitive->m_geometry;
                 for (uint32_t i = 0; i < pGeometry->m_VBV.size(); i++)
                 {
                     vkCmdBindVertexBuffers(cmd_buf, i, 1, &pGeometry->m_VBV[i].buffer, &pGeometry->m_VBV[i].offset);
@@ -562,7 +543,7 @@ namespace CAULDRON_VK
                 // Bind Descriptor sets
                 //
                 VkDescriptorSet descriptorSets[2] = { pPrimitive->m_descriptorSet, pPrimitive->m_pMaterial->m_descriptorSet };
-                uint32_t descritorSetCount = 1 + pPrimitive->m_pMaterial->m_textureCount;
+                uint32_t descritorSetCount = 1 + (pPrimitive->m_pMaterial->m_textureCount > 0 ? 1 : 0);
 
                 uint32_t uniformOffsets[3] = { (uint32_t)m_perFrameDesc.offset,  (uint32_t)perObjectDesc.offset, (pPerSkeleton) ? (uint32_t)pPerSkeleton->offset : 0 };
                 uint32_t uniformOffsetsCount = (pPerSkeleton) ? 3 : 2;

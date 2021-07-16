@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,14 +18,14 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "base\DynamicBufferRing.h"
-#include "base\StaticBufferPool.h"
-#include "base\UploadHeap.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/UploadHeap.h"
 #include "ToneMapping.h"
 
 namespace CAULDRON_DX12
 {
-    void ToneMapping::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat)
+    void ToneMapping::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat, uint32_t srvTableSize, const char *shaderSource)
     {
         m_pDynamicBufferRing = pDynamicBufferRing;
 
@@ -44,7 +44,7 @@ namespace CAULDRON_DX12
         SamplerDesc.RegisterSpace = 0;
         SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-        m_toneMapping.OnCreate(pDevice, "Tonemapping.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, &SamplerDesc, outFormat);
+	m_toneMapping.OnCreate(pDevice, shaderSource, pResourceViewHeaps, pStaticBufferPool, srvTableSize, 1, &SamplerDesc, outFormat);
     }
 
     void ToneMapping::OnDestroy()
@@ -52,7 +52,12 @@ namespace CAULDRON_DX12
         m_toneMapping.OnDestroy();
     }
 
-    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper)
+    void ToneMapping::UpdatePipelines(DXGI_FORMAT outFormat)
+    {
+        m_toneMapping.UpdatePipeline(outFormat);
+    }
+
+    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, bool gamma2)
     {
         UserMarker marker(pCommandList, "Tonemapping");
 
@@ -61,7 +66,7 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
-
+        pToneMapping->gamma2 = (gamma2 ? 1 : 0);
         m_toneMapping.Draw(pCommandList, 1, pHDRSRV, cbTonemappingHandle);
     }
 }

@@ -1,5 +1,5 @@
-// AMD AMDUtils code
-// 
+// AMD Cauldron code
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,9 +17,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <cstring>
-#include <iterator>
-
+#include "stdafx.h"
+#include "Base/Device.h"
+#include "Base/ExtDebugUtils.h"
+#include "Base/ShaderCompilerHelper.h"
 #include "Axis.h"
 #include "base/Device.h"
 #include "base/ShaderCompilerHelper.h"
@@ -108,11 +109,11 @@ namespace CAULDRON_VK
         DefineList attributeDefines;
 
         VkPipelineShaderStageCreateInfo m_vertexShader;
-        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "main", &attributeDefines, &m_vertexShader);
+        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "main", "", &attributeDefines, &m_vertexShader);
         assert(res == VK_SUCCESS);
 
         VkPipelineShaderStageCreateInfo m_fragmentShader;
-        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_FRAGMENT_BIT, pixelShader, "main", &attributeDefines, &m_fragmentShader);
+        res = VKCompileFromString(pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_FRAGMENT_BIT, pixelShader, "main", "", &attributeDefines, &m_fragmentShader);
         assert(res == VK_SUCCESS);
 
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { m_vertexShader, m_fragmentShader };
@@ -280,7 +281,7 @@ namespace CAULDRON_VK
         ms.alphaToOneEnable = VK_FALSE;
         ms.minSampleShading = 0.0;
 
-        // create pipeline 
+        // create pipeline
 
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -305,6 +306,7 @@ namespace CAULDRON_VK
 
         res = vkCreateGraphicsPipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &m_pipeline);
         assert(res == VK_SUCCESS);
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)m_pipeline, "Axis P");
 
     }
 
@@ -316,7 +318,7 @@ namespace CAULDRON_VK
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
     }
 
-    void Axis::Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMMATRIX axisMatrix)
+    void Axis::Draw(VkCommandBuffer cmd_buf, const math::Matrix4& worldMatrix, const math::Matrix4& axisMatrix)
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;

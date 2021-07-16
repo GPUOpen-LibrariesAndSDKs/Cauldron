@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,14 +18,14 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "base\Device.h"
-#include "base\DynamicBufferRing.h"
-#include "base\StaticBufferPool.h"
-#include "base\UserMarkers.h"
-#include "base\UploadHeap.h"
-#include "base\Texture.h"
-#include "base\Helper.h"
-#include "base\Imgui.h"
+#include "Base/Device.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/UserMarkers.h"
+#include "Base/UploadHeap.h"
+#include "Base/Texture.h"
+#include "Base/Helper.h"
+#include "Base/Imgui.h"
 #include "PostProcPS.h"
 #include "Bloom.h"
 
@@ -75,7 +75,7 @@ namespace CAULDRON_DX12
             SamplerDesc.RegisterSpace = 0;
             SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-            m_blendFactor.OnCreate(m_pDevice, "blend.hlsl", m_pResourceViewHeaps, pStaticBufferPool, 1, &SamplerDesc, m_outFormat, 1, &blendingFactor);
+            m_blendFactor.OnCreate(m_pDevice, "blend.hlsl", m_pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, m_outFormat, 1, &blendingFactor);
         }
 
         // Allocate descriptors for the mip chain

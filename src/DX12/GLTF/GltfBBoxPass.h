@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "base\StaticBufferPool.h"
-#include "base\ResourceViewHeaps.h"
-#include "base\DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/ResourceViewHeaps.h"
+#include "Base/DynamicBufferRing.h"
 #include "GLTFTexturesAndBuffers.h"
-#include "widgets\WireframeBox.h"
+#include "widgets/WireframeBox.h"
 
 namespace CAULDRON_DX12
 {
@@ -36,13 +36,14 @@ namespace CAULDRON_DX12
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-            DXGI_FORMAT outFormat,
-            uint32_t sampleDescCount);
+            Wireframe *pWireframe);
 
         void OnDestroy();
-        void Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX cameraViewProjMatrix);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, math::Matrix4 cameraViewProjMatrix);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
+        
+        Wireframe *m_pWireframe;
         WireframeBox m_wireframeBox;
     };
 }

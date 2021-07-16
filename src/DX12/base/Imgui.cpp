@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -22,7 +22,10 @@
 
 // DirectX
 #include <d3d11.h>
-#include "..\base\ShaderCompilerHelper.h"
+#include "../Base/ShaderCompilerHelper.h"
+
+// For windows DPI scaling fetching
+#include <shellscalingapi.h>
 
 namespace CAULDRON_DX12
 {
@@ -36,7 +39,7 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void ImGUI::OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat)
+    void ImGUI::OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat, float fontSize/*= 13.f*/)
     {
         m_pResourceViewHeaps = pHeaps;
         m_pConstBuf = pConstantBufferRing;
@@ -45,6 +48,14 @@ namespace CAULDRON_DX12
         // Get UI texture 
         //
         ImGuiIO& io = ImGui::GetIO();
+
+        // Fixup font size based on scale factor
+        DEVICE_SCALE_FACTOR scaleFactor = GetScaleFactorForDevice(DEVICE_PRIMARY);
+        float textScale = scaleFactor / 100.f;
+        ImFontConfig font_cfg;
+        font_cfg.SizePixels = fontSize * textScale;
+        io.Fonts->AddFontDefault(&font_cfg);
+
         unsigned char* pixels;
         int width, height;
         io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
@@ -129,7 +140,7 @@ namespace CAULDRON_DX12
         // Create sampler
         //
         D3D12_STATIC_SAMPLER_DESC SamplerDesc = {};
-        SamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+        SamplerDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
         SamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         SamplerDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
         SamplerDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -141,15 +152,6 @@ namespace CAULDRON_DX12
         SamplerDesc.ShaderRegister = 0;
         SamplerDesc.RegisterSpace = 0;
         SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-
-        // Create the input layout
-        D3D12_INPUT_ELEMENT_DESC layout[] = {
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->pos), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->uv),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, (size_t)(&((ImDrawVert*)0)->col), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        };
-        uint32_t numElements = sizeof(layout) / sizeof(layout[0]);
 
         // Vertex shader
         //
@@ -196,14 +198,15 @@ namespace CAULDRON_DX12
         float4 main(PS_INPUT input) : SV_Target\
         {\
         float4 out_col = input.col * texture0.Sample(sampler0, input.uv); \
+        const float gamma = 2.2f;\
+        out_col.xyz = pow(out_col.xyz, float3(gamma, gamma, gamma));\
         return out_col; \
         }";
 
         // Compile and create shaders
-        //
-        D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
-        CompileShaderFromString(vertexShader, NULL, "main", "vs_5_0", 0, 0, &shaderVert);
-        CompileShaderFromString(pixelShader, NULL, "main", "ps_5_0", 0, 0, &shaderPixel);
+        //        
+        CompileShaderFromString(vertexShader, NULL, "main", "-T vs_6_0", &m_shaderVert);
+        CompileShaderFromString(pixelShader, NULL, "main", "-T ps_6_0", &m_shaderPixel);
 
         // Create descriptor sets
         //
@@ -241,16 +244,43 @@ namespace CAULDRON_DX12
                 pOutBlob->GetBufferSize(),
                 __uuidof(ID3D12RootSignature),
                 (void**)&m_pRootSignature);
-            m_pRootSignature->SetName(L"UI RootSignature");
+            SetName(m_pRootSignature, "ImGUI::m_RootSignature");
         }
+
+        UpdatePipeline(outFormat);
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // UpdatePipeline
+    //
+    //--------------------------------------------------------------------------------------
+    void ImGUI::UpdatePipeline(DXGI_FORMAT outFormat)
+    {
+        if (outFormat == DXGI_FORMAT_UNKNOWN)
+            return;
+
+        if (m_pPipelineState != NULL)
+        {
+            m_pPipelineState->Release();
+            m_pPipelineState = NULL;
+        }
+
+        // Create the input layout
+        D3D12_INPUT_ELEMENT_DESC layout[] = {
+            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->pos), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,   0, (size_t)(&((ImDrawVert*)0)->uv),  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, (size_t)(&((ImDrawVert*)0)->col), D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
+        };
+        uint32_t numElements = sizeof(layout) / sizeof(layout[0]);
 
         // Create the pipeline
         //
         D3D12_GRAPHICS_PIPELINE_STATE_DESC descPso = {};
         descPso.InputLayout = { layout, numElements };
         descPso.pRootSignature = m_pRootSignature;
-        descPso.VS = shaderVert;
-        descPso.PS = shaderPixel;
+        descPso.VS = m_shaderVert;
+        descPso.PS = m_shaderPixel;
         descPso.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
         descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
         descPso.RasterizerState.DepthClipEnable = true;
@@ -272,8 +302,7 @@ namespace CAULDRON_DX12
         descPso.SampleDesc.Count = 1;
         descPso.NodeMask = 0;
         m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipelineState));
-        m_pPipelineState->SetName(L"UI PSO");
-
+        SetName(m_pPipelineState, "ImGUI::m_pPipelineState");
     }
 
     //--------------------------------------------------------------------------------------
