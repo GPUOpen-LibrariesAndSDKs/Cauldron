@@ -20,7 +20,11 @@
 #include <vector>
 
 #include "Device.h"
+#ifdef _WIN32
 #include <vulkan/vulkan_win32.h>
+#else
+#include <vulkan/vulkan_xlib.h>
+#endif
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
@@ -131,7 +135,11 @@ namespace CAULDRON_VK
         createInfo.hwnd = hWnd;
         res = vkCreateWin32SurfaceKHR(m_instance, &createInfo, NULL, &m_surface);
 #else
-    #error platform not supported
+VkXlibSurfaceCreateInfoKHR createInfo = {};
+createInfo.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+createInfo.pNext = NULL;
+createInfo.dpy = NULL;
+res = vkCreateXlibSurfaceKHR(m_instance, &createInfo, NULL, &m_surface);
 #endif
         // Find a graphics device and a queue that can present to the above surface
         //

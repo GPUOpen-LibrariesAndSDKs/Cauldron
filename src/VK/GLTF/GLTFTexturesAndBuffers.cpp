@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Misc/Misc.h"
 #include "GltfHelpers.h"
-#include "Base/UploadHeap.h"
+#include "base/UploadHeap.h"
 #include "Misc/ThreadPool.h"
 #include "GLTFTexturesAndBuffers.h"
 #include "../common/GLTF/GltfPbrMaterial.h"

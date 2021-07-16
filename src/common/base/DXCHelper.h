@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base/ShaderCompiler.h"
+#include "base/ShaderCompiler.h"
 
 #include <vector>
 

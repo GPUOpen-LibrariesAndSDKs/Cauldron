@@ -24,7 +24,7 @@
 #include "CommandListRing.h"
 #include "UploadHeap.h"
 #include "../imgui/imgui.h"
-#include "Base/ImGuiHelper.h"
+#include "base/ImGuiHelper.h"
 
 namespace CAULDRON_VK
 {

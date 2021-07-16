@@ -18,8 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base/Device.h"
-#include "Base/ShaderCompiler.h"
+#include "base/Device.h"
+#include "base/ShaderCompiler.h"
 #include "base/DXCHelper.h"
 
 class Sync;

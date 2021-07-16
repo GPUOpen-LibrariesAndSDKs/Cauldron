@@ -18,10 +18,10 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/ExtDebugUtils.h"
+#include "base/ExtDebugUtils.h"
 #include "GltfBBoxPass.h"
 #include "GltfHelpers.h"
-#include "Base/ShaderCompilerHelper.h"
+#include "base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_VK
 {

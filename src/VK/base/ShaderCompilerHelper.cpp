@@ -22,9 +22,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "Misc/Cache.h"
 #include "ShaderCompilerHelper.h"
-#include "Base/ExtDebugUtils.h"
+#include "base/ExtDebugUtils.h"
 #include "Misc/Misc.h"
 #include "base/ShaderCompilerCache.h"
 #include "Misc/AsyncCache.h"

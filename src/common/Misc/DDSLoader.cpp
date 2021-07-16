@@ -21,7 +21,7 @@
 
 #include "DDSLoader.h"
 #include "DxgiFormatHelper.h"
-
+#ifdef _WIN32
 struct DDS_PIXELFORMAT
 {
     uint32_t size;

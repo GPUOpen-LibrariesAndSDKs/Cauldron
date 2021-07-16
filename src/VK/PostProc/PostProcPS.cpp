@@ -18,13 +18,13 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ResourceViewHeaps.h"
-#include "Base/ShaderCompilerHelper.h"
-#include "Base/UploadHeap.h"
-#include "Base/Texture.h"
+#include "base/ExtDebugUtils.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
 #include "Misc/ThreadPool.h"
 
 #include "PostProcPS.h"

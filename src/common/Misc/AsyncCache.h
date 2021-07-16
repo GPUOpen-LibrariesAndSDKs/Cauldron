@@ -21,7 +21,7 @@
 
 #include <map>
 
-#include "threadpool.h"
+#include "ThreadPool.h"
 
 // This is a multithreaded shader cache. This is how it works:
 //

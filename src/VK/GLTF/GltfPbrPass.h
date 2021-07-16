@@ -20,7 +20,7 @@
 
 #include "GLTFTexturesAndBuffers.h"
 #include "PostProc/SkyDome.h"
-#include "Base/GBuffer.h"
+#include "base/GBuffer.h"
 #include "../common/GLTF/GltfPbrMaterial.h"
 
 namespace CAULDRON_VK

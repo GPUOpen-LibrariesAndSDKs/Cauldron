@@ -19,10 +19,10 @@
 
 #include "stdafx.h"
 #include "GLTF/GltfHelpers.h"
-#include "Base/ShaderCompilerHelper.h"
-#include "Base/ResourceViewHeaps.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/Helper.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/ExtDebugUtils.h"
+#include "base/Helper.h"
 #include "Misc/Async.h"
 #include "Misc/Misc.h"
 

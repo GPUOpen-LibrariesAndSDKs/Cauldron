@@ -19,7 +19,7 @@
 
 
 #include "ResourceViewHeaps.h"
-#include "Misc/misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {

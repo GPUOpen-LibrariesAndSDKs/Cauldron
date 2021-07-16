@@ -19,8 +19,8 @@
 
 #pragma once
 #include "PostProcPS.h"
-#include "Base/Texture.h"
-#include "Base/UploadHeap.h"
+#include "base/Texture.h"
+#include "base/UploadHeap.h"
 
 #include "../../libs/vectormath/vectormath.hpp"
 

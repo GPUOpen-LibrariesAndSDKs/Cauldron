@@ -1,4 +1,5 @@
 project (Framework_Common)
+include(common)
 if(MSVC)
   add_compile_options(/MP)
 else()
@@ -13,14 +14,25 @@ set(base_src
     "base/ImGuiHelper.h"
 )
 
-set(shader_compiler_src
-    "base/ShaderCompiler.cpp"
-    "base/ShaderCompiler.h"
-    "base/ShaderCompilerCache.cpp"
-    "base/ShaderCompilerCache.h"
-    "base/DXCHelper.cpp"
-    "base/DXCHelper.h"
-)
+if(MSVC)
+  set(shader_compiler_src
+      "base/ShaderCompiler.cpp"
+      "base/ShaderCompiler.h"
+      "base/ShaderCompilerCache.cpp"
+      "base/ShaderCompilerCache.h"
+      "base/DXCHelper.cpp"
+      "base/DXCHelper.h"
+  )
+else()
+  set(shader_compiler_src
+      "base/ShaderCompiler.cpp"
+      "base/ShaderCompiler.h"
+      "base/ShaderCompilerCache.cpp"
+      "base/ShaderCompilerCache.h"
+  )
+endif()
+
+
 
 set(GLTF_src
     "GLTF/GltfStructures.h"
@@ -33,8 +45,6 @@ set(GLTF_src
 )
 
 set(Misc_src
-    "Misc/Cache.cpp"
-	"Misc/Cache.h"
 	"Misc/Camera.cpp"
 	"Misc/Camera.h"
 	"Misc/DDSLoader.cpp"
@@ -47,7 +57,7 @@ set(Misc_src
 	"Misc/Misc.h"
 	"Misc/Ring.h"
 	"Misc/ThreadPool.cpp"
-	"Misc/threadpool.h"
+	"Misc/ThreadPool.h"
 
 	"Misc/WirePrimitive.h"
 	"Misc/WirePrimitives.cpp"
@@ -59,7 +69,7 @@ target_link_libraries (Cauldron_Common PUBLIC NJSON DXC Shcore)
 target_include_directories (Cauldron_Common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(media_src
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../media/brdfLut.dds
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../media/BrdfLut.dds
 )
 
 copyTargetCommand("${media_src}" ${CMAKE_HOME_DIRECTORY}/bin copied_common_media_src)

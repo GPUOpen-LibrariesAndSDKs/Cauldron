@@ -22,7 +22,11 @@
 #include "SwapChain.h"
 #include "ExtFreeSyncHDR.h"
 #include "ExtDebugUtils.h"
-#include <vulkan\vulkan_win32.h>
+#ifdef _WIN32
+#include <vulkan/vulkan_win32.h>
+#else
+#include <vulkan/vulkan_xlib.h>
+#endif
 
 namespace CAULDRON_VK
 {

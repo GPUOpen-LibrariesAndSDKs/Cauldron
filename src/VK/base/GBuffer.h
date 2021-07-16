@@ -18,12 +18,12 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "Base/Device.h"
-#include "Base/SwapChain.h"
-#include "Base/Texture.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/ShaderCompilerHelper.h"
-#include "Base/ResourceViewHeaps.h"
+#include "base/Device.h"
+#include "base/SwapChain.h"
+#include "base/Texture.h"
+#include "base/ExtDebugUtils.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/ResourceViewHeaps.h"
 
 namespace CAULDRON_VK
 {

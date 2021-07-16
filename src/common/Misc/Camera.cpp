@@ -201,6 +201,7 @@ math::Vector4 MoveWASD(const bool keyDown[256])
     {
         y = -scale;
     }
+#endif
 
     return math::Vector4(x, y, z, 0.0f);
 }

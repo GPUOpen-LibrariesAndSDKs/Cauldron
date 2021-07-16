@@ -18,10 +18,10 @@
 // THE SOFTWARE.
 #pragma once
 #include "GLTF/GltfCommon.h"
-#include "Base/Texture.h"
-#include "Base/ShaderCompiler.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/DynamicBufferRing.h"
+#include "base/Texture.h"
+#include "base/ShaderCompiler.h"
+#include "base/StaticBufferPool.h"
+#include "base/DynamicBufferRing.h"
 
 namespace CAULDRON_VK
 {

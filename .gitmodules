@@ -1,3 +1,4 @@
 [submodule "libs/DirextXMath"]
 	path = libs/DirextXMath
 	url = https://github.com/Mixaill/DirectXMath.git
+	branch = gcc

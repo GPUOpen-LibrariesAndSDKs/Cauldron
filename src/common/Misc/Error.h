@@ -19,7 +19,7 @@
 
 #pragma once
 #include "Misc.h"
-
+#ifdef _WIN32
 void ShowErrorMessageBox(LPCWSTR lpErrorString);
 void ShowCustomErrorMessageBox(_In_opt_ LPCWSTR lpErrorString);
 

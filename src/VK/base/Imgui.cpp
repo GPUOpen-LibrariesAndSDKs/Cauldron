@@ -19,11 +19,13 @@
 
 #include "stdafx.h"
 #include "ShaderCompilerHelper.h"
-#include "Base/ExtDebugUtils.h"
+#include "base/ExtDebugUtils.h"
 #include "Imgui.h"
 
 // For windows DPI scaling fetching
+#ifdef _WIN32
 #include <shellscalingapi.h>
+#endif
 
 namespace CAULDRON_VK
 {
