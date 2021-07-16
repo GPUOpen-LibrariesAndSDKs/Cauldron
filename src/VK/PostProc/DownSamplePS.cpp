@@ -1,5 +1,5 @@
-// AMD AMDUtils code
-// 
+// AMD Cauldron code
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,14 +17,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
-#include "base/DynamicBufferRing.h"
-#include "base/StaticBufferPool.h"
-#include "base/DebugMarkersExt.h"
-#include "base/UploadHeap.h"
-#include "base/Texture.h"
-#include "base/Imgui.h"
-#include "base/Helper.h"
+#include "stdafx.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/ExtDebugUtils.h"
+#include "Base/UploadHeap.h"
+#include "Base/Texture.h"
+#include "Base/Imgui.h"
+#include "Base/Helper.h"
 
 #include "PostProcPS.h"
 #include "DownSamplePS.h"
@@ -95,7 +95,7 @@ namespace CAULDRON_VK
 
         // Use helper class to create the fullscreen pass
         //
-        m_downscale.OnCreate(pDevice, m_in, "DownSamplePS.glsl", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout);
+        m_downscale.OnCreate(pDevice, m_in, "DownSamplePS.glsl", "main", "", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout);
 
         // Allocate descriptors for the mip chain
         //
@@ -126,7 +126,7 @@ namespace CAULDRON_VK
         image_info.queueFamilyIndexCount = 0;
         image_info.pQueueFamilyIndices = NULL;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT); //TODO    
+        image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT); //TODO
         image_info.flags = 0;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
         m_result.Init(m_pDevice, &image_info, "DownsampleMip");
@@ -146,7 +146,7 @@ namespace CAULDRON_VK
                 m_result.CreateSRV(&m_mip[i].m_SRV, i - 1);
             }
 
-            // Create and initialize the Descriptor Sets (all of them use the same Descriptor Layout)        
+            // Create and initialize the Descriptor Sets (all of them use the same Descriptor Layout)
             m_pConstantBufferRing->SetDescriptorSet(0, sizeof(DownSamplePS::cbDownscale), m_mip[i].descriptorSet);
             SetDescriptorSet(m_pDevice->GetDevice(), 1, m_mip[i].m_SRV, &m_sampler, m_mip[i].descriptorSet);
 
@@ -154,7 +154,7 @@ namespace CAULDRON_VK
             //
             m_result.CreateRTV(&m_mip[i].RTV, i);
 
-            // Create framebuffer 
+            // Create framebuffer
             {
                 VkImageView attachments[1] = { m_mip[i].RTV };
 
@@ -169,6 +169,11 @@ namespace CAULDRON_VK
                 fb_info.layers = 1;
                 VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_mip[i].frameBuffer);
                 assert(res == VK_SUCCESS);
+
+                std::string ResourceName = "DownsamplePS";
+                ResourceName += std::to_string(i);
+
+                SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_mip[i].frameBuffer, ResourceName.c_str());
             }
         }
     }
@@ -207,7 +212,6 @@ namespace CAULDRON_VK
         //
         for (int i = 0; i < m_mipCount; i++)
         {
-
             VkRenderPassBeginInfo rp_begin = {};
             rp_begin.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
             rp_begin.pNext = NULL;
@@ -229,7 +233,7 @@ namespace CAULDRON_VK
             data->invHeight = 1.0f / (float)(m_Height >> i);
             data->mipLevel = i;
 
-            m_downscale.Draw(cmd_buf, constantBuffer, m_mip[i].descriptorSet);
+            m_downscale.Draw(cmd_buf, &constantBuffer, m_mip[i].descriptorSet);
 
             vkCmdEndRenderPass(cmd_buf);
         }

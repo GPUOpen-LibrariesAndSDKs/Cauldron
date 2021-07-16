@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Device.h"
 #include "StaticBufferPool.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_DX12
 {
@@ -40,11 +40,11 @@ namespace CAULDRON_DX12
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
                     D3D12_HEAP_FLAG_NONE,
                     &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
-                    D3D12_RESOURCE_STATE_COMMON,
+                    D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
                     nullptr,
                     IID_PPV_ARGS(&m_pVidMemBuffer))
             );
-            m_pVidMemBuffer->SetName(L"StaticBufferPoolDX12::m_pVidMemBuffer");
+            SetName(m_pVidMemBuffer, "StaticBufferPoolDX12::m_pVidMemBuffer");
         }
 
         ThrowIfFailed(
@@ -56,7 +56,7 @@ namespace CAULDRON_DX12
                 nullptr,
                 IID_PPV_ARGS(&m_pSysMemBuffer))
         );
-        m_pSysMemBuffer->SetName(L"StaticBufferPoolDX12::m_pSysMemBuffer");
+        SetName(m_pSysMemBuffer, "StaticBufferPoolDX12::m_pSysMemBuffer");
 
         m_pSysMemBuffer->Map(0, NULL, reinterpret_cast<void**>(&m_pData));
     }
@@ -83,7 +83,7 @@ namespace CAULDRON_DX12
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        uint32_t size = (uint32_t)AlignOffset(numbeOfElements* strideInBytes, 256);
+        uint32_t size = AlignUp(numbeOfElements* strideInBytes, 256u);
         assert(m_memOffset + size < m_totalMemSize);
 
         *pData = (void *)(m_pData + m_memOffset);
@@ -115,7 +115,7 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    bool StaticBufferPool::AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut)
+    bool StaticBufferPool::AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, const void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut)
     {
         void *pData;
         if (AllocVertexBuffer(numbeOfVertices, strideInBytes, &pData, pOut))
@@ -134,7 +134,7 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    bool StaticBufferPool::AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut)
+    bool StaticBufferPool::AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, const void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut)
     {
         void *pData;
         if (AllocIndexBuffer(numbeOfIndices, strideInBytes, &pData, pOut))
@@ -167,6 +167,8 @@ namespace CAULDRON_DX12
     {
         if (m_bUseVidMem)
         {
+            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_COPY_DEST));
+
             pCmdList->CopyBufferRegion(m_pVidMemBuffer, m_memInit, m_pSysMemBuffer, m_memInit, m_memOffset - m_memInit);
 
             // With 'dynamic resources' we can use a same resource to hold Constant, Index and Vertex buffers.
@@ -187,9 +189,19 @@ namespace CAULDRON_DX12
 
     void StaticBufferPool::FreeUploadHeap()
     {
-        m_pSysMemBuffer->Release();
-        m_pSysMemBuffer = nullptr;
+        if (m_bUseVidMem)
+        {
+            assert(m_pSysMemBuffer != nullptr);
+            m_pSysMemBuffer->Release();
+            m_pSysMemBuffer = nullptr;
+        }
     }
+
+    ID3D12Resource *StaticBufferPool::GetResource()
+    {
+        return (m_bUseVidMem) ? m_pVidMemBuffer : m_pSysMemBuffer;
+    }
+
 }
 
 

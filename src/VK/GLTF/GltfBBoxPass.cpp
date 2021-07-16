@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -17,11 +17,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-
-#include "base/DebugMarkersExt.h"
+#include "stdafx.h"
+#include "Base/ExtDebugUtils.h"
 #include "GltfBBoxPass.h"
-#include "glTFHelpers.h"
-#include "base/ShaderCompilerHelper.h"
+#include "GltfHelpers.h"
+#include "Base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_VK
 {
@@ -37,11 +37,12 @@ namespace CAULDRON_VK
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-        VkSampleCountFlagBits sampleCount)
+        Wireframe *pWireframe)
     {
+        m_pWireframe = pWireframe;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
 
-        m_wireframeBox.OnCreate(pDevice, renderPass, pResourceViewHeaps, pDynamicBufferRing, pStaticBufferPool, sampleCount);
+        m_wireframeBox.OnCreate(pDevice, pResourceViewHeaps, pDynamicBufferRing, pStaticBufferPool);
     }
 
     //--------------------------------------------------------------------------------------
@@ -59,7 +60,9 @@ namespace CAULDRON_VK
     // Draw
     //
     //--------------------------------------------------------------------------------------
-    void GltfBBoxPass::Draw(VkCommandBuffer cmd_buf, XMMATRIX cameraViewProjMatrix)
+    void GltfBBoxPass::Draw(VkCommandBuffer cmd_buf
+        , const math::Matrix4& cameraViewProjMatrix
+        , const math::Vector4& color)
     {
         SetPerfMarkerBegin(cmd_buf, "bounding boxes");
 
@@ -71,12 +74,12 @@ namespace CAULDRON_VK
             if (pNode->meshIndex < 0)
                 continue;
 
-            XMMATRIX mWorldViewProj = pC->m_transformedData.m_worldSpaceMats[i] * cameraViewProjMatrix;
+            math::Matrix4 mWorldViewProj =  cameraViewProjMatrix * pC->m_worldSpaceMats[i].GetCurrent();
 
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
-                m_wireframeBox.Draw(cmd_buf, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
+                m_wireframeBox.Draw(cmd_buf, m_pWireframe, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, color);
             }
         }
 

@@ -34,11 +34,17 @@ bld/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
+# Visual Studio code cache/options directory
+.vscode/
 # Uncomment if you have tasks that create the project's static files in wwwroot
 #wwwroot/
 
 # Visual Studio 2017 auto generated files
 Generated\ Files/
+
+# Visual Studio 2019 Open Folder default output folder
+out/
+CMakeSettings.json
 
 # MSTest test Results
 [Tt]est[Rr]esult*/

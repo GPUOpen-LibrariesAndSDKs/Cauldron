@@ -1,5 +1,5 @@
-// AMD AMDUtils code
-// 
+// AMD Cauldron code
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -20,6 +20,7 @@
 
 #include "DynamicBufferRing.h"
 #include "Misc/Misc.h"
+#include "ExtDebugUtils.h"
 
 namespace CAULDRON_VK
 {
@@ -33,7 +34,7 @@ namespace CAULDRON_VK
         VkResult res;
         m_pDevice = pDevice;
 
-        m_memTotalSize = (uint32_t)AlignOffset(memTotalSize, 256);
+        m_memTotalSize = AlignUp(memTotalSize, 256u);
 
         m_mem.OnCreate(numberOfBackBuffers, m_memTotalSize);
 
@@ -49,6 +50,8 @@ namespace CAULDRON_VK
 
         res = vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_buffer, &m_bufferAlloc, nullptr);
         assert(res == VK_SUCCESS);
+        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_BUFFER, (uint64_t)m_buffer, "DynamicBufferRing");
+
         res = vmaMapMemory(pDevice->GetAllocator(), m_bufferAlloc, (void **)&m_pData);
         assert(res == VK_SUCCESS);
 #else
@@ -118,7 +121,7 @@ namespace CAULDRON_VK
     //--------------------------------------------------------------------------------------
     bool DynamicBufferRing::AllocConstantBuffer(uint32_t size, void **pData, VkDescriptorBufferInfo *pOut)
     {
-        size = (uint32_t)AlignOffset(size, 256);
+        size = AlignUp(size, 256u);
 
         uint32_t memOffset;
         if (m_mem.Alloc(size, &memOffset) == false)
@@ -134,6 +137,23 @@ namespace CAULDRON_VK
         pOut->range = size;
 
         return true;
+    }
+
+    //--------------------------------------------------------------------------------------
+    //
+    // AllocConstantBuffer
+    //
+    //--------------------------------------------------------------------------------------
+    VkDescriptorBufferInfo DynamicBufferRing::AllocConstantBuffer(uint32_t size, void *pData)
+    {
+        void *pBuffer;
+        VkDescriptorBufferInfo out;
+        if (AllocConstantBuffer(size, &pBuffer, &out))
+        {
+            memcpy(pBuffer, pData, size);
+        }
+
+        return out;
     }
 
     //--------------------------------------------------------------------------------------

@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -22,7 +22,7 @@
 #include "DynamicBufferRing.h"
 #include "CommandListRing.h"
 #include "UploadHeap.h"
-#include "..\imgui\imgui.h"
+#include "../imgui\imgui.h"
 
 namespace CAULDRON_DX12
 {
@@ -31,20 +31,22 @@ namespace CAULDRON_DX12
     class ImGUI
     {
     public:
-        void OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat);
+        void OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat, float fontSize = 13.f);   // Initializer to not break the API
         void OnDestroy();
-
+        void UpdatePipeline(DXGI_FORMAT outFormat);
         void Draw(ID3D12GraphicsCommandList *pCmdLst);
 
     private:
-        Device                    *m_pDevice;
-        ResourceViewHeaps         *m_pResourceViewHeaps;
-        DynamicBufferRing         *m_pConstBuf;
+        Device                    *m_pDevice = nullptr;
+        ResourceViewHeaps         *m_pResourceViewHeaps = nullptr;
+        DynamicBufferRing         *m_pConstBuf = nullptr;
 
-        ID3D12Resource            *m_pTexture2D;
-        ID3D12PipelineState       *m_pPipelineState;
-        ID3D12RootSignature       *m_pRootSignature;
+        ID3D12Resource            *m_pTexture2D = nullptr;
+        ID3D12PipelineState       *m_pPipelineState = nullptr;
+        ID3D12RootSignature       *m_pRootSignature = nullptr;
 
-        CBV_SRV_UAV			       m_pTextureSRV;
+        D3D12_SHADER_BYTECODE      m_shaderVert, m_shaderPixel;
+
+        CBV_SRV_UAV                m_pTextureSRV;
     };
 }

@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -20,6 +20,8 @@
 
 #include "PostProcPS.h"
 
+#include "../../libs/vectormath/vectormath.hpp"
+
 namespace CAULDRON_DX12
 {
     // This renders a procedural sky, see the SkyDomeProc.glsl for more references and credits
@@ -29,26 +31,19 @@ namespace CAULDRON_DX12
 
         struct Constants
         {
-            XMMATRIX invViewProj;
-            XMVECTOR vSunDirection;
+            math::Matrix4 invViewProj;
+            math::Vector4 vSunDirection;
             float rayleigh;
             float turbidity;
             float mieCoefficient;
             float luminance;
             float mieDirectionalG;
-            bool  sun;
         };
 
         void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool *pStaticBufferPool, DXGI_FORMAT outFormat, uint32_t sampleDescCount);
         void OnDestroy();
         void Draw(ID3D12GraphicsCommandList* pCommandList, SkyDomeProc::Constants constants);
-        /*
-            // TODO: This function members should generate a diffuse and specular cubemap to be used in IBL
-            void CreateDiffCubeSRV(uint32_t index, VkDescriptorSet descriptorSet);
-            void CreateSpecCubeSRV(uint32_t index, VkDescriptorSet descriptorSet);
-            void CreateBrdfSRV(uint32_t index, VkDescriptorSet descriptorSet);
-            void GenerateDiffuseMapFromEnvironmentMap();
-        */
+
     private:
         Device            *m_pDevice;
 

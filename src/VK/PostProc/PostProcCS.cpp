@@ -1,5 +1,5 @@
-// AMD AMDUtils code
-// 
+// AMD Cauldron code
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -27,6 +27,7 @@ namespace CAULDRON_VK
         Device* pDevice,
         const std::string &shaderFilename,
         const std::string &shaderEntryPoint,
+        const std::string &shaderCompilerParams,
         VkDescriptorSetLayout descriptorSetLayout,
         uint32_t dwWidth, uint32_t dwHeight, uint32_t dwDepth,
         DefineList* pUserDefines
@@ -40,14 +41,13 @@ namespace CAULDRON_VK
         //
         VkPipelineShaderStageCreateInfo computeShader;
         DefineList defines;
+        if (pUserDefines)
+            defines = *pUserDefines;
         defines["WIDTH"] = std::to_string(dwWidth);
         defines["HEIGHT"] = std::to_string(dwHeight);
         defines["DEPTH"] = std::to_string(dwDepth);
 
-        if (pUserDefines != nullptr)
-            defines = *pUserDefines;
-
-        res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_COMPUTE_BIT, shaderFilename.c_str(), shaderEntryPoint.c_str(), &defines, &computeShader);
+        res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_COMPUTE_BIT, shaderFilename.c_str(), shaderEntryPoint.c_str(), shaderCompilerParams.c_str(), &defines, &computeShader);
         assert(res == VK_SUCCESS);
 
         // Create pipeline layout
@@ -86,15 +86,22 @@ namespace CAULDRON_VK
         vkDestroyPipelineLayout(m_pDevice->GetDevice(), m_pipelineLayout, nullptr);
     }
 
-    void PostProcCS::Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo constantBuffer, VkDescriptorSet descSet, uint32_t dispatchX, uint32_t dispatchY, uint32_t dispatchZ)
+    void PostProcCS::Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo *pConstantBuffer, VkDescriptorSet descSet, uint32_t dispatchX, uint32_t dispatchY, uint32_t dispatchZ)
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;
 
         // Bind Descriptor sets
-        //                
-        uint32_t uniformOffsets[1] = { (uint32_t)constantBuffer.offset };
-        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &descSet, 1, uniformOffsets);
+        //
+        int numUniformOffsets = 0;
+        uint32_t uniformOffset = 0;
+        if (pConstantBuffer != NULL && pConstantBuffer->buffer != NULL)
+        {
+            numUniformOffsets = 1;
+            uniformOffset = (uint32_t)pConstantBuffer->offset;
+        }
+
+        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipelineLayout, 0, 1, &descSet, numUniformOffsets, &uniformOffset);
 
         // Bind Pipeline
         //

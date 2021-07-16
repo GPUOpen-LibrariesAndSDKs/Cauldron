@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "StaticConstantBufferPool.h"
-#include "Misc\Misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_DX12
 {
@@ -49,7 +49,7 @@ namespace CAULDRON_DX12
                     nullptr,
                     IID_PPV_ARGS(&m_pVidMemBuffer))
             );
-            m_pVidMemBuffer->SetName(L"StaticConstantBufferPoolDX12::m_pVidMemBuffer");
+            SetName(m_pVidMemBuffer, "StaticConstantBufferPoolDX12::m_pVidMemBuffer");
         }
 
         ThrowIfFailed(
@@ -61,7 +61,7 @@ namespace CAULDRON_DX12
                 nullptr,
                 IID_PPV_ARGS(&m_pSysMemBuffer))
         );
-        m_pSysMemBuffer->SetName(L"StaticConstantBufferPoolDX12::m_pSysMemBuffer");
+        SetName(m_pSysMemBuffer, "StaticConstantBufferPoolDX12::m_pSysMemBuffer");
 
         m_pSysMemBuffer->Map(0, NULL, reinterpret_cast<void**>(&m_pData));
     }

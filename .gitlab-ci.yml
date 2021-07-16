@@ -1,0 +1,41 @@
+variables:
+  CMakeConfig: -G "Visual Studio 16 2019" -A x64
+
+stages:
+  - build
+
+build_dx12_debug:
+  tags:
+  - windows
+  - amd64
+  stage: build
+  script:
+    - 'cmake -S . -B build/DX12 -DGFX_API=DX12 %CMakeConfig%'
+    - 'cmake --build build/DX12 --config Debug'
+
+build_dx12_release:
+  tags:
+  - windows
+  - amd64
+  stage: build
+  script:
+    - 'cmake -S . -B build/DX12 -DGFX_API=DX12 %CMakeConfig%'
+    - 'cmake --build build/DX12 --config Release'
+
+build_vk_debug:
+  tags:
+  - windows
+  - amd64
+  stage: build
+  script:
+  - 'cmake -S . -B build/Vk -DGFX_API=VK %CMakeConfig%'
+  - 'cmake --build build/Vk --config Debug'
+
+build_vk_release:
+  tags:
+  - windows
+  - amd64
+  stage: build
+  script:
+  - 'cmake -S . -B build/Vk -DGFX_API=VK %CMakeConfig%'
+  - 'cmake --build build/Vk --config Release'

@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,9 +18,10 @@
 // THE SOFTWARE.
 #pragma once
 #include "GLTF/GltfCommon.h"
-#include "base/Texture.h"
-#include "base/StaticBufferPool.h"
-#include "base/DynamicBufferRing.h"
+#include "Base/Texture.h"
+#include "Base/ShaderCompiler.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/DynamicBufferRing.h"
 
 namespace CAULDRON_VK
 {
@@ -39,25 +40,33 @@ namespace CAULDRON_VK
         Device* m_pDevice;
         UploadHeap *m_pUploadHeap;
 
-        const json::array_t *m_pTextureNodes;
+        const json *m_pTextureNodes;
 
         std::vector<Texture> m_textures;
         std::vector<VkImageView> m_textureViews;
 
+        std::map<int, VkDescriptorBufferInfo> m_skeletonMatricesBuffer;
+
         StaticBufferPool *m_pStaticBufferPool;
         DynamicBufferRing *m_pDynamicBufferRing;
+
+        // maps GLTF ids into views
+        std::map<int, VkDescriptorBufferInfo> m_vertexBufferMap;
+        std::map<int, VkDescriptorBufferInfo> m_IndexBufferMap;
 
     public:
         GLTFCommon *m_pGLTFCommon;
 
         VkDescriptorBufferInfo m_perFrameConstants;
-        std::map<int, VkDescriptorBufferInfo> m_skeletonMatricesBuffer;
 
         bool OnCreate(Device *pDevice, GLTFCommon *pGLTFCommon, UploadHeap* pUploadHeap, StaticBufferPool *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
-        void LoadTextures();
+        void LoadTextures(AsyncPool *pAsyncPool = NULL);
+        void LoadGeometry();
         void OnDestroy();
 
-        void CreateGeometry(tfAccessor indexBuffer, std::vector<tfAccessor> &vertexBuffers, Geometry *pGeometry);
+        void CreateIndexBuffer(int indexBufferId, uint32_t *pNumIndices, VkIndexType *pIndexType, VkDescriptorBufferInfo *pIBV);
+        void CreateGeometry(int indexBufferId, std::vector<int> &vertexBufferIds, Geometry *pGeometry);
+        void CreateGeometry(const json &primitive, const std::vector<std::string> requiredAttributes, std::vector<VkVertexInputAttributeDescription> &layout, DefineList &defines, Geometry *pGeometry);
 
         VkImageView GetTextureViewByID(int id);
 

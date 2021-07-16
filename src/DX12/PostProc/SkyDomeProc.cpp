@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "..\base\DynamicBufferRing.h"
-#include "..\base\StaticBufferPool.h"
-#include "..\base\UploadHeap.h"
-#include "..\base\Texture.h"
-#include "..\base\Helper.h"
+#include "../Base/DynamicBufferRing.h"
+#include "../Base/StaticBufferPool.h"
+#include "../Base/UploadHeap.h"
+#include "../Base/Texture.h"
+#include "../Base/Helper.h"
 #include "PostProcPS.h"
 #include "SkyDomeProc.h"
 
@@ -40,7 +40,10 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pResourceViewHeaps = pResourceViewHeaps;
 
-        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, NULL, outFormat, sampleDescCount);
+        D3D12_BLEND_DESC blendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+        depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_EQUAL;
+        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, 0, NULL, outFormat, sampleDescCount, &blendDesc, &depthStencilDesc);
     }
 
     void SkyDomeProc::OnDestroy()
@@ -52,36 +55,8 @@ namespace CAULDRON_DX12
     {
         UserMarker marker(pCommandList, "Skydome Proc");
 
-        SkyDomeProc::Constants *cbPerDraw;
-        D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(SkyDomeProc::Constants), (void **)&cbPerDraw, &constantBuffer);
-        *cbPerDraw = constants;
+        D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(SkyDomeProc::Constants), &constants);
 
         m_skydome.Draw(pCommandList, 0, NULL, constantBuffer);
     }
-
-    //
-    // TODO: These functions below should generate a diffuse and specular cubemap to be used in IBL
-    //
-    /*
-    void SkyDomeProc::GenerateDiffuseMapFromEnvironmentMap()
-    {
-
-    }
-
-    void SkyDomeProc::CreateDiffCubeSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_CubeDiffuseTextureView, m_samplerDiffuseCube, descriptorSet);
-    }
-
-    void SkyDomeProc::CreateSpecCubeSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_CubeSpecularTextureView, m_samplerDiffuseCube, descriptorSet);
-    }
-
-    void SkyDomeProc::CreateBrdfSRV(uint32_t index, VkDescriptorSet descriptorSet)
-    {
-        //SetDescriptor(m_pDevice->GetDevice(), index, m_BrdfTextureView, m_samplerBDRF, descriptorSet);
-    }
-    */
 }

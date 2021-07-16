@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "..\base\DynamicBufferRing.h"
-#include "..\base\StaticBufferPool.h"
-#include "..\base\UploadHeap.h"
-#include "..\base\Texture.h"
-#include "..\base\Helper.h"
+#include "../Base/DynamicBufferRing.h"
+#include "../Base/StaticBufferPool.h"
+#include "../Base/UploadHeap.h"
+#include "../Base/Texture.h"
+#include "../Base/Helper.h"
 #include "PostProcPS.h"
 #include "BlurPS.h"
 
@@ -88,7 +88,7 @@ namespace CAULDRON_DX12
         SamplerDesc.RegisterSpace = 0;
         SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-        m_directionalBlur.OnCreate(pDevice, "blur.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, &SamplerDesc, m_outFormat);
+        m_directionalBlur.OnCreate(pDevice, "blur.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, m_outFormat);
 
         // Allocate descriptors for the mip chain
         //
@@ -104,33 +104,6 @@ namespace CAULDRON_DX12
             m_pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_verticalMip[i].m_SRV);
             m_pResourceViewHeaps->AllocRTVDescriptor(1, &m_verticalMip[i].m_RTV);
         }
-
-        /*
-        float out[16];
-        for (int k = 3; k <= 16; k++)
-        {
-            GenerateGaussianWeights(k, out);
-
-            char str[1024];
-            int ii = 0;
-            ii += sprintf_s(&str[ii], 1024 - ii, "int s_lenght = %i; float s_coeffs[] = {", k);
-            for (int i = 0; i < k; i++)
-            {
-                ii += sprintf_s(&str[ii], 1024 - ii, "%f, ", out[i]);
-            }
-
-            float r = out[0];
-            for (int i = 1; i < k; i++)
-                r += 2 * out[i];
-
-            assert(r <= 1.0f && r>0.97f);
-
-
-            ii += sprintf_s(&str[ii], 1024 - ii, "}; // norm = %f\n", r);
-
-            OutputDebugStringA(str);
-        }
-    */
     }
 
     void BlurPS::OnCreateWindowSizeDependentResources(Device *pDevice, uint32_t Width, uint32_t Height, Texture *pInput, int mipCount)
@@ -185,12 +158,12 @@ namespace CAULDRON_DX12
         {
             pCommandList->OMSetRenderTargets(1, &m_horizontalMip[mipLevel].m_RTV.GetCPU(), true, NULL);
 
-            BlurPS::cbBlur *data;
-            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;
-            m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), (void **)&data, &constantBuffer);
-            data->dirX = 1.0f / (float)(m_Width >> mipLevel);
-            data->dirY = 0.0f / (float)(m_Height >> mipLevel);
-            data->mipLevel = mipLevel;
+            BlurPS::cbBlur data;
+            data.mipLevel = mipLevel;
+            data.dirX = 1.0f / (float)(m_Width >> mipLevel);
+            data.dirY = 0.0f / (float)(m_Height >> mipLevel);
+            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), (void **)&data);
+
             m_directionalBlur.Draw(pCommandList, 1, &m_horizontalMip[mipLevel].m_SRV, constantBuffer);
         }
 
@@ -205,12 +178,12 @@ namespace CAULDRON_DX12
         {
             pCommandList->OMSetRenderTargets(1, &m_verticalMip[mipLevel].m_RTV.GetCPU(), true, NULL);
 
-            BlurPS::cbBlur *data;
-            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer;
-            m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), (void **)&data, &constantBuffer);
-            data->dirX = 0.0f / (float)(m_Width >> mipLevel);
-            data->dirY = 1.0f / (float)(m_Height >> mipLevel);
-            data->mipLevel = mipLevel;
+            BlurPS::cbBlur data;
+            data.mipLevel = mipLevel;
+            data.dirX = 0.0f / (float)(m_Width >> mipLevel);
+            data.dirY = 1.0f / (float)(m_Height >> mipLevel);            
+            D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pConstantBufferRing->AllocConstantBuffer(sizeof(BlurPS::cbBlur), &data);
+
             m_directionalBlur.Draw(pCommandList, 1, &m_verticalMip[mipLevel].m_SRV, constantBuffer);
         }
 

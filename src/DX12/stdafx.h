@@ -14,6 +14,8 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <wrl.h>
+#include <KnownFolders.h>
+#include <shlobj.h>
 
 // C RunTime Header Files
 #include <malloc.h>
@@ -41,6 +43,8 @@ using namespace DirectX;
 
 #include "..\common\Misc\Error.h"
 #include "base\UserMarkers.h"
+#include "base\Helper.h"
+#include "..\common\misc\misc.h"
 
 
 // TODO: reference additional headers your program requires here

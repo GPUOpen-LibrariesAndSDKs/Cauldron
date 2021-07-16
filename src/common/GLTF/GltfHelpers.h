@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,6 +18,9 @@
 // THE SOFTWARE.
 
 #pragma once
+#include "../json/json.h"
+
+#include "../../libs/vectormath/vectormath.hpp"
 
 #include <string>
 
@@ -31,11 +34,11 @@ int GetFormatSize(int id);
 int GetDimensions(const std::string &str);
 void SplitGltfAttribute(std::string attribute, std::string *semanticName, uint32_t *semanticIndex);
 
-XMVECTOR GetVector(const json::array_t &accessor);
-XMMATRIX GetMatrix(const json::array_t &accessor);
-std::string GetElementString(const json::object_t &root, char *path, std::string pDefault);
-float GetElementFloat(const json::object_t &root, char *path, float pDefault);
-int GetElementInt(const json::object_t &root, char *path, int pDefault);
-bool GetElementBoolean(const json::object_t &root, char *path, bool pDefault);
-json::array_t GetElementJsonArray(const json::object_t &root, char *path, json::array_t pDefault);
-XMVECTOR GetElementVector(json::object_t &root, char *path, XMVECTOR default_value);
+math::Vector4 GetVector(const json::array_t &accessor);
+math::Matrix4 GetMatrix(const json::array_t &accessor);
+std::string GetElementString(const json::object_t &root, const char *path, std::string pDefault);
+float GetElementFloat(const json::object_t &root, const char *path, float pDefault);
+int GetElementInt(const json::object_t &root, const char *path, int pDefault);
+bool GetElementBoolean(const json::object_t &root, const char *path, bool pDefault);
+json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t pDefault);
+math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 default);

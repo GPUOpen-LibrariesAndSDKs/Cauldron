@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -23,7 +23,7 @@
 #ifdef _WIN32
 static HWND g_hWnd;
 
-bool ImGUI_Init(void* hwnd)
+bool ImGUI_Init(void *hwnd)
 {
     g_hWnd = (HWND)hwnd;
 
@@ -60,11 +60,7 @@ bool ImGUI_Init(void* hwnd)
 void ImGUI_Shutdown()
 {
     ImGui::Shutdown();
-#ifdef _WIN32
-    g_hWnd = (HWND)0;
-#else
-#warning "TODO: implement ImGUI_Shutdown for Linux"
-#endif
+    g_hWnd = NULL;
 }
 
 void ImGUI_UpdateIO()
@@ -116,8 +112,8 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     {
         int button = 0;
         if (msg == WM_LBUTTONDOWN) button = 0;
-        if (msg == WM_RBUTTONDOWN) button = 1;
-        if (msg == WM_MBUTTONDOWN) button = 2;
+        else if (msg == WM_RBUTTONDOWN) button = 1;
+        else if (msg == WM_MBUTTONDOWN) button = 2;
         if (!IsAnyMouseButtonDown() && GetCapture() == NULL)
             SetCapture(hwnd);
         io.MouseDown[button] = true;
@@ -129,8 +125,8 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     {
         int button = 0;
         if (msg == WM_LBUTTONUP) button = 0;
-        if (msg == WM_RBUTTONUP) button = 1;
-        if (msg == WM_MBUTTONUP) button = 2;
+        else if (msg == WM_RBUTTONUP) button = 1;
+        else if (msg == WM_MBUTTONUP) button = 2;
         io.MouseDown[button] = false;
         if (!IsAnyMouseButtonDown() && GetCapture() == hwnd)
             ReleaseCapture();
@@ -146,12 +142,12 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
         if (wParam < 256)
-            io.KeysDown[wParam] = 1;
+            io.KeysDown[wParam] = true;
         return 0;
     case WM_KEYUP:
     case WM_SYSKEYUP:
         if (wParam < 256)
-            io.KeysDown[wParam] = 0;
+            io.KeysDown[wParam] = false;
         return 0;
     case WM_CHAR:
         // You can also use ToAscii()+GetKeyboardState() to retrieve characters.

@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,11 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <string>
-
-#include "base/StaticBufferPool.h"
-#include "base/DynamicBufferRing.h"
-#include "base/ResourceViewHeaps.h"
+#include "Base/StaticBufferPool.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/ResourceViewHeaps.h"
 
 namespace CAULDRON_VK
 {
@@ -32,7 +30,9 @@ namespace CAULDRON_VK
         void OnCreate(
             Device* pDevice,
             VkRenderPass renderPass,
-            const std::string &string,
+            const std::string &shaderFilename,
+            const std::string &shaderEntryPoint,
+            const std::string &shaderCompilerParams,
             StaticBufferPool *pStaticBufferPool,
             DynamicBufferRing *pDynamicBufferRing,
             VkDescriptorSetLayout descriptorSetLayout,
@@ -40,19 +40,22 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT
         );
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo constantBuffer, VkDescriptorSet descriptorSet = nullptr);
+        void UpdatePipeline(VkRenderPass renderPass, VkPipelineColorBlendStateCreateInfo *pBlendDesc = NULL, VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT);
+        void Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo *pConstantBuffer, VkDescriptorSet descriptorSet = NULL);
 
     private:
         Device* m_pDevice;
-        VkRenderPass m_renderPass;
+        std::vector<VkPipelineShaderStageCreateInfo> m_shaderStages;
+        std::string m_fragmentShaderName;
 
         // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
-        VkIndexType m_indexType;
         uint32_t m_NumIndices;
+        VkIndexType m_indexType;
         VkDescriptorBufferInfo m_IBV;
-        VkDescriptorBufferInfo m_verticesView;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
-        VkPipelineLayout m_pipelineLayout;
+        VkRenderPass m_renderPass = VK_NULL_HANDLE;
+        VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+
     };
 }

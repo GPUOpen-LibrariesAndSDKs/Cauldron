@@ -18,49 +18,26 @@
 // THE SOFTWARE.
 
 #ifdef ID_SKINNING_MATRICES
-    layout (std140, binding = ID_SKINNING_MATRICES) uniform perSkeleton
-    {
-        mat4 u_ModelMatrix[200];
-    } myPerSkeleton;
-#endif
 
-#ifdef ID_4VS_WEIGHTS_0
-    layout (location = ID_4VS_WEIGHTS_0) in  vec4 a_Weights0;
-#endif
-
-#ifdef ID_4VS_WEIGHTS_1
-    layout (location = ID_4VS_WEIGHTS_1) in  vec4 a_Weights1;
-#endif
-
-#ifdef ID_4VS_JOINTS_0
-    layout (location = ID_4VS_JOINTS_0) in  uvec4 a_Joints0;
-#endif
-
-#ifdef ID_4VS_JOINTS_1
-    layout (location = ID_4VS_JOINTS_1) in  uvec4 a_Joints1;
-#endif
-
-mat4 ApplySkinning(in mat4 transMatrix)
+struct Matrix2
 {
+    mat4 m_current;
+    mat4 m_previous;
+};
 
-#ifdef ID_4VS_WEIGHTS_0
 
-    mat4 skinMatrix = 
-        a_Weights0.x * myPerSkeleton.u_ModelMatrix[a_Joints0.x] +
-        a_Weights0.y * myPerSkeleton.u_ModelMatrix[a_Joints0.y] +
-        a_Weights0.z * myPerSkeleton.u_ModelMatrix[a_Joints0.z] +
-        a_Weights0.w * myPerSkeleton.u_ModelMatrix[a_Joints0.w];
-        
-#ifdef ID_4VS_WEIGHTS_1
-    skinMatrix += 
-        a_Weights1.x * myPerSkeleton.u_ModelMatrix[a_Joints1.x] +
-        a_Weights1.y * myPerSkeleton.u_ModelMatrix[a_Joints1.y] +
-        a_Weights1.z * myPerSkeleton.u_ModelMatrix[a_Joints1.z] +
-        a_Weights1.w * myPerSkeleton.u_ModelMatrix[a_Joints1.w];
-#endif
+layout (std140, binding = ID_SKINNING_MATRICES) uniform perSkeleton
+{
+    Matrix2 u_ModelMatrix[200];
+} myPerSkeleton;
 
-    return transMatrix * skinMatrix;
-#else    
-    return transMatrix;
-#endif
+mat4 GetSkinningMatrix(vec4 Weights, uvec4 Joints)
+{
+    mat4 skinningMatrix =
+        Weights.x * myPerSkeleton.u_ModelMatrix[Joints.x].m_current +
+        Weights.y * myPerSkeleton.u_ModelMatrix[Joints.y].m_current +
+        Weights.z * myPerSkeleton.u_ModelMatrix[Joints.z].m_current +
+        Weights.w * myPerSkeleton.u_ModelMatrix[Joints.w].m_current;
+    return skinningMatrix;
 }
+#endif

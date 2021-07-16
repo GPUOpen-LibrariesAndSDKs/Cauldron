@@ -4,29 +4,51 @@ A simple framework for rapid prototyping on Vulkan or DirectX12.
 
 Cauldron was developed by AMD and is used internally to develop prototypes, demos and SDK samples.
 
-Cauldron is compiled as a static library, hence the sample application has to statically link against it.
+Cauldron is compiled as a static library. To see it in action check projects below.
 
-# Sample Projects & Screenshots
+# Projects that feature Cauldron
 
-- [glTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/glTFSample), a simple demo app to show off Cauldron's features
-  ![Screenshot](https://github.com/GPUOpen-LibrariesAndSDKs/glTFSample/raw/master/screenshot.png)
+- [FidelityFX-SPD](https://github.com/GPUOpen-Effects/FidelityFX-SPD) Single Pass Downsampler (SPD)
+- [FidelityFX-SSSR](https://github.com/GPUOpen-Effects/FidelityFX-SSSR) Stochastic Screen Space Reflections (SSSR)
+- [FidelityFX-LPM](https://github.com/GPUOpen-Effects/FidelityFX-LPM) Luma Preserving Mapper (LPM)
+- [FidelityFX-CACAO](https://github.com/GPUOpen-Effects/FidelityFX-CACAO) Combined Adaptive Compute Ambient Occlusion (CACAO)
+- [FidelityFX-VariableShading](https://github.com/GPUOpen-Effects/FidelityFX-VariableShading) Variable Rate Shading (VRS)
+- [FidelityFX-ParallelSort](https://github.com/GPUOpen-Effects/FidelityFX-ParallelSort) GPU-based optimised sorting
+- [TressFX](https://github.com/GPUOpen-Effects/TressFX), a library that simulates and renders realistic hair and fur
+- [GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample), a simple demo app to show off Cauldron's features
+  ![GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample/raw/master/screenshot.png)
 
 # Cauldron Features
 
 - [glTF 2.0](https://github.com/KhronosGroup/glTF/tree/master/specification/2.0) File loader
   - Animation for cameras, objects, skeletons and lights
   - Skinning
+    - Baking skinning into buffers (DX12 only)
   - PBR Materials
     - Metallic-Roughness
     - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
-  - Lighting (KHR_lights_punctual extension)
-    - Spot Lights w/ Shadows (up to 4)
-    - Image-based Lighting (IBL) CubeMaps
+  - Lighting
+      - KHR_lights_punctual extension
+        - Point
+        - Directional
+        - Spot Lights w/ Shadows (up to 4)
+      - Image-based Lighting (IBL) CubeMaps
+  - Shadow techniques
+    - shadow maps (PCF)
+    - shadow masks (DX12 only)
+- Configurable GBuffer, supported techniques:
+  - Full forward
+  - Motion vectors
+  - Normals
+  - Depth
+  - Specular-roughness
+  - Diffuse-alpha
 - Postprocessing
+  - TAA
   - Bloom
   - HDR/Tonemapping
-- Texture Loaders for DDS, JPEG and PNG formats
-  - MipMap generation for powers-of-two textures
+- Texture Loaders for DDS (including the BCn formats), JPEG and PNG formats
+  - MIP Map generation for powers-of-two textures
 - In-app user interface using [Dear ImGui](https://github.com/ocornut/imgui)
 - Rendering Resource Management
   - Command Buffer Ring
@@ -41,6 +63,13 @@ Cauldron is compiled as a static library, hence the sample application has to st
   - Fullscreen/Windowed Modes
 - Support for DXC/SM6.x
 - Shader Binary & PSO caching
+- FreeSync :tm: 2 HDR support
+- Multithreading loading & creation of resources
+  - Textures & MIP map generation
+  - Shader compilation
+  - Pipeline creation
+- VK extensions can be enabled from the app side
+- Benchmarking
 
 # Directory Structure
 
@@ -64,10 +93,10 @@ Note: more info on the rendering backends can be found in the Readme of their re
 
 ## Windows Prerequisites
 
-- [CMake 3.4](https://cmake.org/download/)
+- [CMake 3.16](https://cmake.org/download/)
 - [Visual Studio 2017](https://visualstudio.microsoft.com/downloads/)
-- [Windows 10 SDK 10.0.17763.0](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)
-- [Vulkan SDK 1.1.106](https://www.lunarg.com/vulkan-sdk/)
+- [Windows 10 SDK 10.0.18362.0](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)
+- [Vulkan SDK 1.2.131.2](https://www.lunarg.com/vulkan-sdk/)
 
 ## Linux Prerequisites
 
@@ -101,7 +130,7 @@ The main features could be grouped in 4 categories:
   - CommandListRing - *allocates a number of command buffers from a ring buffer and returns a ready-to-use command buffer.*
   - Device - *all the device related code.*
 - **Renderers**
-  - GLTF* - *loads and renders the model*
+  - GLTF* - *loads and renders the model using a certain technique*
   - PostProcPS/PS - *draws a 2D quad using a custom shader, used by the post processing passes.*
   - ImGUI - *code for driving the ImGUI*
   - Widgets
@@ -109,7 +138,11 @@ The main features could be grouped in 4 categories:
     - Axis - *draws the coordinate axis of a matrix*
 - **Vulkan specific helpers & setup code**
   - InstanceVK - *creates an instance and enables the validation layer*
-  - DebugMarkersExtVk - *sets up the debug markers*
+  - Extension helpers
+    - ExtDebugMarkers - *sets up the debug markers*
+    - ExtFp16 - *enables FP16 extension*
+    - ExtFreeSync2 - *enables FreeSync extension*
+    - ExtValidation - *enables the validation layer*
 - **Commons & OS-specific code**
   - Swapchain - *handles resizing, fullscreen/windowed modes, etc.*
   - FrameworkWindows - *creates a window, processes windows message pump*
@@ -126,11 +159,12 @@ Please feel free to [open an issue](TODO:LinkToGitHubRepoIssuesPage) for bug rep
 
 Cauldron should be very easy to extend, should you want to contribute to Cauldron, you can [open a merge request](TODO:LinkToGitHubRepoMergeRequestPage).
 
-# 3rd-Party Open Source Projects
+# 3rd-Party Open Source Projects Used
 
 - [ImGUI](https://github.com/ocornut/imgui)
-- [json](https://github.com/nlohmann/json)
+- [JSON for Modern C++](https://github.com/nlohmann/json)
 - [AMD GPU Services (AGS) SDK](https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
 - [D3DX12](https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/Libraries/D3DX12)
+- [stb_image](http://nothings.org/stb)

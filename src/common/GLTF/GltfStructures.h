@@ -1,6 +1,6 @@
-// AMD AMDUtils code
-// 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// AMD Cauldron code
+//
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -31,24 +31,24 @@
 class tfAccessor
 {
 public:
-    void *m_data = nullptr;
+    const void *m_data = NULL;
     int m_count = 0;
     int m_stride;
     int m_dimension;
     int m_type;
 
-    XMVECTOR m_min;
-    XMVECTOR m_max;
+    math::Vector4 m_min;
+    math::Vector4 m_max;
 
-    void *Get(int i)
+    const void *Get(int i) const
     {
         if (i >= m_count)
             i = m_count - 1;
 
-        return (char*)m_data + m_stride*i;
+        return (const char*)m_data + m_stride*i;
     }
 
-    int FindClosestFloatIndex(float val)
+    int FindClosestFloatIndex(float val) const
     {
         int ini = 0;
         int fin = m_count - 1;
@@ -56,7 +56,7 @@ public:
         while (ini <= fin)
         {
             int mid = (ini + fin) / 2;
-            float v = *(float*)Get(mid);
+            float v = *(const float*)Get(mid);
 
             if (val < v)
                 fin = mid - 1;
@@ -72,8 +72,8 @@ public:
 
 struct tfPrimitives
 {
-    XMVECTOR m_center;
-    XMVECTOR m_radius;
+    math::Vector4 m_center;
+    math::Vector4 m_radius;
 };
 
 struct tfMesh
@@ -83,33 +83,46 @@ struct tfMesh
 
 struct Transform
 {
-    XMVECTOR m_translation;
-    XMMATRIX m_rotation;
-    XMVECTOR m_scale;
+    math::Matrix4   m_rotation = math::Matrix4::identity();
+    math::Vector4   m_translation = math::Vector4(0, 0, 0, 0);
+    math::Vector4   m_scale = math::Vector4(1, 1, 1, 0);
 
-    XMMATRIX GetWorldMat() { return XMMatrixScalingFromVector(m_scale)  * m_rotation  * XMMatrixTranslationFromVector(m_translation); }
+    void LookAt(math::Vector4 source, math::Vector4 target)
+    {
+        m_rotation = math::inverse(math::Matrix4::lookAt(math::Point3(source.getXYZ()), math::Point3(target.getXYZ()), math::Vector3(0, 1, 0)));
+        m_translation = m_rotation.getCol(3);  m_rotation.setCol(3, math::Vector4(0, 0, 0, 1));
+    }
+
+    math::Matrix4 GetWorldMat() const
+    {
+        return math::Matrix4::translation(m_translation.getXYZ()) * m_rotation * math::Matrix4::scale(m_scale.getXYZ());
+    }
 };
+
+typedef int tfNodeIdx;
 
 struct tfNode
 {
-    std::vector<tfNode *> m_children;
+    std::vector<tfNodeIdx> m_children;
 
     int skinIndex = -1;
     int meshIndex = -1;
     int channel = -1;
     bool bIsJoint = false;
 
+    std::string m_name;
+
     Transform m_tranform;
 };
 
 struct NodeMatrixPostTransform
 {
-    tfNode *pN; XMMATRIX m;
+    tfNode *pN; math::Matrix4 m;
 };
 
 struct tfScene
 {
-    std::vector<tfNode *> m_nodes;
+    std::vector<tfNodeIdx> m_nodes;
 };
 
 struct tfSkins
@@ -125,7 +138,7 @@ public:
     tfAccessor m_time;
     tfAccessor m_value;
 
-    void SampleLinear(float time, float *frac, float **pCurr, float **pNext)
+    void SampleLinear(float time, float *frac, float **pCurr, float **pNext) const
     {
         int curr_index = m_time.FindClosestFloatIndex(time);
         int next_index = std::min<int>(curr_index + 1, m_time.m_count - 1);
@@ -177,12 +190,21 @@ struct tfLight
 
     LightType m_type = LIGHT_DIRECTIONAL;
 
-    int m_nodeIndex = -1;
+    //tfNodeIdx m_nodeIndex = -1;
 
-    XMVECTOR m_color;
-    float m_range;
-    float m_innerConeAngle;
-    float m_outerConeAngle;
+    math::Vector4 m_color;
+    float       m_range;
+    float       m_intensity = 0.0f;
+    float       m_innerConeAngle = 0.0f;
+    float       m_outerConeAngle = 0.0f;
+    uint32_t    m_shadowResolution = 1024;
+    float       m_bias = 70.0f / 100000.0f;
+};
+
+struct LightInstance
+{
+    int m_lightId = -1;
+    tfNodeIdx m_nodeIndex = -1;
 };
 
 struct tfCamera
@@ -190,5 +212,5 @@ struct tfCamera
     enum LightType { CAMERA_PERSPECTIVE };
     float yfov, zfar, znear;
 
-    int m_nodeIndex = -1;
+    tfNodeIdx m_nodeIndex = -1;
 };

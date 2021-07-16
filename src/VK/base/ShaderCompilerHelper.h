@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,8 +18,11 @@
 // THE SOFTWARE.
 #pragma once
 
-#include "base/Device.h"
-#include "base/ShaderCompiler.h"
+#include "Base/Device.h"
+#include "Base/ShaderCompiler.h"
+#include "base/DXCHelper.h"
+
+class Sync;
 
 namespace CAULDRON_VK
 {
@@ -32,9 +35,8 @@ namespace CAULDRON_VK
     void CreateShaderCache();
     void DestroyShaderCache(Device *pDevice);
 
-    class Sync;
 
     // Does as the function name says and uses a cache
-    VkResult VKCompileFromString(VkDevice device, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pShaderCode, const char *pEntryPoint, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader);
-    VkResult VKCompileFromFile(VkDevice device, const VkShaderStageFlagBits shader_type, const char *pFilename, const char *pEntryPoint, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader);
+    VkResult VKCompileFromString(VkDevice device, ShaderSourceType sourceType, const VkShaderStageFlagBits shader_type, const char *pShaderCode, const char *pShaderEntryPoint, const char *pExtraParams, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader);
+    VkResult VKCompileFromFile(VkDevice device, const VkShaderStageFlagBits shader_type, const char *pFilename, const char *pShaderEntryPoint, const char *pExtraParams, const DefineList *pDefines, VkPipelineShaderStageCreateInfo *pShader);
 }

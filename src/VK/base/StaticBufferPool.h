@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,7 +19,7 @@
 #pragma once
 
 #include "Device.h"
-#include "base/ResourceViewHeaps.h"
+#include "Base/ResourceViewHeaps.h"
 #include "../VulkanMemoryAllocator/vk_mem_alloc.h"
 
 namespace CAULDRON_VK
@@ -41,7 +41,7 @@ namespace CAULDRON_VK
 
         // Allocates a IB/VB and fill it with pInitData, returns a descriptor
         //
-        bool AllocBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void *pInitData, VkDescriptorBufferInfo *pOut);
+        bool AllocBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, const void *pInitData, VkDescriptorBufferInfo *pOut);
 
         // if using vidmem this kicks the upload from the upload heap to the video mem
         void UploadData(VkCommandBuffer cmd_buf);

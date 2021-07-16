@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,10 +18,9 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <map>
-#include <string>
-
 #include "../Misc/Misc.h"
+#include "../Misc/Hash.h"
+#include <map>
 
 //
 // Hash a string of source code and recurse over its #include files
@@ -31,26 +30,26 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t result
 //
 // DefineList, holds pairs of key & value that will be used by the compiler as defines
 //
-class DefineList : public std::map<std::string, std::string>
+class DefineList : public std::map<const std::string, std::string>
 {
 public:
-    bool Has(const std::string &str)
+    bool Has(const std::string &str) const
     {
         return find(str) != end();
     }
 
-    size_t Hash(size_t result = 2166136261) const
+    size_t Hash(size_t result = HASH_SEED) const
     {
         for (auto it = begin(); it != end(); it++)
         {
-            result = ::Hash(it->first.c_str(), it->first.size(), result);
-            result = ::Hash(it->second.c_str(), it->second.size(), result);
+            result = ::HashString(it->first, result);
+            result = ::HashString(it->second, result);
         }
         return result;
     }
 
-    friend DefineList operator+(      DefineList   def1,        // passing lhs by value helps optimize chained a+b+c
-                                const DefineList & def2) // otherwise, both parameters may be const references
+    friend DefineList operator+(DefineList   def1,        // passing lhs by value helps optimize chained a+b+c
+                                const DefineList & def2)  // otherwise, both parameters may be const references
     {
         for (auto it = def2.begin(); it != def2.end(); it++)
             def1[it->first] = it->second;

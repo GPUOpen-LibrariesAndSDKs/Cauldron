@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,6 +23,6 @@
 
 namespace CAULDRON_VK
 {
-    bool ExtFp16CheckExtensions(DeviceProperties *pDP, void **pNext);
+    bool ExtFp16CheckExtensions(DeviceProperties *pDP);
 }
 

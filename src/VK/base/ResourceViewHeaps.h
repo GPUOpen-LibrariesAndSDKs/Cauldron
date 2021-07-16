@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -34,6 +34,8 @@ namespace CAULDRON_VK
         void OnDestroy();
         bool AllocDescriptor(VkDescriptorSetLayout descriptorLayout, VkDescriptorSet *pDescriptor);
         bool AllocDescriptor(int size, const VkSampler *pSamplers, VkDescriptorSetLayout *descriptorLayout, VkDescriptorSet *pDescriptor);
+        bool AllocDescriptor(std::vector<uint32_t> &descriptorCounts, const VkSampler* pSamplers, VkDescriptorSetLayout* descriptorLayout, VkDescriptorSet* pDescriptor);
+        bool CreateDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *pDescSetLayout);
         bool CreateDescriptorSetLayoutAndAllocDescriptorSet(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *descriptorLayout, VkDescriptorSet *pDescriptor);
         void FreeDescriptor(VkDescriptorSet descriptorSet);
     private:

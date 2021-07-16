@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "vulkan/vulkan.h"
+#include <vector>
 
 namespace CAULDRON_VK
 {
@@ -37,8 +38,9 @@ namespace CAULDRON_VK
 public:
         VkResult Init(VkPhysicalDevice physicaldevice);
         bool IsExtensionPresent(const char *pExtName);
-
-        bool Add(const char *deviceExtensionName);
+        bool AddDeviceExtensionName(const char *deviceExtensionName);
+        void *GetNext() { return m_pNext; }
+        void SetNewNext(void *pNext) { m_pNext = pNext; }
 
         VkPhysicalDevice GetPhysicalDevice() { return m_physicaldevice; }
         void GetExtensionNamesAndConfigs(std::vector<const char *> *pDevice_extension_names);

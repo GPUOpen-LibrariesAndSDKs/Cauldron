@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,34 +19,39 @@
 #pragma once
 
 #include "Wireframe.h"
-#include "Misc\WirePrimitives.h"
+#include "Misc/WirePrimitives.h"
 
 namespace CAULDRON_DX12
 {
-    class WireframeBox : public Wireframe
+    class WireframeBox
     {
+        // all bounding boxes of all the meshes use the same geometry, shaders and pipelines.
+        uint32_t m_NumIndices;
+        D3D12_INDEX_BUFFER_VIEW m_IBV;
+        D3D12_VERTEX_BUFFER_VIEW m_VBV;
     public:
         void OnCreate(
             Device* pDevice,
             ResourceViewHeaps *pResourceViewHeaps,
             DynamicBufferRing *pDynamicBufferRing,
-            StaticBufferPool *pStaticBufferPool,
-            DXGI_FORMAT outFormat,
-            uint32_t sampleDescCount)
+            StaticBufferPool *pStaticBufferPool)
         {
-            std::vector<short> indices;
+            std::vector<unsigned short> indices;
             std::vector<float> vertices;
 
             GenerateBox(indices, vertices);
 
-            Wireframe::OnCreate(pDevice,
-                pResourceViewHeaps,
-                pDynamicBufferRing,
-                pStaticBufferPool,
-                &vertices,
-                &indices,
-                outFormat,
-                sampleDescCount);
+            // set indices
+            m_NumIndices = (uint32_t)indices.size();
+            pStaticBufferPool->AllocIndexBuffer(m_NumIndices, sizeof(unsigned short), indices.data(), &m_IBV);
+            pStaticBufferPool->AllocVertexBuffer((uint32_t)(vertices.size() / 3), 3 * sizeof(float), vertices.data(), &m_VBV);
+        }
+
+        void OnDestroy() {}
+
+        void Draw(ID3D12GraphicsCommandList* pCommandList, Wireframe *pWireframe, const math::Matrix4& worldMatrix, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor)
+        {
+            pWireframe->Draw(pCommandList, m_NumIndices, m_IBV, m_VBV, worldMatrix, vCenter, vRadius, vColor);
         }
     };
 }

@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -20,14 +20,12 @@
 
 #include "Error.h"
 
-#ifdef _WIN32
-void ShowErrorMessageBox(HRESULT hr)
+void ShowErrorMessageBox(LPCWSTR lpErrorString)
 {
-    wchar_t err[256];
-    memset(err, 0, 256);
-    FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), err, 255, NULL);
-    int msgboxID = MessageBoxW(NULL, err, (LPCWSTR)L"Error", MB_OK);
+    int msgboxID = MessageBoxW(NULL, lpErrorString, L"Error", MB_OK);
 }
-#else
-#warning "TODO: implement cross-platform error window"
-#endif
+
+void ShowCustomErrorMessageBox(_In_opt_ LPCWSTR lpErrorString)
+{
+    int msgboxID = MessageBoxW(NULL, lpErrorString, L"Error", MB_OK | MB_TOPMOST);
+}

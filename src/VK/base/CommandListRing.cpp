@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,6 +20,8 @@
 
 #include "Device.h"
 #include "CommandListRing.h"
+#include "ExtDebugUtils.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {
@@ -28,7 +30,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void CommandListRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerBackBuffer)
+    void CommandListRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t commandListsPerBackBuffer, bool compute /* = false */)
     {
         m_pDevice = pDevice;
         m_numberOfAllocators = numberOfBackBuffers;
@@ -47,7 +49,14 @@ namespace CAULDRON_VK
             VkCommandPoolCreateInfo cmd_pool_info = {};
             cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             cmd_pool_info.pNext = NULL;
-            cmd_pool_info.queueFamilyIndex = pDevice->GetGraphicsQueueFamilyIndex();
+            if (compute == false)
+            {
+                cmd_pool_info.queueFamilyIndex = pDevice->GetGraphicsQueueFamilyIndex();
+            }
+            else
+            {
+                cmd_pool_info.queueFamilyIndex = pDevice->GetComputeQueueFamilyIndex();
+            }
             cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
             VkResult res = vkCreateCommandPool(pDevice->GetDevice(), &cmd_pool_info, NULL, &pCBPF->m_commandPool);
             assert(res == VK_SUCCESS);

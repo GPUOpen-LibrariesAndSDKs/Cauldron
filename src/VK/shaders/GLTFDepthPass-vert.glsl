@@ -19,7 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "skinning.h"
+//--------------------------------------------------------------------------------------
+// I/O Structures
+//--------------------------------------------------------------------------------------
+
+#include "GLTF_VS2PS_IO.glsl"
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer
@@ -35,38 +39,22 @@ layout (std140, binding = ID_PER_OBJECT) uniform perObject
     mat4 u_ModelMatrix;
 } myPerObject;
 
-//--------------------------------------------------------------------------------------
-// I/O Structures
-//--------------------------------------------------------------------------------------
+mat4 GetWorldMatrix()
+{
+    return myPerObject.u_ModelMatrix;
+}
 
-/////////////////   4VS
+mat4 GetCameraViewProj()
+{
+    return myPerFrame.u_MVPMatrix;
+}
 
-#ifdef ID_4VS_POSITION
-    layout (location = ID_4VS_POSITION) in vec4 a_Position;
-#endif
-
-#ifdef ID_4VS_TEXCOORD_0
-    layout (location = ID_4VS_TEXCOORD_0) in  vec2 a_UV;
-#endif
-
-/////////////////   4PS
-
-#ifdef ID_4PS_TEXCOORD_0
-    layout (location = ID_4PS_TEXCOORD_0) out vec2 v_UV;
-#endif
+#include "GLTFVertexFactory.glsl"
 
 //--------------------------------------------------------------------------------------
 // main
 //--------------------------------------------------------------------------------------
 void main()
 {
-    mat4 transMatrix = ApplySkinning(myPerObject.u_ModelMatrix);
-
-    vec4 pos = transMatrix * a_Position;
-
-    gl_Position = myPerFrame.u_MVPMatrix * pos;
-
-#if defined(ID_4VS_TEXCOORD_0) && defined(ID_4PS_TEXCOORD_0)
-    v_UV = a_UV;
-#endif
+	gltfVertexFactory();
 }

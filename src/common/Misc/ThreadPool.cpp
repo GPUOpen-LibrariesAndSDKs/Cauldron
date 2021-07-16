@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -17,14 +17,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#pragma once
-#include "threadpool.h"
+#include "stdafx.h"
+#include "ThreadPool.h"
 
-static ThreadPool t;
+static ThreadPool g_threadPool;
 
 ThreadPool *GetThreadPool()
 {
-    return &t;
+    return &g_threadPool;
 }
 
 #define ENABLE_MULTI_THREADING
@@ -89,19 +89,17 @@ void ThreadPool::AddJob(std::function<void()> job)
 #ifdef ENABLE_MULTI_THREADING
     if (bExiting == false)
     {
-        {
-            std::unique_lock<std::mutex> lock(Queue_Mutex);
+        std::unique_lock<std::mutex> lock(Queue_Mutex);
 
-            Task t;
-            t.m_job = job;
+        Task t;
+        t.m_job = job;
 
-            Queue.push_back(t);
+        Queue.push_back(t);
 
-            if (m_activeThreads<Num_Threads)
-                condition.notify_one();
-        }
+        if (m_activeThreads<Num_Threads)
+            condition.notify_one();
     }
 #else
-    New_Job();
+    job();
 #endif
 }

@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -22,27 +22,37 @@
 
 namespace CAULDRON_DX12
 {
-    void SetViewportAndScissor(ID3D12GraphicsCommandList* pCommandList, uint32_t topX, uint32_t topY, uint32_t width, uint32_t height)
+    void SetViewportAndScissor(ID3D12GraphicsCommandList* pCommandList, uint32_t topLeftX, uint32_t topLeftY, uint32_t width, uint32_t height)
     {
         // Set the viewport
-        D3D12_VIEWPORT  viewPort = { static_cast<float>(topX), static_cast<float>(topY), static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
+        D3D12_VIEWPORT viewPort = { static_cast<float>(topLeftX), static_cast<float>(topLeftY), static_cast<float>(width), static_cast<float>(height), 0.0f, 1.0f };
         pCommandList->RSSetViewports(1, &viewPort);
 
         // Create scissor rectangle
-        D3D12_RECT rectScissor = { (LONG)topX, (LONG)topY, (LONG)(topX + width), (LONG)(topY + height) };
+        D3D12_RECT rectScissor = { (LONG)topLeftX, (LONG)topLeftY, (LONG)(topLeftX + width), (LONG)(topLeftY + height) };
         pCommandList->RSSetScissorRects(1, &rectScissor);
     }
 
     void SetName(ID3D12Object *pObj, const char * name)
     {
         if (name != NULL)
+        {
             SetName(pObj, std::string(name));
+        }
     }
 
     void SetName(ID3D12Object *pObj, const std::string &name)
     {
-        wchar_t  uniName[1024];
-        swprintf(uniName, 1024, L"%S", name.c_str());
-        pObj->SetName(uniName);
+        assert(pObj != NULL);
+
+        wchar_t NameBuffer[128];
+
+        // Truncate the string if it's too big (keep the tail as it likely has the most useful information - some name have full paths)
+        if (name.size() >= 128)
+            swprintf(NameBuffer, 128, L"%S", name.substr(name.size() - 127, name.size()).c_str());
+        else
+            swprintf(NameBuffer, name.size()+1, L"%S", name.c_str());
+
+        pObj->SetName(NameBuffer);
     }
 }

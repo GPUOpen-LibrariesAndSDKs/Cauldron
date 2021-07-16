@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -18,7 +18,11 @@
 // THE SOFTWARE.
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "vulkan/vulkan.h"
+#include "DeviceProperties.h"
+#include "InstanceProperties.h"
+
+
 #define USE_VMA
 
 #ifdef USE_VMA
@@ -36,26 +40,33 @@ namespace CAULDRON_VK
     public:
         Device();
         ~Device();
-        #ifdef _WIN32
-        void OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, HWND hWnd);
-        #else
-        #warning "TODO: Implement Device::OnCreate() for Linux"
-        #endif
+        void OnCreate(const char *pAppName, const char *pEngineName, bool cpuValidationLayerEnabled, bool gpuValidationLayerEnabled, HWND hWnd);
+        void SetEssentialInstanceExtensions(bool cpuValidationLayerEnabled, bool gpuValidationLayerEnabled, InstanceProperties *pIp);
+        void SetEssentialDeviceExtensions(DeviceProperties *pDp);
+        void OnCreateEx(VkInstance vulkanInstance, VkPhysicalDevice physicalDevice, HWND hWnd, DeviceProperties *pDp);
         void OnDestroy();
         VkDevice GetDevice() { return m_device; }
         VkQueue GetGraphicsQueue() { return graphics_queue; }
         uint32_t GetGraphicsQueueFamilyIndex() { return present_queue_family_index; }
         VkQueue GetPresentQueue() { return present_queue; }
         uint32_t GetPresentQueueFamilyIndex() { return graphics_queue_family_index; }
+        VkQueue GetComputeQueue() { return compute_queue; }
+        uint32_t GetComputeQueueFamilyIndex() { return compute_queue_family_index; }
         VkPhysicalDevice GetPhysicalDevice() { return m_physicaldevice; }
         VkSurfaceKHR GetSurface() { return m_surface; }
+        void GetDeviceInfo(std::string *deviceName, std::string *driverVersion);
 #ifdef USE_VMA
         VmaAllocator GetAllocator() { return m_hAllocator; }
 #endif
         VkPhysicalDeviceMemoryProperties GetPhysicalDeviceMemoryProperties() { return m_memoryProperties; }
         VkPhysicalDeviceProperties GetPhysicalDeviceProperries() { return m_deviceProperties; }
+        VkPhysicalDeviceSubgroupProperties GetPhysicalDeviceSubgroupProperties() { return m_subgroupProperties; }
 
         bool IsFp16Supported() { return m_usingFp16; };
+        bool IsRT10Supported() { return m_rt10Supported; }
+        bool IsRT11Supported() { return m_rt11Supported; }
+        bool IsVRSTier1Supported() { return m_vrs1Supported; }
+        bool IsVRSTier2Supported() { return m_vrs2Supported; }
 
         // pipeline cache
         VkPipelineCache m_pipelineCache;
@@ -74,16 +85,23 @@ namespace CAULDRON_VK
         VkPhysicalDevice m_physicaldevice;
         VkPhysicalDeviceMemoryProperties m_memoryProperties;
         VkPhysicalDeviceProperties m_deviceProperties;
+        VkPhysicalDeviceProperties2 m_deviceProperties2;
+        VkPhysicalDeviceSubgroupProperties m_subgroupProperties;
         VkSurfaceKHR m_surface;
 
         VkQueue present_queue;
         uint32_t present_queue_family_index;
         VkQueue graphics_queue;
         uint32_t graphics_queue_family_index;
+        VkQueue compute_queue;
+        uint32_t compute_queue_family_index;
 
         bool m_usingValidationLayer = false;
-        bool m_usingFreeSync2 = false;
         bool m_usingFp16 = false;
+        bool m_rt10Supported = false;
+        bool m_rt11Supported = false;
+        bool m_vrs1Supported = false;
+        bool m_vrs2Supported = false;
 #ifdef USE_VMA
         VmaAllocator m_hAllocator = nullptr;
 #endif

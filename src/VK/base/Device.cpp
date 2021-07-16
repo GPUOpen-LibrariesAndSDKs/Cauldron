@@ -1,4 +1,4 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -20,13 +20,17 @@
 #include <vector>
 
 #include "Device.h"
+#include <vulkan/vulkan_win32.h>
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include "DeviceProperties.h"
-#include "DebugMarkersExt.h"
-#include "ExtFreeSync2.h"
+#include "ExtDebugUtils.h"
+#include "ExtFreeSyncHDR.h"
 #include "ExtFp16.h"
-#include "validationExt.h"
+#include "ExtRayTracing.h"
+#include "ExtVRS.h"
+#include "ExtValidation.h"
+#include "Misc/Misc.h"
 
 #ifdef USE_VMA
 #define VMA_IMPLEMENTATION
@@ -43,42 +47,55 @@ namespace CAULDRON_VK
     {
     }
 
-#ifdef _WIN32
-    void Device::OnCreate(const char *pAppName, const char *pEngineName, bool bValidationEnabled, HWND hWnd)
+    void Device::OnCreate(const char *pAppName, const char *pEngineName, bool cpuValidationLayerEnabled, bool gpuValidationLayerEnabled, HWND hWnd)
     {
         InstanceProperties ip;
         ip.Init();
+        SetEssentialInstanceExtensions(cpuValidationLayerEnabled, gpuValidationLayerEnabled, &ip);
 
-        if (bValidationEnabled)
-            m_usingValidationLayer = ValidationCheckExtensions(&ip);
+        // Create instance
+        VkInstance vulkanInstance;
+        VkPhysicalDevice physicalDevice;
+        CreateInstance(pAppName, pEngineName, &vulkanInstance, &physicalDevice, &ip);
 
-        VkApplicationInfo app_info = {};
-        app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        app_info.pNext = NULL;
-        app_info.pApplicationName = pAppName;
-        app_info.applicationVersion = 1;
-        app_info.pEngineName = pEngineName;
-        app_info.engineVersion = 1;
-        app_info.apiVersion = VK_API_VERSION_1_1;
-        m_instance = CreateInstance(app_info, &ip);
+        DeviceProperties dp;
+        dp.Init(physicalDevice);
+        SetEssentialDeviceExtensions(&dp);
 
-        if (m_usingValidationLayer)
-            ValidationOnCreate(m_instance);
+        // Create device
+        OnCreateEx(vulkanInstance, physicalDevice, hWnd, &dp);
+    }
 
-        // Enumerate physical devices
-        //
-        uint32_t gpu_count = 1;
-        uint32_t const req_count = gpu_count;
-        VkResult res = vkEnumeratePhysicalDevices(m_instance, &gpu_count, NULL);
-        assert(gpu_count);
+    void Device::SetEssentialInstanceExtensions(bool cpuValidationLayerEnabled, bool gpuValidationLayerEnabled, InstanceProperties *pIp)
+    {
+        pIp->AddInstanceExtensionName(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+        pIp->AddInstanceExtensionName(VK_KHR_SURFACE_EXTENSION_NAME);
+        ExtCheckHDRInstanceExtensions(pIp);
+        ExtDebugUtilsCheckInstanceExtensions(pIp);
+        if (cpuValidationLayerEnabled)
+        {
+            ExtDebugReportCheckInstanceExtensions(pIp, gpuValidationLayerEnabled);
+        }
+    }
 
-        std::vector<VkPhysicalDevice> gpus;
-        gpus.resize(gpu_count);
+    void Device::SetEssentialDeviceExtensions(DeviceProperties *pDp)
+    {
+        m_usingFp16 = ExtFp16CheckExtensions(pDp);
+        ExtRTCheckExtensions(pDp, m_rt10Supported, m_rt11Supported);
+        ExtVRSCheckExtensions(pDp, m_vrs1Supported, m_vrs2Supported);
+        ExtCheckHDRDeviceExtensions(pDp);
+        ExtCheckFSEDeviceExtensions(pDp);
+        ExtCheckFreeSyncHDRDeviceExtensions(pDp);
+        pDp->AddDeviceExtensionName(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+        pDp->AddDeviceExtensionName(VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME);
+    }
 
-        res = vkEnumeratePhysicalDevices(m_instance, &gpu_count, gpus.data());
-        assert(!res && gpu_count >= req_count);
+    void Device::OnCreateEx(VkInstance vulkanInstance, VkPhysicalDevice physicalDevice, HWND hWnd, DeviceProperties *pDp)
+    {
+        VkResult res;
 
-        m_physicaldevice = gpus[0];
+        m_instance = vulkanInstance;
+        m_physicaldevice = physicalDevice;
 
         // Get queue/memory/device properties
         //
@@ -94,6 +111,17 @@ namespace CAULDRON_VK
         vkGetPhysicalDeviceMemoryProperties(m_physicaldevice, &m_memoryProperties);
         vkGetPhysicalDeviceProperties(m_physicaldevice, &m_deviceProperties);
 
+        // Get subgroup properties to check if subgroup operations are supported
+        //
+        m_subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
+        m_subgroupProperties.pNext = NULL;
+
+        m_deviceProperties2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+        m_deviceProperties2.pNext = &m_subgroupProperties;
+
+        vkGetPhysicalDeviceProperties2(m_physicaldevice, &m_deviceProperties2);
+
+#if defined(_WIN32)
         // Crate a Win32 Surface
         //
         VkWin32SurfaceCreateInfoKHR createInfo = {};
@@ -102,7 +130,9 @@ namespace CAULDRON_VK
         createInfo.hinstance = NULL;
         createInfo.hwnd = hWnd;
         res = vkCreateWin32SurfaceKHR(m_instance, &createInfo, NULL, &m_surface);
-
+#else
+    #error platform not supported
+#endif
         // Find a graphics device and a queue that can present to the above surface
         //
         graphics_queue_family_index = UINT32_MAX;
@@ -114,7 +144,7 @@ namespace CAULDRON_VK
                 if (graphics_queue_family_index == UINT32_MAX) graphics_queue_family_index = i;
 
                 VkBool32 supportsPresent;
-                vkGetPhysicalDeviceSurfaceSupportKHR(gpus[0], i, m_surface, &supportsPresent);
+                vkGetPhysicalDeviceSurfaceSupportKHR(m_physicaldevice, i, m_surface, &supportsPresent);
                 if (supportsPresent == VK_TRUE)
                 {
                     graphics_queue_family_index = i;
@@ -131,7 +161,7 @@ namespace CAULDRON_VK
             for (uint32_t i = 0; i < queue_family_count; ++i)
             {
                 VkBool32 supportsPresent;
-                vkGetPhysicalDeviceSurfaceSupportKHR(gpus[0], i, m_surface, &supportsPresent);
+                vkGetPhysicalDeviceSurfaceSupportKHR(m_physicaldevice, i, m_surface, &supportsPresent);
                 if (supportsPresent == VK_TRUE)
                 {
                     present_queue_family_index = (uint32_t)i;
@@ -140,60 +170,83 @@ namespace CAULDRON_VK
             }
         }
 
-        // Read device properties
-        DeviceProperties dp;
-        dp.Init(m_physicaldevice);
+        compute_queue_family_index = UINT32_MAX;
 
-        // Check required extensions are present
-        //
-        void *pNext = NULL;
-        m_usingFp16 = ExtFp16CheckExtensions(&dp, &pNext);
-        m_usingFreeSync2 = ExtFreeSync2CheckExtensions(&dp);
-        m_usingValidationLayer = ValidationCheckExtensions(&dp, &pNext);
-
-        std::vector<const char *> required_extension_names = { VK_KHR_SWAPCHAIN_EXTENSION_NAME , VK_KHR_MAINTENANCE1_EXTENSION_NAME, VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME };
-        for (auto& ext : required_extension_names)
+        for (uint32_t i = 0; i < queue_family_count; ++i)
         {
-            if (dp.Add(ext)==false)
+            if ((queue_props[i].queueFlags & VK_QUEUE_COMPUTE_BIT) != 0)
             {
-                MessageBoxA(NULL, "Panic: Required extension not found, device creation will fail. Update your driver.", ext, 0);
+                if (compute_queue_family_index == UINT32_MAX)
+                    compute_queue_family_index = i;
+                if (i != graphics_queue_family_index) {
+                    compute_queue_family_index = i;
+                    break;
+                }
             }
         }
 
-        // collect existing extensions
+        // prepare existing extensions names into a buffer for vkCreateDevice
         std::vector<const char *> extension_names;
-        dp.GetExtensionNamesAndConfigs(&extension_names);
+        pDp->GetExtensionNamesAndConfigs(&extension_names);
 
         // Create device
         //
         float queue_priorities[1] = { 0.0 };
-        VkDeviceQueueCreateInfo queue_info = {};
-        queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queue_info.pNext = NULL;
-        queue_info.queueCount = 1;
-        queue_info.pQueuePriorities = queue_priorities;
-        queue_info.queueFamilyIndex = graphics_queue_family_index;
+        VkDeviceQueueCreateInfo queue_info[2] = {};
+        queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_info[0].pNext = NULL;
+        queue_info[0].queueCount = 1;
+        queue_info[0].pQueuePriorities = queue_priorities;
+        queue_info[0].queueFamilyIndex = graphics_queue_family_index;
+        queue_info[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_info[1].pNext = NULL;
+        queue_info[1].queueCount = 1;
+        queue_info[1].pQueuePriorities = queue_priorities;
+        queue_info[1].queueFamilyIndex = compute_queue_family_index;
 
         VkPhysicalDeviceFeatures physicalDeviceFeatures = {};
         physicalDeviceFeatures.fillModeNonSolid = true;
         physicalDeviceFeatures.pipelineStatisticsQuery = true;
+        physicalDeviceFeatures.fragmentStoresAndAtomics = true;
+        physicalDeviceFeatures.vertexPipelineStoresAndAtomics = true;
+        physicalDeviceFeatures.shaderImageGatherExtended = true;
         physicalDeviceFeatures.wideLines = true; //needed for drawing lines with a specific width.
+        physicalDeviceFeatures.independentBlend = true; // needed for having different blend for each render target
+
+        // enable feature to support fp16 with subgroup operations
+        //
+        VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR shaderSubgroupExtendedType = {};
+        shaderSubgroupExtendedType.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR;
+        shaderSubgroupExtendedType.pNext = pDp->GetNext(); //used to be pNext of VkDeviceCreateInfo
+        shaderSubgroupExtendedType.shaderSubgroupExtendedTypes = VK_TRUE;
+
+        VkPhysicalDeviceRobustness2FeaturesEXT robustness2 = {};
+        robustness2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+        robustness2.pNext = &shaderSubgroupExtendedType;
+        robustness2.nullDescriptor = VK_TRUE;
+
+        // to be able to bind NULL views
+        VkPhysicalDeviceFeatures2 physicalDeviceFeatures2 = {};
+        physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        physicalDeviceFeatures2.features = physicalDeviceFeatures;
+        physicalDeviceFeatures2.pNext = &robustness2;
 
         VkDeviceCreateInfo device_info = {};
         device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        device_info.pNext = pNext;
-        device_info.queueCreateInfoCount = 1;
-        device_info.pQueueCreateInfos = &queue_info;
+        device_info.pNext = &physicalDeviceFeatures2;
+        device_info.queueCreateInfoCount = 2;
+        device_info.pQueueCreateInfos = queue_info;
         device_info.enabledExtensionCount = (uint32_t)extension_names.size();
         device_info.ppEnabledExtensionNames = device_info.enabledExtensionCount ? extension_names.data() : NULL;
-        device_info.pEnabledFeatures = &physicalDeviceFeatures;
-        res = vkCreateDevice(gpus[0], &device_info, NULL, &m_device);
+        device_info.pEnabledFeatures = NULL;
+        res = vkCreateDevice(m_physicaldevice, &device_info, NULL, &m_device);
         assert(res == VK_SUCCESS);
 
 #ifdef USE_VMA
         VmaAllocatorCreateInfo allocatorInfo = {};
         allocatorInfo.physicalDevice = GetPhysicalDevice();
         allocatorInfo.device = GetDevice();
+        allocatorInfo.instance = m_instance;
         vmaCreateAllocator(&allocatorInfo, &m_hAllocator);
 #endif
 
@@ -208,23 +261,23 @@ namespace CAULDRON_VK
         {
             vkGetDeviceQueue(m_device, present_queue_family_index, 0, &present_queue);
         }
+        if (compute_queue_family_index != UINT32_MAX)
+        {
+            vkGetDeviceQueue(m_device, compute_queue_family_index, 0, &compute_queue);
+        }
 
-        // Init debug marker extension if found
+        // Init the extensions (if they have been enabled successfuly)
         //
-        if (m_usingValidationLayer)
-        {
-            ExtDebugMarkersInit(m_device);
-        }
-
-        if (m_usingFreeSync2)
-        {
-            ExtFreeSync2Init(m_instance);
-            ExtFreeSync2Init(m_device);
-        }
+        ExtDebugUtilsGetProcAddresses(m_device);
+        ExtGetHDRFSEFreesyncHDRProcAddresses(m_instance, m_device);
     }
-#else
-#warning "TODO: Implement Device::OnCreate() for Linux"
-#endif
+
+    void Device::GetDeviceInfo(std::string *deviceName, std::string *driverVersion)
+    {
+        #define EXTRACT(v,offset, length) ((v>>offset) & ((1<<length)-1))
+        *deviceName = m_deviceProperties.deviceName;
+        *driverVersion = format("%i.%i.%i", EXTRACT(m_deviceProperties.driverVersion,22,10), EXTRACT(m_deviceProperties.driverVersion, 14,8), EXTRACT(m_deviceProperties.driverVersion, 0,16));
+    }
 
     void Device::CreatePipelineCache()
     {
@@ -252,6 +305,10 @@ namespace CAULDRON_VK
 
     void Device::OnDestroy()
     {
+        if (m_surface != VK_NULL_HANDLE)
+        {
+            vkDestroySurfaceKHR(m_instance, m_surface, NULL);
+        }
 
 #ifdef USE_VMA
         vmaDestroyAllocator(m_hAllocator);
@@ -264,10 +321,7 @@ namespace CAULDRON_VK
             m_device = VK_NULL_HANDLE;
         }
 
-        if (m_usingValidationLayer)
-        {
-            ValidationOnDestroy(m_instance);
-        }
+        ExtDebugReportOnDestroy(m_instance);
 
         DestroyInstance(m_instance);
 

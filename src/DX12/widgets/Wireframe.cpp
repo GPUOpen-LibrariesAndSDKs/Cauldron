@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 // 
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,35 +19,21 @@
 
 #include "stdafx.h"
 #include "Wireframe.h"
-#include "..\base\ShaderCompilerHelper.h"
+#include "../Base/ShaderCompilerHelper.h"
 
 namespace CAULDRON_DX12
 {
-    Wireframe::Wireframe()
-    {
-    }
-
-    Wireframe::~Wireframe()
-    {
-    }
-
     void Wireframe::OnCreate(
         Device* pDevice,
         ResourceViewHeaps *pHeaps,
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
-        std::vector<float> *pVertices,
-        std::vector<short> *pIndices,
         DXGI_FORMAT outFormat,
         uint32_t sampleDescCount)
     {
         m_pResourceViewHeaps = pHeaps;
         m_pDynamicBufferRing = pDynamicBufferRing;
 
-        // set indices
-        m_NumIndices = (uint32_t)pIndices->size();
-        pStaticBufferPool->AllocIndexBuffer(m_NumIndices, sizeof(short), pIndices->data(), &m_IBV);
-        pStaticBufferPool->AllocVertexBuffer((uint32_t)(pVertices->size() / 3), 3 * sizeof(float), pVertices->data(), &m_VBV);
 
         D3D12_INPUT_ELEMENT_DESC layout[] =
         {
@@ -96,8 +82,8 @@ namespace CAULDRON_DX12
 
         D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
         {
-            CompileShaderFromString(vertexShader, NULL, "mainVS", "vs_5_0", 0, 0, &shaderVert);
-            CompileShaderFromString(pixelShader, NULL, "mainPS", "ps_5_0", 0, 0, &shaderPixel);
+            CompileShaderFromString(vertexShader, NULL, "mainVS", "-T vs_6_0", &shaderVert);
+            CompileShaderFromString(pixelShader, NULL, "mainPS", "-T ps_6_0", &shaderPixel);
         }
 
         /////////////////////////////////////////////
@@ -136,7 +122,7 @@ namespace CAULDRON_DX12
                     pOutBlob->GetBufferSize(),
                     IID_PPV_ARGS(&m_RootSignature))
             );
-            m_RootSignature->SetName(L"Wireframe");
+            SetName(m_RootSignature, "Wireframe");
 
             pOutBlob->Release();
             if (pErrorBlob)
@@ -165,39 +151,39 @@ namespace CAULDRON_DX12
         descPso.SampleDesc.Count = sampleDescCount;
         descPso.NodeMask = 0;
         ThrowIfFailed(
-            pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_Pipeline))
+            pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline))
         );
+        SetName(m_pPipeline, "Wireframe::m_pPipeline");
     }
 
     void Wireframe::OnDestroy()
     {
-        m_Pipeline->Release();
+        m_pPipeline->Release();
         m_RootSignature->Release();
     }
 
-    void Wireframe::Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX worldMatrix, XMVECTOR vCenter, XMVECTOR vRadius, XMVECTOR vColor)
+    void Wireframe::Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, const math::Matrix4& WorldViewProj, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor)
     {
         ID3D12DescriptorHeap *pDescriptorHeaps[] = { m_pResourceViewHeaps->GetCBV_SRV_UAVHeap() };
 
-        pCommandList->IASetIndexBuffer(&m_IBV);
-        pCommandList->IASetVertexBuffers(0, 1, &m_VBV);
+        pCommandList->IASetIndexBuffer(&IBV);
+        pCommandList->IASetVertexBuffers(0, 1, &VBV);
         pCommandList->SetDescriptorHeaps(1, pDescriptorHeaps);
-        pCommandList->SetPipelineState(m_Pipeline);
+        pCommandList->SetPipelineState(m_pPipeline);
         pCommandList->SetGraphicsRootSignature(m_RootSignature);
         pCommandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 
         // Set per Object constants
         //
-        per_object *cbPerObject;
-        D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), (void **)&cbPerObject, &perObjectDesc);
-        cbPerObject->m_mWorldViewProj = worldMatrix;
-        cbPerObject->m_vCenter = vCenter;
-        cbPerObject->m_vRadius = vRadius;
-        cbPerObject->m_vColor = vColor;
+        per_object cbPerObject;
+        cbPerObject.m_mWorldViewProj = WorldViewProj;
+        cbPerObject.m_vCenter = vCenter;
+        cbPerObject.m_vRadius = vRadius;
+        cbPerObject.m_vColor = vColor;
+        D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_object), &cbPerObject);
 
         pCommandList->SetGraphicsRootConstantBufferView(0, perObjectDesc);
 
-        pCommandList->DrawIndexedInstanced(m_NumIndices, 1, 0, 0, 0);
+        pCommandList->DrawIndexedInstanced(numIndices, 1, 0, 0, 0);
     }
 }

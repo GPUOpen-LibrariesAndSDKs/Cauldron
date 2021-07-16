@@ -1,6 +1,6 @@
-// AMD AMDUtils code
+// AMD Cauldron code
 //
-// Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -23,28 +23,22 @@
 
 struct PBRMaterialParametersConstantBuffer
 {
-    XMVECTOR m_emissiveFactor;
+    math::Vector4 m_emissiveFactor;
 
     // pbrMetallicRoughness
-    XMVECTOR m_baseColorFactor;
-    XMVECTOR m_metallicRoughnessValues;
+    math::Vector4 m_baseColorFactor;
+    math::Vector4 m_metallicRoughnessValues;
 
     // KHR_materials_pbrSpecularGlossiness
-    XMVECTOR m_DiffuseFactor;
-    XMVECTOR m_specularGlossinessFactor;
+    math::Vector4 m_DiffuseFactor;
+    math::Vector4 m_specularGlossinessFactor;
 };
 
 
 struct PBRMaterialParameters
 {
-    enum PBRType { MATERIAL_METALLIC_ROUGHNESS, MATERIAL_SPECULAR_GLOSSINESS };
-
-    PBRType m_pbrType;
-
     bool     m_doubleSided = false;
     bool     m_blending = false;
-
-    XMVECTOR m_DiffuseFactor;
 
     DefineList m_defines;
 
@@ -54,4 +48,8 @@ struct PBRMaterialParameters
 
 // Read GLTF material and store it in our structure
 //
+void SetDefaultMaterialParamters(PBRMaterialParameters *pPbrMaterialParameters);
 void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfmat, std::map<std::string, int> &textureIds);
+bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName);
+bool ProcessGetTextureIndexAndTextCoord(const json::object_t &material, const std::string &textureName, int *pIndex, int *pTexCoord);
+void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, bool *pSrgbOut, float *pCutoff);

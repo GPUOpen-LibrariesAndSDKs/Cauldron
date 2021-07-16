@@ -1,5 +1,5 @@
-// AMD AMDUtils code
-// 
+// AMD Cauldron code
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -20,12 +20,9 @@
 
 // This class takes a GltfCommon class (that holds all the non-GPU specific data) as an input and loads all the GPU specific data
 //
-#include "base/ResourceViewHeaps.h"
-#include "base/DynamicBufferRing.h"
-#include "base/StaticBufferPool.h"
-
-#include "../DirextXMath/Inc/DirectXMath.h"
-using namespace DirectX;
+#include "Base/ResourceViewHeaps.h"
+#include "Base/DynamicBufferRing.h"
+#include "Base/StaticBufferPool.h"
 
 namespace CAULDRON_VK
 {
@@ -41,7 +38,7 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMVECTOR vColor);
+        void Draw(VkCommandBuffer cmd_buf, const math::Matrix4& worldMatrix, const math::Vector4& vColor);
     private:
 
         Device* m_pDevice;
@@ -64,9 +61,8 @@ namespace CAULDRON_VK
 
         struct per_object
         {
-            XMMATRIX m_mWorldViewProj;
-            XMVECTOR m_vColor;
+            math::Matrix4 m_mWorldViewProj;
+            math::Vector4 m_vColor;
         };
     };
 }
-
