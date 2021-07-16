@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <cstdint>
+
 #include "Device.h"
 #include "GPUTimestamps.h"
 
@@ -39,7 +40,7 @@ namespace CAULDRON_VK
             0,                                            // VkQueryPipelineStatisticFlags    pipelineStatistics
         };
 
-        VkResult res = vkCreateQueryPool(pDevice->GetDevice(), &queryPoolCreateInfo, NULL, &m_QueryPool);
+        VkResult res = vkCreateQueryPool(pDevice->GetDevice(), &queryPoolCreateInfo, nullptr, &m_QueryPool);
     }
 
     void GPUTimestamps::OnDestroy()
@@ -88,10 +89,10 @@ namespace CAULDRON_VK
         if (measurements > 0)
         {
             // timestampPeriod is the number of nanoseconds per timestamp value increment
-            double microsecondsPerTick = (1e-3f * m_pDevice->GetPhysicalDeviceProperries().limits.timestampPeriod);            
+            double microsecondsPerTick = (1e-3f * m_pDevice->GetPhysicalDeviceProperries().limits.timestampPeriod);
             {
                 UINT64 TimingsInTicks[256] = {};
-                VkResult res = vkGetQueryPoolResults(m_pDevice->GetDevice(), m_QueryPool, offset, measurements, measurements * sizeof(UINT64), &TimingsInTicks, sizeof(UINT64), VK_QUERY_RESULT_64_BIT);                
+                VkResult res = vkGetQueryPoolResults(m_pDevice->GetDevice(), m_QueryPool, offset, measurements, measurements * sizeof(UINT64), &TimingsInTicks, sizeof(UINT64), VK_QUERY_RESULT_64_BIT);
                 if (res == VK_SUCCESS)
                 {
                     for (uint32_t i = 1; i < measurements; i++)

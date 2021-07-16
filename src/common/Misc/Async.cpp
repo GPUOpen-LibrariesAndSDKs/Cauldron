@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2017 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -39,7 +39,7 @@ Async::Async(std::function<void()> job, Sync *pSync) :
         {
             s_condition.wait(lock);
         }
-        
+
         s_activeThreads++;
     }
 
@@ -50,7 +50,7 @@ Async::Async(std::function<void()> job, Sync *pSync) :
         {
             std::lock_guard<std::mutex> lock(s_mutex);
             s_activeThreads--;
-        }        
+        }
 
         s_condition.notify_one();
 
@@ -66,9 +66,9 @@ Async::~Async()
 }
 
 void Async::Wait(Sync *pSync)
-{    
+{
     if (pSync->Get() == 0)
-        return;     
+        return;
 
     {
         std::lock_guard <std::mutex> lock(s_mutex);
@@ -88,7 +88,7 @@ void Async::Wait(Sync *pSync)
         });
 
         s_activeThreads++;
-    }    
+    }
 }
 
 //

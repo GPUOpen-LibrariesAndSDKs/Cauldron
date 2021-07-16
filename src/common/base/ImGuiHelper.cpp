@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,9 +17,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
-#include "ImguiHelper.h"
 
+#include "ImGuiHelper.h"
+
+#ifdef _WIN32
 static HWND g_hWnd;
 
 bool ImGUI_Init(void *hwnd)
@@ -52,6 +53,9 @@ bool ImGUI_Init(void *hwnd)
 
     return true;
 }
+#else
+#warning "TODO: implement ImGUI_Init for Linux"
+#endif
 
 void ImGUI_Shutdown()
 {
@@ -63,6 +67,7 @@ void ImGUI_UpdateIO()
 {
     ImGuiIO& io = ImGui::GetIO();
 
+#ifdef _WIN32
     // Setup display size (every frame to accommodate for window resizing)
     RECT rect;
     GetClientRect(g_hWnd, &rect);
@@ -81,6 +86,9 @@ void ImGUI_UpdateIO()
     // Hide OS mouse cursor if ImGui is drawing it
     if (io.MouseDrawCursor)
         SetCursor(NULL);    // Start the frame
+#else
+#warning "TODO: implement ImGUI_UpdateIO for Linux"
+#endif
 }
 
 static bool IsAnyMouseButtonDown()
@@ -92,6 +100,7 @@ static bool IsAnyMouseButtonDown()
     return false;
 }
 
+#ifdef _WIN32
 IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     ImGuiIO& io = ImGui::GetIO();
@@ -148,3 +157,6 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
     }
     return 0;
 }
+#else
+#warning "TODO: implement ImGUI_WndProcHandler for Linux"
+#endif

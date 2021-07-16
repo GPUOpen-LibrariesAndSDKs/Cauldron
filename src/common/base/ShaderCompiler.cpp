@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <cstring>
+
 #include "ShaderCompiler.h"
 #include "../Misc/Misc.h"
 
@@ -30,9 +31,9 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t hash)
 
     const char *pch = pShader;
     while (*pch != 0)
-    {        
+    {
         if (*pch == '/') // parse comments
-        {            
+        {
             pch++;
             if (*pch != 0 && *pch == '/')
             {
@@ -62,29 +63,29 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t hash)
             {
                 while (*pch != 0 && *pch == ' ')
                     pch++;
-                
+
                 if (*pch != 0 && *pch == '\"')
                 {
                     pch++;
                     const char *pName = pch;
-                    
+
                     while (*pch != 0 && *pch != '\"')
                         pch++;
 
                     char includeName[1024];
-                    strcpy_s<1024>(includeName, pRootDir);
-                    strncat_s<1024>(includeName, pName, pch - pName);
+                    strcpy(includeName, pRootDir);
+                    strncat(includeName, pName, pch - pName);
 
                     pch++;
 
-                    char *pShaderCode = NULL;
-                    if (ReadFile(includeName, &pShaderCode, NULL, false))
+                    char *pShaderCode = nullptr;
+                    if (ReadFile(includeName, &pShaderCode, nullptr, false))
                     {
                         hash = HashShaderString(pRootDir, pShaderCode, hash);
                         free(pShaderCode);
                     }
                 }
-            }            
+            }
         }
         else
         {

@@ -17,7 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <algorithm>
+#include <cstring>
+
 #include "DeviceProperties.h"
 #include "Misc/Misc.h"
 
@@ -40,7 +42,7 @@ namespace CAULDRON_VK
         // Enumerate device extensions
         //
         uint32_t extensionCount;
-        VkResult res = vkEnumerateDeviceExtensionProperties(physicaldevice, nullptr, &extensionCount, NULL);
+        VkResult res = vkEnumerateDeviceExtensionProperties(physicaldevice, nullptr, &extensionCount, nullptr);
         m_deviceExtensionProperties.resize(extensionCount);
         res = vkEnumerateDeviceExtensionProperties(physicaldevice, nullptr, &extensionCount, m_deviceExtensionProperties.data());
 

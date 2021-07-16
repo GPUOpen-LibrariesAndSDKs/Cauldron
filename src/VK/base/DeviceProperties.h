@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <vector>
+
 #include "vulkan/vulkan.h"
 #include <vector>
 
@@ -32,7 +34,7 @@ namespace CAULDRON_VK
         std::vector<VkExtensionProperties> m_deviceExtensionProperties;
 
 
-        void *m_pNext = NULL;
+        void *m_pNext = nullptr;
 public:
         VkResult Init(VkPhysicalDevice physicaldevice);
         bool IsExtensionPresent(const char *pExtName);

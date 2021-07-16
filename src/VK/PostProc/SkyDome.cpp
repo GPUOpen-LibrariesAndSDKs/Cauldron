@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,12 +18,12 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/UploadHeap.h"
-#include "Base/Helper.h"
-#include "Base/Texture.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ExtDebugUtils.h"
+#include "base/UploadHeap.h"
+#include "base/Helper.h"
+#include "base/Texture.h"
 #include "SkyDome.h"
 
 namespace CAULDRON_VK
@@ -36,11 +36,11 @@ namespace CAULDRON_VK
 
         m_CubeDiffuseTexture.InitFromFile(pDevice, pUploadHeap, pDiffuseCubemap, true); // SRGB
         m_CubeSpecularTexture.InitFromFile(pDevice, pUploadHeap, pSpecularCubemap, true);
-        
+
         pUploadHeap->FlushAndFinish();
 
         m_CubeDiffuseTexture.CreateCubeSRV(&m_CubeDiffuseTextureView);
-        m_CubeSpecularTexture.CreateCubeSRV(&m_CubeSpecularTextureView);        
+        m_CubeSpecularTexture.CreateCubeSRV(&m_CubeSpecularTextureView);
 
         {
             VkSamplerCreateInfo info = {};
@@ -54,7 +54,7 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_samplerDiffuseCube);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_samplerDiffuseCube);
             assert(res == VK_SUCCESS);
         }
 
@@ -70,7 +70,7 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_samplerSpecularCube);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_samplerSpecularCube);
             assert(res == VK_SUCCESS);
         }
 
@@ -81,13 +81,13 @@ namespace CAULDRON_VK
         layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layout_bindings[0].descriptorCount = 1;
         layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_bindings[0].pImmutableSamplers = NULL;
+        layout_bindings[0].pImmutableSamplers = nullptr;
 
         layout_bindings[1].binding = 1;
         layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
         layout_bindings[1].descriptorCount = 1;
         layout_bindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_bindings[1].pImmutableSamplers = NULL;
+        layout_bindings[1].pImmutableSamplers = nullptr;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layout_bindings, &m_descriptorLayout, &m_descriptorSet);
         pDynamicBufferRing->SetDescriptorSet(0, sizeof(math::Matrix4), m_descriptorSet);
@@ -99,13 +99,13 @@ namespace CAULDRON_VK
     void SkyDome::OnDestroy()
     {
         m_skydome.OnDestroy();
-        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, NULL);
+        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, nullptr);
 
         vkDestroySampler(m_pDevice->GetDevice(), m_samplerDiffuseCube, nullptr);
         vkDestroySampler(m_pDevice->GetDevice(), m_samplerSpecularCube, nullptr);
 
-        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeDiffuseTextureView, NULL);
-        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeSpecularTextureView, NULL);
+        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeDiffuseTextureView, nullptr);
+        vkDestroyImageView(m_pDevice->GetDevice(), m_CubeSpecularTextureView, nullptr);
 
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
 

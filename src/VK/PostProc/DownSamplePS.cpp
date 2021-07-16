@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,13 +18,13 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/UploadHeap.h"
-#include "Base/Texture.h"
-#include "Base/Imgui.h"
-#include "Base/Helper.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ExtDebugUtils.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
+#include "base/Imgui.h"
+#include "base/Helper.h"
 
 #include "PostProcPS.h"
 #include "DownSamplePS.h"
@@ -126,7 +126,7 @@ namespace CAULDRON_VK
         image_info.queueFamilyIndexCount = 0;
         image_info.pQueueFamilyIndices = NULL;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT); //TODO    
+        image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT); //TODO
         image_info.flags = 0;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
         m_result.Init(m_pDevice, &image_info, "DownsampleMip");
@@ -146,7 +146,7 @@ namespace CAULDRON_VK
                 m_result.CreateSRV(&m_mip[i].m_SRV, i - 1);
             }
 
-            // Create and initialize the Descriptor Sets (all of them use the same Descriptor Layout)        
+            // Create and initialize the Descriptor Sets (all of them use the same Descriptor Layout)
             m_pConstantBufferRing->SetDescriptorSet(0, sizeof(DownSamplePS::cbDownscale), m_mip[i].descriptorSet);
             SetDescriptorSet(m_pDevice->GetDevice(), 1, m_mip[i].m_SRV, &m_sampler, m_mip[i].descriptorSet);
 
@@ -154,7 +154,7 @@ namespace CAULDRON_VK
             //
             m_result.CreateRTV(&m_mip[i].RTV, i);
 
-            // Create framebuffer 
+            // Create framebuffer
             {
                 VkImageView attachments[1] = { m_mip[i].RTV };
 

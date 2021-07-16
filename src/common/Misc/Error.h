@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,7 +19,7 @@
 
 #pragma once
 #include "Misc.h"
-
+#ifdef _WIN32
 void ShowErrorMessageBox(LPCWSTR lpErrorString);
 void ShowCustomErrorMessageBox(_In_opt_ LPCWSTR lpErrorString);
 
@@ -40,3 +40,7 @@ inline void ThrowIfFailed(HRESULT hr)
         throw 1;
     }
 }
+
+#else
+#warning "TODO: implement crossplatform error window"
+#endif

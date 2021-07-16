@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <algorithm>
+#include <cassert>
+
 #include "ResourceViewHeaps.h"
 #include "Texture.h"
 #include "Misc/Misc.h"
@@ -120,7 +122,7 @@ namespace CAULDRON_VK
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        image_info.pNext = NULL;
+        image_info.pNext = nullptr;
         image_info.imageType = VK_IMAGE_TYPE_2D;
         image_info.format = format;
         image_info.extent.width = width;
@@ -131,9 +133,9 @@ namespace CAULDRON_VK
         image_info.samples = msaa;
         image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         image_info.queueFamilyIndexCount = 0;
-        image_info.pQueueFamilyIndices = NULL;
+        image_info.pQueueFamilyIndices = nullptr;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        image_info.usage = usage; //TODO    
+        image_info.usage = usage; //TODO
         image_info.flags = flags;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;   // VK_IMAGE_TILING_LINEAR should never be used and will never be faster
 
@@ -219,7 +221,7 @@ namespace CAULDRON_VK
 
         info.subresourceRange.baseArrayLayer = 0;
 
-        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
+        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, nullptr, pImageView);
         assert(res == VK_SUCCESS);
 
         SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, m_name.c_str());
@@ -238,7 +240,7 @@ namespace CAULDRON_VK
         info.subresourceRange.baseArrayLayer = 0;
         info.subresourceRange.layerCount = m_header.arraySize;
 
-        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
+        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, nullptr, pImageView);
         assert(res == VK_SUCCESS);
 
         SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, m_name.c_str());
@@ -248,7 +250,7 @@ namespace CAULDRON_VK
     {
         VkImageViewCreateInfo view_info = {};
         view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        view_info.pNext = NULL;
+        view_info.pNext = nullptr;
         view_info.image = m_pResource;
         view_info.format = m_format;
         view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -265,7 +267,7 @@ namespace CAULDRON_VK
 
         m_header.mipMapCount = 1;
 
-        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &view_info, NULL, pImageView);
+        VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &view_info, nullptr, pImageView);
         assert(res == VK_SUCCESS);
 
         SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, m_name.c_str());
@@ -275,7 +277,7 @@ namespace CAULDRON_VK
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-        image_info.pNext = NULL;
+        image_info.pNext = nullptr;
         image_info.imageType = VK_IMAGE_TYPE_2D;
         image_info.format = format;
         image_info.extent.width = width;
@@ -286,9 +288,9 @@ namespace CAULDRON_VK
         image_info.samples = msaa;
         image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         image_info.queueFamilyIndexCount = 0;
-        image_info.pQueueFamilyIndices = NULL;
+        image_info.pQueueFamilyIndices = nullptr;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; //TODO    
+        image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; //TODO
         image_info.flags = 0;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;   // VK_IMAGE_TILING_LINEAR should never be used and will never be faster
 
@@ -406,7 +408,7 @@ namespace CAULDRON_VK
 
         //compute pixel size
         //
-        UINT32 bytesPerPixel = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
+        UINT32 bytesPerPixel = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock
         UINT32 pixelsPerBlock = 1;
         if (IsBCFormat(m_header.format))
         {
@@ -479,7 +481,7 @@ namespace CAULDRON_VK
     bool Texture::InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, const char *pFilename, bool useSRGB, VkImageUsageFlags usageFlags, float cutOff)
     {
         m_pDevice = pDevice;
-        assert(m_pResource == NULL);
+        assert(m_pResource == nullptr);
 
         ImgLoader* img = CreateImageLoader(pFilename);
         bool result = img->Load(pFilename, cutOff, &m_header);
@@ -534,7 +536,7 @@ namespace CAULDRON_VK
             bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format);
         }
 
-         
+
         UINT8* pixels = NULL;
         UINT64 UplHeapSize = m_header.width * m_header.height * 4;
         pixels =  uploadHeap.Suballocate(UplHeapSize, 512);

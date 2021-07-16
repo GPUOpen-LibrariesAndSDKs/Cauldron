@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -103,7 +103,7 @@ namespace CAULDRON_VK
         bool m_vrs1Supported = false;
         bool m_vrs2Supported = false;
 #ifdef USE_VMA
-        VmaAllocator m_hAllocator = NULL;
+        VmaAllocator m_hAllocator = nullptr;
 #endif
     };
 

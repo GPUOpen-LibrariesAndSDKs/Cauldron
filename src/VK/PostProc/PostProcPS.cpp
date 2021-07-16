@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,13 +18,13 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ResourceViewHeaps.h"
-#include "Base/ShaderCompilerHelper.h"
-#include "Base/UploadHeap.h"
-#include "Base/Texture.h"
+#include "base/ExtDebugUtils.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
 #include "Misc/ThreadPool.h"
 
 #include "PostProcPS.h"
@@ -35,7 +35,7 @@ namespace CAULDRON_VK
     //
     // OnCreate
     //
-    //--------------------------------------------------------------------------------------    
+    //--------------------------------------------------------------------------------------
     void PostProcPS::OnCreate(
         Device* pDevice,
         VkRenderPass renderPass,
@@ -107,7 +107,7 @@ namespace CAULDRON_VK
 
         UpdatePipeline(renderPass, pBlendDesc, sampleDescCount);
     }
-        
+
     //--------------------------------------------------------------------------------------
     //
     // UpdatePipeline
@@ -244,7 +244,7 @@ namespace CAULDRON_VK
         ms.alphaToOneEnable = VK_FALSE;
         ms.minSampleShading = 0.0;
 
-        // create pipeline 
+        // create pipeline
 
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -276,15 +276,15 @@ namespace CAULDRON_VK
     //
     // OnDestroy
     //
-    //--------------------------------------------------------------------------------------    
+    //--------------------------------------------------------------------------------------
     void PostProcPS::OnDestroy()
     {
         if (m_pipeline != VK_NULL_HANDLE)
-        {        
+        {
             vkDestroyPipeline(m_pDevice->GetDevice(), m_pipeline, nullptr);
             m_pipeline = VK_NULL_HANDLE;
         }
-        
+
         if (m_pipelineLayout != VK_NULL_HANDLE)
         {
             vkDestroyPipelineLayout(m_pDevice->GetDevice(), m_pipelineLayout, nullptr);
@@ -296,14 +296,14 @@ namespace CAULDRON_VK
     //
     // OnDraw
     //
-    //--------------------------------------------------------------------------------------    
+    //--------------------------------------------------------------------------------------
     void PostProcPS::Draw(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo *pConstantBuffer, VkDescriptorSet descriptorSet)
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;
 
         // Bind Descriptor sets
-        //                
+        //
         int numUniformOffsets = 0;
         uint32_t uniformOffset = 0;
         if (pConstantBuffer != NULL && pConstantBuffer->buffer != NULL)

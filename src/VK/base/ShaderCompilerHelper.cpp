@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,9 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <algorithm>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+
 #include "ShaderCompilerHelper.h"
-#include "Base/ExtDebugUtils.h"
+#include "base/ExtDebugUtils.h"
 #include "Misc/Misc.h"
 #include "base/ShaderCompilerCache.h"
 #include "Misc/AsyncCache.h"
@@ -56,7 +60,7 @@ namespace CAULDRON_VK
 
         // compute command line to invoke the shader compiler
         //
-        char *stage = NULL;
+        char *stage = nullptr;
         switch (shader_type)
         {
         case VK_SHADER_STAGE_VERTEX_BIT:  stage = "vertex"; break;
@@ -148,7 +152,7 @@ namespace CAULDRON_VK
         moduleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         moduleCreateInfo.pCode = (uint32_t*)SpvData;
         moduleCreateInfo.codeSize = SpvSize;
-        return vkCreateShaderModule(device, &moduleCreateInfo, NULL, pShaderModule);
+        return vkCreateShaderModule(device, &moduleCreateInfo, nullptr, pShaderModule);
     }
 
     //
@@ -165,13 +169,13 @@ namespace CAULDRON_VK
         hash = Hash(pShaderEntryPoint, strlen(pShaderEntryPoint), hash);
         hash = Hash(shaderCompilerParams, strlen(shaderCompilerParams), hash);
         hash = Hash((char*)&shader_type, sizeof(shader_type), hash);
-        if (pDefines != NULL)
+        if (pDefines != nullptr)
         {
             hash = pDefines->Hash(hash);
         }
 
-#define USE_MULTITHREADED_CACHE 
-//#define USE_SPIRV_FROM_DISK   
+#define USE_MULTITHREADED_CACHE
+//#define USE_SPIRV_FROM_DISK
 
 #ifdef USE_MULTITHREADED_CACHE
         // Compile if not in cache
@@ -179,7 +183,7 @@ namespace CAULDRON_VK
         if (s_shaderCache.CacheMiss(hash, &pShader->module))
 #endif
         {
-            char *SpvData = NULL;
+            char *SpvData = nullptr;
             size_t SpvSize = 0;
 
 #ifdef USE_SPIRV_FROM_DISK
@@ -200,8 +204,8 @@ namespace CAULDRON_VK
         }
 
         pShader->sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        pShader->pNext = NULL;
-        pShader->pSpecializationInfo = NULL;
+        pShader->pNext = nullptr;
+        pShader->pSpecializationInfo = nullptr;
         pShader->flags = 0;
         pShader->stage = shader_type;
         pShader->pName = pShaderEntryPoint;

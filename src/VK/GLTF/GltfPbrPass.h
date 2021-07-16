@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -20,7 +20,7 @@
 
 #include "GLTFTexturesAndBuffers.h"
 #include "PostProc/SkyDome.h"
-#include "Base/GBuffer.h"
+#include "base/GBuffer.h"
 #include "../common/GLTF/GltfPbrMaterial.h"
 
 namespace CAULDRON_VK
@@ -40,7 +40,7 @@ namespace CAULDRON_VK
     {
         Geometry m_geometry;
 
-        PBRMaterial *m_pMaterial = NULL;
+        PBRMaterial *m_pMaterial = nullptr;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
         VkPipeline m_pipelineWireframe = VK_NULL_HANDLE;
@@ -106,7 +106,7 @@ namespace CAULDRON_VK
         std::vector<PBRMesh> m_meshes;
         std::vector<PBRMaterial> m_materialsData;
 
-        GltfPbrPass::per_frame m_cbPerFrame;
+        per_frame m_cbPerFrame;
 
         PBRMaterial m_defaultMaterial;
 
@@ -124,5 +124,3 @@ namespace CAULDRON_VK
         void CreatePipeline(std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };
 }
-
-

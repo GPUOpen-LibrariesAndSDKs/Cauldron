@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,15 +19,15 @@
 #pragma once
 
 #include "Device.h"
-#include "Base/ResourceViewHeaps.h"
+#include "base/ResourceViewHeaps.h"
 #include "../VulkanMemoryAllocator/vk_mem_alloc.h"
 
 namespace CAULDRON_VK
 {
     // Simulates DX11 style static buffers. For dynamic buffers please see 'DynamicBufferRingDX12.h'
     //
-    // This class allows suballocating small chuncks of memory from a huge buffer that is allocated on creation 
-    // This class is specialized in vertex and index buffers. 
+    // This class allows suballocating small chuncks of memory from a huge buffer that is allocated on creation
+    // This class is specialized in vertex and index buffers.
     //
     class StaticBufferPool
     {
@@ -72,4 +72,3 @@ namespace CAULDRON_VK
 #endif
     };
 }
-

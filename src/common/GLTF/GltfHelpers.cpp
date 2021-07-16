@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -121,22 +121,22 @@ std::string GetElementString(const json::object_t &root, const char *path, std::
 
 bool GetElementBoolean(const json::object_t &root, const char *path, bool default)
 {
-    return GetElement<bool>(&root, path, default);
+    return GetElement<bool>(&root, path, default_value);
 }
 
 float GetElementFloat(const json::object_t &root, const char *path, float default)
 {
-    return GetElement<float>(&root, path, default);
+    return GetElement<float>(&root, path, default_value);
 }
 
 int GetElementInt(const json::object_t &root, const char *path, int default)
 {
-    return GetElement<int>(&root, path, default);
+    return GetElement<int>(&root, path, default_value);
 }
 
 json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t default)
 {
-    return GetElement<json::array_t>(&root, path, default);
+    return GetElement<json::array_t>(&root, path, default_value);
 }
 
 math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 default)
@@ -146,6 +146,5 @@ math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vec
         return GetVector(root[path].get<json::array_t>());
     }
     else
-        return default;
+        return default_value;
 }
-

@@ -24,12 +24,12 @@ Cauldron is compiled as a static library. To see it in action check projects bel
   - Animation for cameras, objects, skeletons and lights
   - Skinning
     - Baking skinning into buffers (DX12 only)
-  - PBR Materials 
-    - Metallic-Roughness 
+  - PBR Materials
+    - Metallic-Roughness
     - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
-  - Lighting 
+  - Lighting
       - KHR_lights_punctual extension
-        - Point 
+        - Point
         - Directional
         - Spot Lights w/ Shadows (up to 4)
       - Image-based Lighting (IBL) CubeMaps
@@ -61,7 +61,7 @@ Cauldron is compiled as a static library. To see it in action check projects bel
   - Light Frustums
 - Window management & swapchain creation
   - Fullscreen/Windowed Modes
-- Support for DXC/SM6.x 
+- Support for DXC/SM6.x
 - Shader Binary & PSO caching
 - FreeSync :tm: 2 HDR support
 - Multithreading loading & creation of resources
@@ -69,7 +69,7 @@ Cauldron is compiled as a static library. To see it in action check projects bel
   - Shader compilation
   - Pipeline creation
 - VK extensions can be enabled from the app side
-- Benchmarking 
+- Benchmarking
 
 # Directory Structure
 
@@ -78,7 +78,7 @@ Cauldron is compiled as a static library. To see it in action check projects bel
   - `AGS` : AMD helper library for querying GPU info
   - `VulkanMemoryAllocator` : Helper library for memory management with Vulkan applications
   - `d3d12x` : The D3D12 helper library
-  - `dxc` : DirectX Shader Compiler 
+  - `dxc` : DirectX Shader Compiler
   - `imgui` : Graphical User Interface library
   - `json` : Library for adding JSON support w/ C++ syntax
 - `media` : Builtin textures and other data
@@ -91,19 +91,29 @@ Note: more info on the rendering backends can be found in the Readme of their re
 
 # Build
 
-## Prerequisites
+## Windows Prerequisites
 
 - [CMake 3.16](https://cmake.org/download/)
 - [Visual Studio 2017](https://visualstudio.microsoft.com/downloads/)
 - [Windows 10 SDK 10.0.18362.0](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)
 - [Vulkan SDK 1.2.131.2](https://www.lunarg.com/vulkan-sdk/)
 
+## Linux Prerequisites
+
+- [CMake 3.4](https://cmake.org/download/)
+- [GLM](https://glm.g-truc.net/0.9.9/index.html)
+- [GCC 8.0 or higher](https://gcc.gnu.org/)
+- [Vulkan SDK 1.1.106](https://www.lunarg.com/vulkan-sdk/)
+
+
 ## How-to-Build
 
+- Linux (Vulkan Only) run `cmake .. -DGFX_API=VK ` in the `build` directory
 - Run the `GenerateSolutions.bat` file in the `build` directory.
 - `build/VK` and `build/DX12` folders will contain the `Framework_*.sln` files
 - Simply build the solution file for the desired API
 - `build/DX12/src/DX12/` directory will contain the compiled static library `Framework_DX12.lib` for DX12 (similar for VK) under the selected configuration (Debug/Release) folder.
+
 
 # Framework Architecture
 
@@ -128,7 +138,7 @@ The main features could be grouped in 4 categories:
     - Axis - *draws the coordinate axis of a matrix*
 - **Vulkan specific helpers & setup code**
   - InstanceVK - *creates an instance and enables the validation layer*
-  - Extension helpers 
+  - Extension helpers
     - ExtDebugMarkers - *sets up the debug markers*
     - ExtFp16 - *enables FP16 extension*
     - ExtFreeSync2 - *enables FreeSync extension*
@@ -141,7 +151,7 @@ Cauldron was originally written using DX12 and later on ported to Vulkan using t
 
 # Known Issues
 
-Please bear in mind that in order to keep Cauldron simple we are only covering the most frequently used features (for now). 
+Please bear in mind that in order to keep Cauldron simple we are only covering the most frequently used features (for now).
 
 Please feel free to [open an issue](TODO:LinkToGitHubRepoIssuesPage) for bug reports.
 

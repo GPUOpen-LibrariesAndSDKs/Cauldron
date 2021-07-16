@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,8 +17,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <algorithm>
+
 #include "Camera.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 Camera::Camera()
 {
@@ -29,7 +34,7 @@ Camera::Camera()
 
 //--------------------------------------------------------------------------------------
 //
-// OnCreate 
+// OnCreate
 //
 //--------------------------------------------------------------------------------------
 void Camera::SetFov(float fovV, uint32_t width, uint32_t height, float nearPlane, float farPlane)
@@ -77,7 +82,7 @@ void Camera::LookAt(const math::Vector4& eyePos, const math::Vector4& lookAt)
 }
 
 void Camera::LookAt(float yaw, float pitch, float distance, const math::Vector4& at )
-{   
+{
     LookAt(at + PolarToVector(yaw, pitch)*distance, at);
 }
 
@@ -87,7 +92,7 @@ void Camera::LookAt(float yaw, float pitch, float distance, const math::Vector4&
 //
 //--------------------------------------------------------------------------------------
 void Camera::UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], double deltaTime)
-{   
+{
     m_eyePos += math::transpose(m_View) * (MoveWASD(keyDown) * m_speed * (float)deltaTime);
     math::Vector4 dir = PolarToVector(yaw, pitch) * m_distance;
     LookAt(GetPosition(), GetPosition() - dir);
@@ -166,11 +171,13 @@ math::Matrix4 LookAtRH(const math::Vector4& eyePos, const math::Vector4& lookAt)
 }
 
 math::Vector4 MoveWASD(const bool keyDown[256])
-{ 
+{
     float scale = keyDown[VK_SHIFT] ? 5.0f : 1.0f;
     float x = 0, y = 0, z = 0;
+	float scale = 1.0f;
 
-    if (keyDown['W'])
+#ifdef _WIN32
+	if (keyDown['W'])
     {
         z = -scale;
     }
@@ -194,6 +201,7 @@ math::Vector4 MoveWASD(const bool keyDown[256])
     {
         y = -scale;
     }
+#endif
 
     return math::Vector4(x, y, z, 0.0f);
 }

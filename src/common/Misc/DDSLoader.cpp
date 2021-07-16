@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,39 +17,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <cassert>
+
 #include "DDSLoader.h"
 #include "DxgiFormatHelper.h"
-
+#ifdef _WIN32
 struct DDS_PIXELFORMAT
 {
-    UINT32 size;
-    UINT32 flags;
-    UINT32 fourCC;
-    UINT32 bitCount;
-    UINT32 bitMaskR;
-    UINT32 bitMaskG;
-    UINT32 bitMaskB;
-    UINT32 bitMaskA;
+    uint32_t size;
+    uint32_t flags;
+    uint32_t fourCC;
+    uint32_t bitCount;
+    uint32_t bitMaskR;
+    uint32_t bitMaskG;
+    uint32_t bitMaskB;
+    uint32_t bitMaskA;
 };
 
 struct DDS_HEADER
 {
 
-    UINT32       dwSize;
-    UINT32       dwHeaderFlags;
-    UINT32       dwHeight;
-    UINT32       dwWidth;
-    UINT32       dwPitchOrLinearSize;
-    UINT32       dwDepth;
-    UINT32       dwMipMapCount;
-    UINT32       dwReserved1[11];
+    uint32_t       dwSize;
+    uint32_t       dwHeaderFlags;
+    uint32_t       dwHeight;
+    uint32_t       dwWidth;
+    uint32_t       dwPitchOrLinearSize;
+    uint32_t       dwDepth;
+    uint32_t       dwMipMapCount;
+    uint32_t       dwReserved1[11];
     DDS_PIXELFORMAT ddspf;
-    UINT32       dwSurfaceFlags;
-    UINT32       dwCubemapFlags;
-    UINT32       dwCaps3;
-    UINT32       dwCaps4;
-    UINT32       dwReserved2;
+    uint32_t       dwSurfaceFlags;
+    uint32_t       dwCubemapFlags;
+    uint32_t       dwCaps3;
+    uint32_t       dwCaps4;
+    uint32_t       dwReserved2;
 };
 
 //--------------------------------------------------------------------------------------
@@ -121,9 +122,9 @@ bool DDSLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
     {
         DXGI_FORMAT      dxgiFormat;
         RESOURCE_DIMENSION  resourceDimension;
-        UINT32           miscFlag;
-        UINT32           arraySize;
-        UINT32           reserved;
+        uint32_t           miscFlag;
+        uint32_t           arraySize;
+        uint32_t           reserved;
     } DDS_HEADER_DXT10;
 
     if (GetFileAttributesA(pFilename) == 0xFFFFFFFF)
@@ -138,8 +139,8 @@ bool DDSLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
     LARGE_INTEGER largeFileSize;
     GetFileSizeEx(m_handle, &largeFileSize);
     assert(0 == largeFileSize.HighPart);
-    UINT32 fileSize = largeFileSize.LowPart;
-    UINT32 rawTextureSize = fileSize;
+    uint32_t fileSize = largeFileSize.LowPart;
+    uint32_t rawTextureSize = fileSize;
 
     // read the header
     char headerData[4 + sizeof(DDS_HEADER) + sizeof(DDS_HEADER_DXT10)];
@@ -191,6 +192,10 @@ void DDSLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, ui
     assert(m_handle != INVALID_HANDLE_VALUE);
     for (uint32_t y = 0; y < height; y++)
     {
-        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, NULL, NULL);
+        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, nullptr, nullptr);
     }
 }
+
+#else
+#warning "TODO: implement crossplatform DDS loading"
+#endif

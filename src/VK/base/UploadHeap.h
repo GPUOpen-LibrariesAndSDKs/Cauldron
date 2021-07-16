@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,13 +18,15 @@
 // THE SOFTWARE.
 #pragma once
 
+#include <cstdint>
+
 #include "Device.h"
 #include "Misc/Async.h"
 
 namespace CAULDRON_VK
 {
     //
-    // This class shows the most efficient way to upload resources to the GPU memory. 
+    // This class shows the most efficient way to upload resources to the GPU memory.
     // The idea is to create just one upload heap and suballocate memory from it.
     // For convenience this class comes with it's own command list & submit (FlushAndFinish)
     //
@@ -42,7 +44,7 @@ namespace CAULDRON_VK
 
         std::mutex m_mutex;
     public:
-        void OnCreate(Device *pDevice, SIZE_T uSize);
+        void OnCreate(Device *pDevice, size_t uSize);
         void OnDestroy();
 
         UINT8* Suballocate(SIZE_T uSize, UINT64 uAlign);
@@ -73,6 +75,6 @@ namespace CAULDRON_VK
 
         UINT8* m_pDataBegin = nullptr;    // starting position of upload heap
         UINT8* m_pDataCur   = nullptr;      // current position of upload heap
-        UINT8* m_pDataEnd   = nullptr;      // ending position of upload heap 
+        UINT8* m_pDataEnd   = nullptr;      // ending position of upload heap
     };
 }

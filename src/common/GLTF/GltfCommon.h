@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -21,6 +21,8 @@
 #include "../json/json.h"
 #include "../Misc/Camera.h"
 #include "GltfStructures.h"
+
+#include "../DirextXMath/Inc/DirectXMath.h"
 
 // The GlTF file is loaded in 2 steps
 //
@@ -52,7 +54,7 @@ public:
 };
 
 //
-// Structures holding the per frame constant buffer data. 
+// Structures holding the per frame constant buffer data.
 //
 struct Light
 {

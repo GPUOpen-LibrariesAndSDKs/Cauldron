@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,11 +18,11 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/UploadHeap.h"
-#include "Base/Texture.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ExtDebugUtils.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
 #include "SkyDomeProc.h"
 
 namespace CAULDRON_VK
@@ -40,7 +40,7 @@ namespace CAULDRON_VK
         layoutBindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layoutBindings[0].descriptorCount = 1;
         layoutBindings[0].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layoutBindings[0].pImmutableSamplers = NULL;
+        layoutBindings[0].pImmutableSamplers = nullptr;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, &m_descriptorLayout, &m_descriptorSet);
         pDynamicBufferRing->SetDescriptorSet(0, sizeof(SkyDomeProc::Constants), m_descriptorSet);
@@ -54,7 +54,7 @@ namespace CAULDRON_VK
 
         m_pResourceViewHeaps->FreeDescriptor(m_descriptorSet);
 
-        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, NULL);
+        vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorLayout, nullptr);
     }
 
     void SkyDomeProc::Draw(VkCommandBuffer cmd_buf, SkyDomeProc::Constants constants)

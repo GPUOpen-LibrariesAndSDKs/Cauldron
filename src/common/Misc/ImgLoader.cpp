@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <cstring>
+#include <cctype>
+
 #include "ImgLoader.h"
 #include "DDSLoader.h"
 #include "WICLoader.h"
@@ -37,5 +39,3 @@ ImgLoader *CreateImageLoader(const char *pFilename)
         return new WICLoader();
     }
 }
-
-

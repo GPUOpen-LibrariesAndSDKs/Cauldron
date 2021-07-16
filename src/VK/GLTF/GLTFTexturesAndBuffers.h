@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,10 +18,10 @@
 // THE SOFTWARE.
 #pragma once
 #include "GLTF/GltfCommon.h"
-#include "Base/Texture.h"
-#include "Base/ShaderCompiler.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/DynamicBufferRing.h"
+#include "base/Texture.h"
+#include "base/ShaderCompiler.h"
+#include "base/StaticBufferPool.h"
+#include "base/DynamicBufferRing.h"
 
 namespace CAULDRON_VK
 {

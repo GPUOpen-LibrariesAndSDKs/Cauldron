@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,13 +18,13 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/UploadHeap.h"
-#include "Base/Texture.h"
-#include "Base/Helper.h"
-#include "Base/ExtDebugUtils.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ExtDebugUtils.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
+#include "base/Helper.h"
+#include "base/ExtDebugUtils.h"
 #include "PostProcPS.h"
 #include "BlurPS.h"
 
@@ -92,7 +92,7 @@ namespace CAULDRON_VK
             assert(res == VK_SUCCESS);
         }
 
-        // Use helper class to create the fullscreen pass 
+        // Use helper class to create the fullscreen pass
         //
         m_directionalBlur.OnCreate(pDevice, m_in, "blur.glsl", "main", "", pStaticBufferPool, pConstantBufferRing, m_descriptorSetLayout);
 
@@ -136,7 +136,7 @@ namespace CAULDRON_VK
         image_info.queueFamilyIndexCount = 0;
         image_info.pQueueFamilyIndices = NULL;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT); //TODO    
+        image_info.usage = (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT); //TODO
         image_info.flags = 0;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;   // VK_IMAGE_TILING_LINEAR should never be used and will never be faster
         m_tempBlur.Init(m_pDevice, &image_info, "BlurHorizontal");
@@ -171,7 +171,7 @@ namespace CAULDRON_VK
                     SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_horizontalMip[i].m_frameBuffer, "BlurPSHorizontal");
                 }
 
-                // Create Descriptor sets (all of them use the same Descriptor Layout)            
+                // Create Descriptor sets (all of them use the same Descriptor Layout)
                 m_pConstantBufferRing->SetDescriptorSet(0, sizeof(BlurPS::cbBlur), m_horizontalMip[i].m_descriptorSet);
                 SetDescriptorSet(m_pDevice->GetDevice(), 1, m_horizontalMip[i].m_SRV, &m_sampler, m_horizontalMip[i].m_descriptorSet);
             }
@@ -326,7 +326,7 @@ namespace CAULDRON_VK
 
             vkCmdEndRenderPass(cmd_buf);
         }
-        
+
         SetPerfMarkerEnd(cmd_buf);
     }
 

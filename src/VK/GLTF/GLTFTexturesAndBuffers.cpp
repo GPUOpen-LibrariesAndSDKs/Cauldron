@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Misc/Misc.h"
 #include "GltfHelpers.h"
-#include "Base/UploadHeap.h"
+#include "base/UploadHeap.h"
 #include "Misc/ThreadPool.h"
 #include "GLTFTexturesAndBuffers.h"
 #include "../common/GLTF/GltfPbrMaterial.h"
@@ -77,7 +77,7 @@ namespace CAULDRON_VK
 
             // copy textures and apply barriers, then flush the GPU
             m_pUploadHeap->FlushAndFinish();
-        }        
+        }
     }
 
     void GLTFTexturesAndBuffers::LoadGeometry()
@@ -138,7 +138,7 @@ namespace CAULDRON_VK
     {
         for (int i = 0; i < m_textures.size(); i++)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_textureViews[i], NULL);
+            vkDestroyImageView(m_pDevice->GetDevice(), m_textureViews[i], nullptr);
             m_textures[i].OnDestroy();
         }
     }
@@ -197,7 +197,7 @@ namespace CAULDRON_VK
         for (auto attrName : requiredAttributes)
         {
             // get vertex buffer view
-            // 
+            //
             const int attr = attributes.find(attrName).value();
             pGeometry->m_VBV[cnt] = m_vertexBufferMap[attr];
 
@@ -246,7 +246,7 @@ namespace CAULDRON_VK
         auto it = m_skeletonMatricesBuffer.find(skinIndex);
 
         if (it == m_skeletonMatricesBuffer.end())
-            return NULL;
+            return nullptr;
 
         return &it->second;
     }

@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -73,8 +73,8 @@ void ThreadPool::JobStealerLoop()
             t = Queue.front();
             Queue.pop_front();
         }
-        
-        t.m_job(); 
+
+        t.m_job();
 
         {
             std::unique_lock<std::mutex> lock(Queue_Mutex);
@@ -103,5 +103,3 @@ void ThreadPool::AddJob(std::function<void()> job)
     job();
 #endif
 }
-
-

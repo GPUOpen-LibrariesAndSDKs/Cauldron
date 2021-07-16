@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2017 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "Benchmark.h"
 #include "Sequence.h"
-#include "..\Misc\Misc.h"
+#include "../Misc/Misc.h"
 
 struct Benchmark
 {
@@ -45,7 +45,7 @@ struct Benchmark
 static Benchmark bm;
 
 static void SaveTimestamps(float time, const std::vector<TimeStamp> &timeStamps)
-{    
+{
     if (bm.m_saveHeaders)
     {
         //save headers
@@ -79,9 +79,9 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
     bm.f = NULL;
     bm.frame = 0;
     // the number of frames to run before the benchmark starts
-    bm.warmUpFrames = benchmark.value("warmUpFrames", 200);    
+    bm.warmUpFrames = benchmark.value("warmUpFrames", 200);
     bm.exitWhenTimeEnds = benchmark.value("exitWhenTimeEnds", true);
-    
+
     //get filename and open it
     std::string resultsFilename = benchmark.value("resultsFilename", "res.csv");
     bm.m_saveHeaders = true;
@@ -145,7 +145,7 @@ void BenchmarkConfig(const json& benchmark, int cameraId, GLTFCommon *pGltfLoade
     }
 
     bm.m_nextTime = 0;
-    bm.m_pGltfLoader = pGltfLoader;    
+    bm.m_pGltfLoader = pGltfLoader;
 }
 
 float BenchmarkLoop(const std::vector<TimeStamp> &timeStamps, Camera *pCam, std::string& outScreenShotName)
@@ -163,18 +163,18 @@ float BenchmarkLoop(const std::vector<TimeStamp> &timeStamps, Camera *pCam, std:
         if (bm.exitWhenTimeEnds)
         {
             PostQuitMessage(0);
-            return bm.time; 
+            return bm.time;
         }
     }
 
     SaveTimestamps(bm.time, timeStamps);
-        
+
     // animate camera
     if (bm.m_animationFound && (pCam != NULL))
     {
         // if GLTF has camera with cameraID then use that camera and its animation
         if (bm.cameraId >= 0)
-        {                
+        {
             bm.m_pGltfLoader->GetCamera(bm.cameraId, pCam);
         }
         else
@@ -185,7 +185,7 @@ float BenchmarkLoop(const std::vector<TimeStamp> &timeStamps, Camera *pCam, std:
                 bm.m_nextTime = bm.m_sequence.GetNextKeyTime(bm.time);
 
                 const BenchmarkSequence::KeyFrame keyFrame = bm.m_sequence.GetNextKeyFrame(bm.time);
-                
+
                 const bool bValidKeyframe = keyFrame.m_time >= 0;
                 if (bValidKeyframe)
                 {
@@ -212,5 +212,3 @@ float BenchmarkLoop(const std::vector<TimeStamp> &timeStamps, Camera *pCam, std:
     bm.time += bm.timeStep;
     return time;
 }
-
-

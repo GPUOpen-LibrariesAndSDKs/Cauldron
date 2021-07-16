@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,8 +17,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include <algorithm>
+#include <cassert>
+
 #include "Instance.h"
 #include "InstanceProperties.h"
 #include <vulkan/vulkan_win32.h>
@@ -124,7 +126,7 @@ namespace CAULDRON_VK
         inst_info.enabledLayerCount = (uint32_t)instance_layer_names.size();
         inst_info.ppEnabledLayerNames = (uint32_t)instance_layer_names.size() ? instance_layer_names.data() : NULL;
         inst_info.enabledExtensionCount = (uint32_t)instance_extension_names.size();
-        inst_info.ppEnabledExtensionNames = instance_extension_names.data();           
+        inst_info.ppEnabledExtensionNames = instance_extension_names.data();
         VkResult res = vkCreateInstance(&inst_info, NULL, &instance);
         assert(res == VK_SUCCESS);
 
@@ -142,6 +144,3 @@ namespace CAULDRON_VK
         vkDestroyInstance(instance, nullptr);
     }
 }
-
-
-

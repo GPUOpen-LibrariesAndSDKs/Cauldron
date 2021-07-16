@@ -19,8 +19,8 @@
 #pragma once
 
 #include "PostProcCS.h"
-#include "Base/ResourceViewHeaps.h"
-#include "Base/GBuffer.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/GBuffer.h"
 
 namespace CAULDRON_VK
 {

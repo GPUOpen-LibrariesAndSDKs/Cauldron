@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 
 #pragma once
+
+#include <cstdint>
 
 #include "Device.h"
 #include "UploadHeap.h"
@@ -73,7 +75,7 @@ namespace CAULDRON_VK
 
         struct FootPrint
         {
-            UINT8* pixels;
+            uint8_t* pixels;
             uint32_t width, height, offset;
         } footprints[6][12];
 

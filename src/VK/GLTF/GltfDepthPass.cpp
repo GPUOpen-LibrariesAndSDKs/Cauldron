@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,14 +19,22 @@
 
 #include "stdafx.h"
 #include "GltfHelpers.h"
-#include "Base/ShaderCompilerHelper.h"
-#include "Base/ResourceViewHeaps.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/Helper.h"
+#include "base/ShaderCompilerHelper.h"
+#include "base/ResourceViewHeaps.h"
+#include "base/ExtDebugUtils.h"
+#include "base/Helper.h"
 #include "Misc/Async.h"
 
 #include "GLTF/GltfPbrMaterial.h"
 #include "GltfDepthPass.h"
+
+
+#include "base/ShaderCompilerHelper.h"
+#include "base/ResourceViewHeaps.h"
+// #include "base/DebugMarkersExt.h"
+#include "base/Helper.h"
+
+
 
 namespace CAULDRON_VK
 {
@@ -77,12 +85,12 @@ namespace CAULDRON_VK
             info.minLod = -1000;
             info.maxLod = 1000;
             info.maxAnisotropy = 1.0f;
-            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_sampler);
+            VkResult res = vkCreateSampler(pDevice->GetDevice(), &info, nullptr, &m_sampler);
             assert(res == VK_SUCCESS);
         }
 
         // Create materials (in a depth pass materials are still needed to handle non opaque textures
-        //    
+        //
         if (j3.find("materials") != j3.end())
         {
             const json &materials = j3["materials"];
@@ -95,7 +103,7 @@ namespace CAULDRON_VK
                 DepthMaterial *tfmat = &m_materialsData[i];
 
                 // Load material constants. This is a depth pass and we are only interested in the mask texture
-                //               
+                //
                 tfmat->m_doubleSided = GetElementBoolean(material, "doubleSided", false);
                 std::string alphaMode = GetElementString(material, "alphaMode", "OPAQUE");
                 tfmat->m_defines["DEF_alphaMode_" + alphaMode] = std::to_string(1);
@@ -157,7 +165,7 @@ namespace CAULDRON_VK
                         else
                             pPrimitive->m_pMaterial = &m_defaultMaterial;
 
-                        // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things. 
+                        // make a list of all the attribute names our pass requires, in the case of a depth pass we only need the position and a few other things.
                         //
                         std::vector<std::string > requiredAttributes;
                         for (auto const & it : primitive["attributes"].items())
@@ -214,14 +222,14 @@ namespace CAULDRON_VK
                 vkDestroyPipeline(m_pDevice->GetDevice(), pPrimitive->m_pipeline, nullptr);
                 pPrimitive->m_pipeline = VK_NULL_HANDLE;
                 vkDestroyPipelineLayout(m_pDevice->GetDevice(), pPrimitive->m_pipelineLayout, nullptr);
-                vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), pPrimitive->m_descriptorSetLayout, NULL);
+                vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), pPrimitive->m_descriptorSetLayout, nullptr);
                 m_pResourceViewHeaps->FreeDescriptor(pPrimitive->m_descriptorSet);
             }
         }
 
         for (int i = 0; i < m_materialsData.size(); i++)
         {
-            vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_materialsData[i].m_descriptorSetLayout, NULL);
+            vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_materialsData[i].m_descriptorSetLayout, nullptr);
             m_pResourceViewHeaps->FreeDescriptor(m_materialsData[i].m_descriptorSet);
         }
 
@@ -240,14 +248,14 @@ namespace CAULDRON_VK
         layout_bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layout_bindings[0].descriptorCount = 1;
         layout_bindings[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        layout_bindings[0].pImmutableSamplers = NULL;
+        layout_bindings[0].pImmutableSamplers = nullptr;
         (*pAttributeDefines)["ID_PER_FRAME"] = std::to_string(layout_bindings[0].binding);
 
         layout_bindings[1].binding = 1;
         layout_bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
         layout_bindings[1].descriptorCount = 1;
         layout_bindings[1].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-        layout_bindings[1].pImmutableSamplers = NULL;
+        layout_bindings[1].pImmutableSamplers = nullptr;
         (*pAttributeDefines)["ID_PER_OBJECT"] = std::to_string(layout_bindings[1].binding);
 
         if (inverseMatrixBufferSize > 0)
@@ -259,7 +267,7 @@ namespace CAULDRON_VK
             b.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
             b.descriptorCount = 1;
             b.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-            b.pImmutableSamplers = NULL;
+            b.pImmutableSamplers = nullptr;
             (*pAttributeDefines)["ID_SKINNING_MATRICES"] = std::to_string(b.binding);
 
             layout_bindings.push_back(b);
@@ -286,13 +294,13 @@ namespace CAULDRON_VK
 
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
         pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pPipelineLayoutCreateInfo.pNext = NULL;
+        pPipelineLayoutCreateInfo.pNext = nullptr;
         pPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-        pPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+        pPipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
         pPipelineLayoutCreateInfo.setLayoutCount = (uint32_t)descriptorSetLayout.size();
         pPipelineLayoutCreateInfo.pSetLayouts = descriptorSetLayout.data();
 
-        VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &pPrimitive->m_pipelineLayout);
+        VkResult res = vkCreatePipelineLayout(m_pDevice->GetDevice(), &pPipelineLayoutCreateInfo, nullptr, &pPrimitive->m_pipelineLayout);
         assert(res == VK_SUCCESS);
         SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE_LAYOUT, (uint64_t)pPrimitive->m_pipelineLayout, "GltfDepthPass PL");
     }
@@ -315,7 +323,7 @@ namespace CAULDRON_VK
         std::vector<VkPipelineShaderStageCreateInfo> shaderStages = { vertexShader, fragmentShader };
 
         /////////////////////////////////////////////
-        // Create a Pipeline 
+        // Create a Pipeline
 
         // vertex input state
 
@@ -329,7 +337,7 @@ namespace CAULDRON_VK
 
         VkPipelineVertexInputStateCreateInfo vi = {};
         vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-        vi.pNext = NULL;
+        vi.pNext = nullptr;
         vi.flags = 0;
         vi.vertexBindingDescriptionCount = (uint32_t)vi_binding.size();
         vi.pVertexBindingDescriptions = vi_binding.data();
@@ -340,7 +348,7 @@ namespace CAULDRON_VK
 
         VkPipelineInputAssemblyStateCreateInfo ia;
         ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-        ia.pNext = NULL;
+        ia.pNext = nullptr;
         ia.flags = 0;
         ia.primitiveRestartEnable = VK_FALSE;
         ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -349,7 +357,7 @@ namespace CAULDRON_VK
 
         VkPipelineRasterizationStateCreateInfo rs;
         rs.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-        rs.pNext = NULL;
+        rs.pNext = nullptr;
         rs.flags = 0;
         rs.polygonMode = VK_POLYGON_MODE_FILL;
         rs.cullMode = pPrimitive->m_pMaterial->m_doubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;;
@@ -377,7 +385,7 @@ namespace CAULDRON_VK
         VkPipelineColorBlendStateCreateInfo cb;
         cb.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         cb.flags = 0;
-        cb.pNext = NULL;
+        cb.pNext = nullptr;
         cb.attachmentCount = 0; //set to 1 when transparency
         cb.pAttachments = att_state;
         cb.logicOpEnable = VK_FALSE;
@@ -393,7 +401,7 @@ namespace CAULDRON_VK
         };
         VkPipelineDynamicStateCreateInfo dynamicState = {};
         dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.pNext = NULL;
+        dynamicState.pNext = nullptr;
         dynamicState.pDynamicStates = dynamicStateEnables.data();
         dynamicState.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
@@ -401,18 +409,18 @@ namespace CAULDRON_VK
 
         VkPipelineViewportStateCreateInfo vp = {};
         vp.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        vp.pNext = NULL;
+        vp.pNext = nullptr;
         vp.flags = 0;
         vp.viewportCount = 1;
         vp.scissorCount = 1;
-        vp.pScissors = NULL;
-        vp.pViewports = NULL;
+        vp.pScissors = nullptr;
+        vp.pViewports = nullptr;
 
         // depth stencil state
 
         VkPipelineDepthStencilStateCreateInfo ds;
         ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        ds.pNext = NULL;
+        ds.pNext = nullptr;
         ds.flags = 0;
         ds.depthTestEnable = true;
         ds.depthWriteEnable = true;
@@ -434,20 +442,20 @@ namespace CAULDRON_VK
 
         VkPipelineMultisampleStateCreateInfo ms;
         ms.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-        ms.pNext = NULL;
+        ms.pNext = nullptr;
         ms.flags = 0;
-        ms.pSampleMask = NULL;
+        ms.pSampleMask = nullptr;
         ms.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
         ms.sampleShadingEnable = VK_FALSE;
         ms.alphaToCoverageEnable = VK_FALSE;
         ms.alphaToOneEnable = VK_FALSE;
         ms.minSampleShading = 0.0;
 
-        // create pipeline 
+        // create pipeline
 
         VkGraphicsPipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-        pipeline.pNext = NULL;
+        pipeline.pNext = nullptr;
         pipeline.layout = pPrimitive->m_pipelineLayout;
         pipeline.basePipelineHandle = VK_NULL_HANDLE;
         pipeline.basePipelineIndex = 0;
@@ -456,7 +464,7 @@ namespace CAULDRON_VK
         pipeline.pInputAssemblyState = &ia;
         pipeline.pRasterizationState = &rs;
         pipeline.pColorBlendState = &cb;
-        pipeline.pTessellationState = NULL;
+        pipeline.pTessellationState = nullptr;
         pipeline.pMultisampleState = &ms;
         pipeline.pDynamicState = &dynamicState;
         pipeline.pViewportState = &vp;
@@ -466,7 +474,7 @@ namespace CAULDRON_VK
         pipeline.renderPass = m_renderPass;
         pipeline.subpass = 0;
 
-        VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, NULL, &pPrimitive->m_pipeline);
+        VkResult res = vkCreateGraphicsPipelines(m_pDevice->GetDevice(), m_pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &pPrimitive->m_pipeline);
         assert(res == VK_SUCCESS);
         SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_PIPELINE, (uint64_t)pPrimitive->m_pipeline, "GltfDepthPass P");
     }
@@ -501,7 +509,7 @@ namespace CAULDRON_VK
         for (uint32_t i = 0; i < pNodes->size(); i++)
         {
             tfNode *pNode = &pNodes->at(i);
-            if ((pNode == NULL) || (pNode->meshIndex < 0))
+            if ((pNode == nullptr) || (pNode->meshIndex < 0))
                 continue;
 
             // skinning matrices constant buffer

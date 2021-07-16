@@ -4,10 +4,31 @@
 //
 
 #pragma once
+#ifdef __GNUC__
+// do my gcc specific stuff
+// C RunTime Header Files
+#include <malloc.h>
+#include <cassert>
+#include <cstdlib>
 
+// math API
+#include "../../libs/DirextXMath/Inc/DirectXMath.h"
+using namespace DirectX;
+
+#include <string>
+#include <map>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <mutex>
+#include <limits>
+#include <algorithm>
+#include <mutex>
+#else
+// ... handle this for other compilers
 #include <SDKDDKVer.h>
 
-#define NOMINMAX    
+#define NOMINMAX
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 
 // Windows Header Files:
@@ -40,3 +61,5 @@ using namespace DirectX;
 
 
 // TODO: reference additional headers your program requires here
+
+#endif

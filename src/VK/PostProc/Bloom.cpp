@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,13 +18,13 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/UploadHeap.h"
-#include "Base/Imgui.h"
-#include "Base/Helper.h"
-#include "Base/Texture.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ExtDebugUtils.h"
+#include "base/UploadHeap.h"
+#include "base/Imgui.h"
+#include "base/Helper.h"
+#include "base/Texture.h"
 
 #include "PostProcPS.h"
 
@@ -169,7 +169,7 @@ namespace CAULDRON_VK
                 SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_mip[i].m_frameBuffer, "BloomBlended");
             }
 
-            // Set descriptors        
+            // Set descriptors
             m_pConstantBufferRing->SetDescriptorSet(0, sizeof(Bloom::cbBlend), m_mip[i].m_descriptorSet);
             SetDescriptorSet(m_pDevice->GetDevice(), 1, m_mip[i].m_SRV, &m_sampler, m_mip[i].m_descriptorSet);
         }
@@ -198,7 +198,7 @@ namespace CAULDRON_VK
                 SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_output.m_frameBuffer, "BloomOutput");
             }
 
-            // Set descriptors        
+            // Set descriptors
             m_pConstantBufferRing->SetDescriptorSet(0, sizeof(Bloom::cbBlend), m_output.m_descriptorSet);
             SetDescriptorSet(m_pDevice->GetDevice(), 1, m_mip[1].m_SRV, &m_sampler, m_output.m_descriptorSet);
         }
@@ -215,7 +215,7 @@ namespace CAULDRON_VK
         float n = 0;
         for (uint32_t i = 1; i < 6; i++)
             n += m_mip[i].m_weight;
-        
+
         for (uint32_t i = 1; i < 6; i++)
             m_mip[i].m_weight /= n;
     }
@@ -260,8 +260,8 @@ namespace CAULDRON_VK
 
         //float weights[6] = { 0.25, 0.75, 1.5, 2, 2.5, 3.0 };
 
-        // given a RT, and its mip chain m0, m1, m2, m3, m4 
-        // 
+        // given a RT, and its mip chain m0, m1, m2, m3, m4
+        //
         // m4 = blur(m5)
         // m4 = blur(m4) + w5 *m5
         // m3 = blur(m3) + w4 *m4
@@ -276,14 +276,14 @@ namespace CAULDRON_VK
             // blur mip level
             //
             if (m_doBlur)
-            {                
+            {
                 m_blur.Draw(cmd_buf, i);
                 // force wait for the draw to completely finish
                 // TODO: need to find a better way to do it
                 vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 0, NULL);
             }
 
-            // blend with mip above   
+            // blend with mip above
             SetPerfMarkerBegin(cmd_buf, "blend above");
 
             Bloom::cbBlend *data;
@@ -359,7 +359,7 @@ namespace CAULDRON_VK
             for (int i = 1; i < m_mipCount; i++)
             {
                 char buf[32];
-                sprintf_s<32>(buf, "weight %i", i);
+                sprintf(buf, "weight %i", i);
                 ImGui::SliderFloat(buf, &m_mip[i].m_weight, 0.0f, 4.0f);
             }
         }

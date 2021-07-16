@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 
 #include "PostProcCS.h"
 
@@ -45,7 +45,7 @@ namespace CAULDRON_VK
             defines = *pUserDefines;
         defines["WIDTH"] = std::to_string(dwWidth);
         defines["HEIGHT"] = std::to_string(dwHeight);
-        defines["DEPTH"] = std::to_string(dwDepth);        
+        defines["DEPTH"] = std::to_string(dwDepth);
 
         res = VKCompileFromFile(m_pDevice->GetDevice(), VK_SHADER_STAGE_COMPUTE_BIT, shaderFilename.c_str(), shaderEntryPoint.c_str(), shaderCompilerParams.c_str(), &defines, &computeShader);
         assert(res == VK_SUCCESS);
@@ -55,13 +55,13 @@ namespace CAULDRON_VK
 
         VkPipelineLayoutCreateInfo pPipelineLayoutCreateInfo = {};
         pPipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pPipelineLayoutCreateInfo.pNext = NULL;
+        pPipelineLayoutCreateInfo.pNext = nullptr;
         pPipelineLayoutCreateInfo.pushConstantRangeCount = 0;
-        pPipelineLayoutCreateInfo.pPushConstantRanges = NULL;
+        pPipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
         pPipelineLayoutCreateInfo.setLayoutCount = 1;
         pPipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 
-        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, NULL, &m_pipelineLayout);
+        res = vkCreatePipelineLayout(pDevice->GetDevice(), &pPipelineLayoutCreateInfo, nullptr, &m_pipelineLayout);
         assert(res == VK_SUCCESS);
 
         // Create pipeline
@@ -69,14 +69,14 @@ namespace CAULDRON_VK
 
         VkComputePipelineCreateInfo pipeline = {};
         pipeline.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-        pipeline.pNext = NULL;
+        pipeline.pNext = nullptr;
         pipeline.flags = 0;
         pipeline.layout = m_pipelineLayout;
         pipeline.stage = computeShader;
         pipeline.basePipelineHandle = VK_NULL_HANDLE;
         pipeline.basePipelineIndex = 0;
 
-        res = vkCreateComputePipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, NULL, &m_pipeline);
+        res = vkCreateComputePipelines(pDevice->GetDevice(), pDevice->GetPipelineCache(), 1, &pipeline, nullptr, &m_pipeline);
         assert(res == VK_SUCCESS);
     }
 
@@ -92,7 +92,7 @@ namespace CAULDRON_VK
             return;
 
         // Bind Descriptor sets
-        //                
+        //
         int numUniformOffsets = 0;
         uint32_t uniformOffset = 0;
         if (pConstantBuffer != NULL && pConstantBuffer->buffer != NULL)

@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -23,5 +23,9 @@
 bool ImGUI_Init(void *hwnd);
 void ImGUI_Shutdown();
 void ImGUI_UpdateIO();
-LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+#ifdef _WIN32
+LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#else
+#warning "TODO: implement ImGUI_WndProcHandler for Linux"
+#endif

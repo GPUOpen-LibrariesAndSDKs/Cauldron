@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -103,7 +103,7 @@ private:
 
     HANDLE m_FileHandle = INVALID_HANDLE_VALUE;
     #define MAX_INFLIGHT_WRITES 32
-    
+
     OVERLAPPED m_OverlappedData[MAX_INFLIGHT_WRITES];
     uint32_t m_CurrentIOBufferIndex = 0;
 

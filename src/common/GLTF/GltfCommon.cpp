@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <fstream>
+
 #include "GltfCommon.h"
 #include "GltfHelpers.h"
 #include "Misc/Misc.h"
@@ -157,7 +158,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                                 }
                             }
 
-                            // See if we have specified a bias 
+                            // See if we have specified a bias
                             offset = lightName.find("Bias_", 0, 5);
                             if (std::string::npos != offset)
                             {
@@ -184,7 +185,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                                         // Value larger than a float can hold (also invalid), use default
                                     }
 
-                                    // Set what we have 
+                                    // Set what we have
                                     m_lights[i].m_bias = Bias;
                                 }
                             }
@@ -349,7 +350,7 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                 GetBufferDetails(samplers[sampler]["output"], &tfsmp->m_value);
 
                 // Index appropriately
-                // 
+                //
                 if (path == "translation")
                 {
                     tfchannel->m_pTranslation = tfsmp;
@@ -415,7 +416,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
             // Animate translation
             //
-            if (it->second.m_pTranslation != NULL)
+            if (it->second.m_pTranslation != nullptr)
             {
                 it->second.m_pTranslation->SampleLinear(time, &frac, &pCurr, &pNext);
                 animated.m_translation = ((1.0f - frac) * math::Vector4(pCurr[0], pCurr[1], pCurr[2], 0)) + ((frac) * math::Vector4(pNext[0], pNext[1], pNext[2], 0));
@@ -427,7 +428,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
             // Animate rotation
             //
-            if (it->second.m_pRotation != NULL)
+            if (it->second.m_pRotation != nullptr)
             {
                 it->second.m_pRotation->SampleLinear(time, &frac, &pCurr, &pNext);
                 animated.m_rotation = math::Matrix4(math::slerp(frac, math::Quat(pCurr[0], pCurr[1], pCurr[2], pCurr[3]), math::Quat(pNext[0], pNext[1], pNext[2], pNext[3])), math::Vector3(0.0f, 0.0f, 0.0f));
@@ -439,7 +440,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
             // Animate scale
             //
-            if (it->second.m_pScale != NULL)
+            if (it->second.m_pScale != nullptr)
             {
                 it->second.m_pScale->SampleLinear(time, &frac, &pCurr, &pNext);
                 animated.m_scale = ((1.0f - frac) * math::Vector4(pCurr[0], pCurr[1], pCurr[2], 0)) + ((frac) * math::Vector4(pNext[0], pNext[1], pNext[2], 0));
@@ -525,7 +526,7 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id) const
 }
 
 //
-// Transforms a node hierarchy recursively 
+// Transforms a node hierarchy recursively
 //
 void GLTFCommon::TransformNodes(const math::Matrix4& world, const std::vector<tfNodeIdx> *pNodes)
 {
@@ -540,10 +541,10 @@ void GLTFCommon::TransformNodes(const math::Matrix4& world, const std::vector<tf
 }
 
 //
-// Initializes the GLTFCommonTransformed structure 
+// Initializes the GLTFCommonTransformed structure
 //
 void GLTFCommon::InitTransformedData()
-{    
+{
     // initializes matrix buffers to have the same dimension as the nodes
     m_worldSpaceMats.resize(m_nodes.size());
 
@@ -563,14 +564,14 @@ void GLTFCommon::InitTransformedData()
 }
 
 //
-// Takes the animated matrices and processes the hierarchy, also computes the skinning matrix buffers. 
+// Takes the animated matrices and processes the hierarchy, also computes the skinning matrix buffers.
 //
 void GLTFCommon::TransformScene(int sceneIndex, const math::Matrix4& world)
 {
     m_worldSpaceMats.resize(m_nodes.size());
 
-    // transform all the nodes of the scene (and make 
-    //           
+    // transform all the nodes of the scene (and make
+    //
     std::vector<int> sceneNodes = { m_scenes[sceneIndex].m_nodes };
     TransformNodes(world, &sceneNodes);
 
@@ -580,7 +581,7 @@ void GLTFCommon::TransformScene(int sceneIndex, const math::Matrix4& world)
     {
         tfSkins &skin = m_skins[i];
 
-        //pick the matrices that affect the skin and multiply by the inverse of the bind      
+        //pick the matrices that affect the skin and multiply by the inverse of the bind
         math::Matrix4* pM = (math::Matrix4*)skin.m_InverseBindMatrices.m_data;
 
         std::vector<Matrix2> &skinningMats = m_worldSpaceSkeletonMats[i];
@@ -667,7 +668,7 @@ tfNodeIdx GLTFCommon::AddNode(const tfNode& node)
     m_nodes.push_back(node);
     tfNodeIdx idx = (tfNodeIdx)(m_nodes.size() - 1);
     m_scenes[0].m_nodes.push_back(idx);
-    
+
     m_animatedMats.push_back(node.m_tranform.GetWorldMat());
 
     return idx;

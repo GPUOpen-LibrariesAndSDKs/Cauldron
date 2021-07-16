@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,7 +17,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "DynamicBufferRing.h"
 #include "Misc/Misc.h"
 #include "ExtDebugUtils.h"
@@ -191,7 +191,7 @@ namespace CAULDRON_VK
         VkWriteDescriptorSet write;
         write = {};
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext = NULL;
+        write.pNext = nullptr;
         write.dstSet = descriptorSet;
         write.descriptorCount = 1;
         write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
@@ -199,6 +199,6 @@ namespace CAULDRON_VK
         write.dstArrayElement = 0;
         write.dstBinding = index;
 
-        vkUpdateDescriptorSets(m_pDevice->GetDevice(), 1, &write, 0, NULL);
+        vkUpdateDescriptorSets(m_pDevice->GetDevice(), 1, &write, 0, nullptr);
     }
 }

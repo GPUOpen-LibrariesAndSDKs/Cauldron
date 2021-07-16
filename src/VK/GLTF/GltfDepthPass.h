@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 #pragma once
 
+#include "base/ShaderCompiler.h"
+
 #include "GLTFTexturesAndBuffers.h"
 
 namespace CAULDRON_VK
@@ -38,7 +40,7 @@ namespace CAULDRON_VK
     {
         Geometry m_geometry;
 
-        DepthMaterial *m_pMaterial = NULL;
+        DepthMaterial *m_pMaterial = nullptr;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;

@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -20,13 +20,13 @@
 
 #include <vector>
 #include <string>
-#include "Base/Benchmark.h"
+#include "base/Benchmark.h"
 
 namespace CAULDRON_VK
 {
     // This class helps insert queries in the command buffer and readback the results.
-    // The tricky part in fact is reading back the results without stalling the GPU. 
-    // For that it splits the readback heap in <numberOfBackBuffers> pieces and it reads 
+    // The tricky part in fact is reading back the results without stalling the GPU.
+    // For that it splits the readback heap in <numberOfBackBuffers> pieces and it reads
     // from the last used chuck.
 
     class GPUTimestamps

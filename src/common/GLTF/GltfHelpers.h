@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -22,7 +22,13 @@
 
 #include "../../libs/vectormath/vectormath.hpp"
 
+#include <string>
+
+#include "../json/json.hpp"
 using json = nlohmann::json;
+
+#include "../DirextXMath/Inc/DirectXMath.h"
+using namespace DirectX;
 
 int GetFormatSize(int id);
 int GetDimensions(const std::string &str);
@@ -36,4 +42,3 @@ int GetElementInt(const json::object_t &root, const char *path, int pDefault);
 bool GetElementBoolean(const json::object_t &root, const char *path, bool pDefault);
 json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t pDefault);
 math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 default);
-

@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -37,7 +37,7 @@ public:
     math::Matrix4 GetPrevView() const { return m_PrevView; }
     math::Vector4 GetPosition() const { return m_eyePos;   }
 
-	
+
     math::Vector4 GetDirection()    const { return math::Vector4((math::transpose(m_View) * math::Vector4(0.0f, 0.0f, 1.0f, 0.0f)).getXYZ(), 0); }
     math::Vector4 GetUp()           const { return math::Vector4((math::transpose(m_View) * math::Vector4(0.0f, 1.0f, 0.0f, 0.0f)).getXYZ(), 0); }
     math::Vector4 GetSide()         const { return math::Vector4((math::transpose(m_View) * math::Vector4(1.0f, 1.0f, 0.0f, 0.0f)).getXYZ(), 0); }

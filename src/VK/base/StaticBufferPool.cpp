@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -31,7 +31,7 @@ namespace CAULDRON_VK
 
         m_totalMemSize = totalMemSize;
         m_memOffset = 0;
-        m_pData = NULL;
+        m_pData = nullptr;
         m_bUseVidMem = bUseVidMem;
 
 #ifdef USE_VMA
@@ -116,7 +116,7 @@ namespace CAULDRON_VK
             SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_BUFFER, (uint64_t)m_buffer, "StaticBufferPool (vid mem)");
 #else
 
-            // create the buffer, allocate it in VIDEO memory and bind it 
+            // create the buffer, allocate it in VIDEO memory and bind it
 
             VkBufferCreateInfo buf_info = {};
             buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -244,7 +244,3 @@ namespace CAULDRON_VK
         }
     }
 }
-
-
-
-

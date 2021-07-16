@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -23,8 +23,8 @@
 namespace CAULDRON_VK
 {
     // This class, on creation allocates a number of command lists. Using a ring buffer
-    // these commandLists are recycled when they are no longer used by the GPU. See the 
-    // 'ring.h' for more details on allocation and recycling 
+    // these commandLists are recycled when they are no longer used by the GPU. See the
+    // 'ring.h' for more details on allocation and recycling
     //
     class CommandListRing
     {

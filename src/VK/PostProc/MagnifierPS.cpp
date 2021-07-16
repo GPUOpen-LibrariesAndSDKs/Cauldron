@@ -20,10 +20,10 @@
 #include "stdafx.h"
 #include "MagnifierPS.h"
 
-#include "Base/Device.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/Helper.h"
+#include "base/Device.h"
+#include "base/DynamicBufferRing.h"
+#include "base/ExtDebugUtils.h"
+#include "base/Helper.h"
 #include "base/SwapChain.h"
 #include "Misc/Misc.h"
 

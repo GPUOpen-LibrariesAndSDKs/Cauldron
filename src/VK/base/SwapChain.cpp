@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,11 +17,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <cassert>
+
 #include "SwapChain.h"
 #include "ExtFreeSyncHDR.h"
 #include "ExtDebugUtils.h"
-#include <vulkan\vulkan_win32.h>
+#ifdef _WIN32
+#include <vulkan/vulkan_win32.h>
+#else
+#include <vulkan/vulkan_xlib.h>
+#endif
 
 namespace CAULDRON_VK
 {
@@ -31,6 +36,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
+    #ifdef _WIN32
     void SwapChain::OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd)
     {
         VkResult res;
@@ -89,6 +95,9 @@ namespace CAULDRON_VK
 
         CreateRenderPass();
     }
+    #else
+    #warning "TODO: implement SwapChain::OnCreate()"
+    #endif
 
     //--------------------------------------------------------------------------------------
     //
@@ -172,13 +181,13 @@ namespace CAULDRON_VK
     {
         VkPresentInfoKHR present = {};
         present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        present.pNext = NULL;
+        present.pNext = nullptr;
         present.waitSemaphoreCount = 1;
         present.pWaitSemaphores = &(m_RenderFinishedSemaphores[m_semaphoreIndex]);
         present.swapchainCount = 1;
         present.pSwapchains = &m_swapChain;
         present.pImageIndices = &m_imageIndex;
-        present.pResults = NULL;
+        present.pResults = nullptr;
 
         VkResult res = vkQueuePresentKHR(m_presentQueue, &present);
         return res;
@@ -312,7 +321,7 @@ namespace CAULDRON_VK
         swapchain_ci.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         swapchain_ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         swapchain_ci.queueFamilyIndexCount = 0;
-        swapchain_ci.pQueueFamilyIndices = NULL;
+        swapchain_ci.pQueueFamilyIndices = nullptr;
         uint32_t queueFamilyIndices[2] = { m_pDevice->GetGraphicsQueueFamilyIndex(), m_pDevice->GetPresentQueueFamilyIndex() };
         if (queueFamilyIndices[0] != queueFamilyIndices[1])
         {
@@ -325,7 +334,7 @@ namespace CAULDRON_VK
             swapchain_ci.pQueueFamilyIndices = queueFamilyIndices;
         }
 
-        res = vkCreateSwapchainKHR(device, &swapchain_ci, NULL, &m_swapChain);
+        res = vkCreateSwapchainKHR(device, &swapchain_ci, nullptr, &m_swapChain);
         assert(res == VK_SUCCESS);
 
         // Get capabilities is only for FS HDR
@@ -338,7 +347,7 @@ namespace CAULDRON_VK
 
         // we are querying the swapchain count so the next call doesn't generate a validation warning
         uint32_t backBufferCount;
-        res = vkGetSwapchainImagesKHR(device, m_swapChain, &backBufferCount, NULL);
+        res = vkGetSwapchainImagesKHR(device, m_swapChain, &backBufferCount, nullptr);
         assert(res == VK_SUCCESS);
 
         assert(backBufferCount == m_backBufferCount);
@@ -467,7 +476,7 @@ namespace CAULDRON_VK
 
             VkFramebufferCreateInfo fb_info = {};
             fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            fb_info.pNext = NULL;
+            fb_info.pNext = nullptr;
             fb_info.renderPass = m_render_pass_swap_chain;
             fb_info.attachmentCount = 1;
             fb_info.pAttachments = attachments;
@@ -475,7 +484,7 @@ namespace CAULDRON_VK
             fb_info.height = dwHeight;
             fb_info.layers = 1;
 
-            VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_framebuffers[i]);
+            VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, nullptr, &m_framebuffers[i]);
             assert(res == VK_SUCCESS);
 
             SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_framebuffers[i], "Swapchain");

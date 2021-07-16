@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,17 +17,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+#include <cstdarg>
+#include <fstream>
+#include <memory>
+#include <mutex>
+
 #include "Misc.h"
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 //
 // Get current time in milliseconds
 //
 double MillisecondsNow()
 {
+    double milliseconds = 0;
+
+#ifdef _WIN32
     static LARGE_INTEGER s_frequency;
     static BOOL s_use_qpc = QueryPerformanceFrequency(&s_frequency);
-    double milliseconds = 0;
 
     if (s_use_qpc)
     {
@@ -39,6 +49,9 @@ double MillisecondsNow()
     {
         milliseconds = double(GetTickCount());
     }
+#else
+#warning "TODO: Implement timer for Linux"
+#endif
 
     return milliseconds;
 }
@@ -86,7 +99,7 @@ void Trace(const std::string &str)
 {
     std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
-    
+
     // Output to attached debugger
     OutputDebugStringA(str.c_str());
 
@@ -121,8 +134,6 @@ void Trace(const char* pFormat, ...)
 //
 bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
 {
-    FILE *file;
-
     //Open file
     if (fopen_s(&file, name, isbinary ? "rb" : "r") != 0)
     {
@@ -156,12 +167,12 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
 
     if (!isbinary)
     {
-        buffer[bytesRead] = 0;    
+        buffer[bytesRead] = 0;
         fileLen = bytesRead;
     }
 
     *data = buffer;
-    if (size != NULL)
+    if (size != nullptr)
         *size = fileLen;
 
     return true;
@@ -185,6 +196,7 @@ bool SaveFile(const char *name, void const*data, size_t size, bool isbinary)
 //
 bool LaunchProcess(const char* commandLine, const char* filenameErr)
 {
+#ifdef _WIN32
     char cmdLine[1024];
     strcpy_s<1024>(cmdLine, commandLine);
 
@@ -255,12 +267,15 @@ bool LaunchProcess(const char* commandLine, const char* filenameErr)
     {
         Trace(format("*** Can't launch: %s \n", commandLine));
     }
+#else
+#warning "TODO: implement process launching for Linux"
+#endif
 
     return false;
 }
 
 //
-// Frustum culls an AABB. The culling is done in clip space. 
+// Frustum culls an AABB. The culling is done in clip space.
 //
 bool CameraFrustumToBoxCollision(const math::Matrix4& mCameraViewProj, const math::Vector4& boxCenter, const math::Vector4& boxExtent)
 {
@@ -368,15 +383,15 @@ AxisAlignedBoundingBox GetAABBInGivenSpace(const math::Matrix4& mTransform, cons
 
     for (int i = 0; i < 8; ++i)
         aabb.Grow(p[i]);
-    
+
     return aabb;
 }
 
 
-int countBits(uint32_t v) 
+int countBits(uint32_t v)
 {
     v = v - ((v >> 1) & 0x55555555);                // put count of each 2 bits into those 2 bits
-    v = (v & 0x33333333) + ((v >> 2) & 0x33333333); // put count of each 4 bits into those 4 bits  
+    v = (v & 0x33333333) + ((v >> 2) & 0x33333333); // put count of each 4 bits into those 4 bits
     return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
 }
 
@@ -456,7 +471,7 @@ void Log::Write(const char* LogString)
     // Apply increments accordingly
     pOverlapped->Offset = m_WriteOffset;
     m_WriteOffset += static_cast<uint32_t>(strlen(LogString));
-    
+
     m_CurrentIOBufferIndex = (++m_CurrentIOBufferIndex % MAX_INFLIGHT_WRITES);  // Wrap when we get to the end
 
     bool result = WriteFileEx(m_FileHandle, LogString, static_cast<DWORD>(strlen(LogString)), pOverlapped, OverlappedCompletionRoutine);

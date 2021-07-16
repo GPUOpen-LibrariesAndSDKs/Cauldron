@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "Device.h"
 #include "FreeSyncHDR.h"
 
@@ -27,9 +29,11 @@ namespace CAULDRON_VK
     class SwapChain
     {
     public:
+    #ifdef _WIN32
         void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd);
+    #endif
         void OnDestroy();
-        
+
         void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayMode displayMode = DISPLAYMODE_SDR, PresentationMode fullscreenMode = PRESENTATIONMODE_WINDOWED, bool enableLocalDimming = true);
         void OnDestroyWindowSizeDependentResources();
 
@@ -60,7 +64,9 @@ namespace CAULDRON_VK
         void CreateFramebuffers(uint32_t dwWidth, uint32_t dwHeight);
         void DestroyFramebuffers();
 
+#ifdef _WIN32
         HWND m_hWnd;
+#endif
         Device *m_pDevice;
 
         VkSwapchainKHR m_swapChain;

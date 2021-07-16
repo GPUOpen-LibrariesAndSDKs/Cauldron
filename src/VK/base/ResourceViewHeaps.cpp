@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,9 +17,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "ResourceViewHeaps.h"
-#include "Misc/misc.h"
+#include "Misc/Misc.h"
 
 namespace CAULDRON_VK
 {
@@ -39,19 +39,19 @@ namespace CAULDRON_VK
 
         VkDescriptorPoolCreateInfo descriptor_pool = {};
         descriptor_pool.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        descriptor_pool.pNext = NULL;
+        descriptor_pool.pNext = nullptr;
         descriptor_pool.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         descriptor_pool.maxSets = 8000;
         descriptor_pool.poolSizeCount = _countof( type_count );
         descriptor_pool.pPoolSizes = type_count;
 
-        VkResult res = vkCreateDescriptorPool(pDevice->GetDevice(), &descriptor_pool, NULL, &m_descriptorPool);
+        VkResult res = vkCreateDescriptorPool(pDevice->GetDevice(), &descriptor_pool, nullptr, &m_descriptorPool);
         assert(res == VK_SUCCESS);
     }
 
     void ResourceViewHeaps::OnDestroy()
     {
-        vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, NULL);
+        vkDestroyDescriptorPool(m_pDevice->GetDevice(), m_descriptorPool, nullptr);
     }
 
     bool ResourceViewHeaps::CreateDescriptorSetLayout(std::vector<VkDescriptorSetLayoutBinding> *pDescriptorLayoutBinding, VkDescriptorSetLayout *pDescSetLayout)
@@ -74,11 +74,11 @@ namespace CAULDRON_VK
 
         VkDescriptorSetLayoutCreateInfo descriptor_layout = {};
         descriptor_layout.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        descriptor_layout.pNext = NULL;
+        descriptor_layout.pNext = nullptr;
         descriptor_layout.bindingCount = (uint32_t)pDescriptorLayoutBinding->size();
         descriptor_layout.pBindings = pDescriptorLayoutBinding->data();
 
-        VkResult res = vkCreateDescriptorSetLayout(m_pDevice->GetDevice(), &descriptor_layout, NULL, pDescSetLayout);
+        VkResult res = vkCreateDescriptorSetLayout(m_pDevice->GetDevice(), &descriptor_layout, nullptr, pDescSetLayout);
         assert(res == VK_SUCCESS);
 
         return AllocDescriptor(*pDescSetLayout, pDescriptorSet);
@@ -90,7 +90,7 @@ namespace CAULDRON_VK
 
         VkDescriptorSetAllocateInfo alloc_info;
         alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc_info.pNext = NULL;
+        alloc_info.pNext = nullptr;
         alloc_info.descriptorPool = m_descriptorPool;
         alloc_info.descriptorSetCount = 1;
         alloc_info.pSetLayouts = &descLayout;
@@ -139,5 +139,3 @@ namespace CAULDRON_VK
         return CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, pDescSetLayout, pDescriptorSet);
     }
 }
-
-

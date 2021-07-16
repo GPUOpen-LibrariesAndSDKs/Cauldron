@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,6 +18,11 @@
 // THE SOFTWARE.
 
 #pragma once
+
+#include <map>
+#include <vector>
+
+#include "../DirextXMath/Inc/DirectXMath.h"
 
 //
 // This file holds all the structures/classes used to load a glTF model
@@ -83,13 +88,13 @@ struct Transform
     math::Vector4   m_scale = math::Vector4(1, 1, 1, 0);
 
     void LookAt(math::Vector4 source, math::Vector4 target)
-    { 
+    {
         m_rotation = math::inverse(math::Matrix4::lookAt(math::Point3(source.getXYZ()), math::Point3(target.getXYZ()), math::Vector3(0, 1, 0)));
-        m_translation = m_rotation.getCol(3);  m_rotation.setCol(3, math::Vector4(0, 0, 0, 1)); 
+        m_translation = m_rotation.getCol(3);  m_rotation.setCol(3, math::Vector4(0, 0, 0, 1));
     }
 
-    math::Matrix4 GetWorldMat() const 
-    { 
+    math::Matrix4 GetWorldMat() const
+    {
         return math::Matrix4::translation(m_translation.getXYZ()) * m_rotation * math::Matrix4::scale(m_scale.getXYZ());
     }
 };
@@ -123,7 +128,7 @@ struct tfScene
 struct tfSkins
 {
     tfAccessor m_InverseBindMatrices;
-    tfNode *m_pSkeleton = NULL;
+    tfNode *m_pSkeleton = nullptr;
     std::vector<int> m_jointsNodeIdx;
 };
 

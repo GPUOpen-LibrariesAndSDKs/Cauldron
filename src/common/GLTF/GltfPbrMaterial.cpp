@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -17,12 +17,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "stdafx.h"
+
 #include "GltfPbrMaterial.h"
 #include "GltfHelpers.h"
 
 //
-// Set some default parameters 
+// Set some default parameters
 //
 void SetDefaultMaterialParamters(PBRMaterialParameters *pPbrMaterialParameters)
 {
@@ -70,7 +70,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
     tfmat->m_defines["DEF_alphaCutoff"] = std::to_string(GetElementFloat(material, "alphaCutoff", 0.5));
     tfmat->m_defines["DEF_alphaMode_" + GetElementString(material, "alphaMode", "OPAQUE")] = std::to_string(1);
 
-    // look for textures and store their IDs in a map 
+    // look for textures and store their IDs in a map
     //
     int index, texCoord;
 
@@ -79,7 +79,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
         textureIds["normalTexture"] = index;
         tfmat->m_defines["ID_normalTexCoord"] = std::to_string(texCoord);
     }
-        
+
     if (ProcessGetTextureIndexAndTextCoord(material, "emissiveTexture", &index, &texCoord))
     {
         textureIds["emissiveTexture"] = index;
@@ -116,7 +116,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
         {
             textureIds["metallicRoughnessTexture"] = index;
             tfmat->m_defines["ID_metallicRoughnessTexCoord"] = std::to_string(texCoord);
-        }        
+        }
     }
     else
     {
@@ -147,7 +147,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
                 {
                     textureIds["specularGlossinessTexture"] = index;
                     tfmat->m_defines["ID_specularGlossinessTexCoord"] = std::to_string(texCoord);
-                }                
+                }
             }
         }
     }
@@ -164,7 +164,7 @@ bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName
         for (auto def : defines)
         {
             uint32_t size = static_cast<uint32_t>(def.first.size());
-            if (size<= 8) 
+            if (size<= 8)
                 continue;
 
             if (def.first.substr(size-8) == "TexCoord")
@@ -184,7 +184,7 @@ bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName
 //
 // Identify what material uses this texture, this helps:
 // 1) determine the color space if the texture and also the cut out level. Authoring software saves albedo and emissive images in SRGB mode, the rest are linear mode
-// 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used. 
+// 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used.
 //
 void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, bool *pSrgbOut, float *pCutoff)
 {

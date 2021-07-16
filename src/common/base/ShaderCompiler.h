@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -33,7 +33,7 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t result
 class DefineList : public std::map<const std::string, std::string>
 {
 public:
-    bool Has(const std::string &str) const 
+    bool Has(const std::string &str) const
     {
         return find(str) != end();
     }

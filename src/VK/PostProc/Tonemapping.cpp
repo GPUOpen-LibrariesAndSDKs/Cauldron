@@ -1,5 +1,5 @@
 // AMD Cauldron code
-// 
+//
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -18,13 +18,13 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
-#include "Base/DynamicBufferRing.h"
-#include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugUtils.h"
-#include "Base/UploadHeap.h"
-#include "Base/Texture.h"
-#include "Base/Helper.h"
-#include "ToneMapping.h"
+#include "base/DynamicBufferRing.h"
+#include "base/StaticBufferPool.h"
+#include "base/ExtDebugUtils.h"
+#include "base/UploadHeap.h"
+#include "base/Texture.h"
+#include "base/Helper.h"
+#include "Tonemapping.h"
 
 namespace CAULDRON_VK
 {
@@ -99,7 +99,7 @@ namespace CAULDRON_VK
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
 
-        // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we 
+        // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we
         // need to do some basic buffering. Just to keep it safe and simple we'll have 10 buffers.
         VkDescriptorSet descriptorSet = m_descriptorSet[m_descriptorIndex];
         m_descriptorIndex = (m_descriptorIndex + 1) % s_descriptorBuffers;
