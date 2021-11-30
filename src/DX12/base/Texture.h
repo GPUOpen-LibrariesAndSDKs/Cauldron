@@ -45,7 +45,8 @@ namespace CAULDRON_DX12
         void CreateRTV(uint32_t index, RTV *pRV, D3D12_RENDER_TARGET_VIEW_DESC *pRtvDesc);
         void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, D3D12_SHADER_RESOURCE_VIEW_DESC *pSrvDesc);
         void CreateUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC *pUavDesc);
-
+        void CreateRawBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV);
+        
         // less explicit functions of the above ones
         void CreateDSV(uint32_t index, DSV *pRV, int arraySlice = -1, int arraySize = 1);
         void CreateUAV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1);

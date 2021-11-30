@@ -94,7 +94,7 @@ namespace CAULDRON_VK
         for (uint32_t a = 0; a < m_numberOfAllocators; a++)
         {
             vkFreeCommandBuffers(m_pDevice->GetDevice(), m_pCommandBuffers[a].m_commandPool, m_commandListsPerBackBuffer, m_pCommandBuffers[a].m_pCommandBuffer);
-
+            delete[] m_pCommandBuffers[a].m_pCommandBuffer;
             vkDestroyCommandPool(m_pDevice->GetDevice(), m_pCommandBuffers[a].m_commandPool, NULL);
         }
 

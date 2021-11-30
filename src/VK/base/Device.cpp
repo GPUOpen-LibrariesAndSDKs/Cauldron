@@ -212,6 +212,7 @@ namespace CAULDRON_VK
         physicalDeviceFeatures.shaderImageGatherExtended = true;
         physicalDeviceFeatures.wideLines = true; //needed for drawing lines with a specific width.
         physicalDeviceFeatures.independentBlend = true; // needed for having different blend for each render target 
+        physicalDeviceFeatures.shaderInt16 = true; // to enable 16bit types via DXC
 
         // enable feature to support fp16 with subgroup operations
         //

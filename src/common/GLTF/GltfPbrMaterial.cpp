@@ -186,16 +186,22 @@ bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName
 // 1) determine the color space if the texture and also the cut out level. Authoring software saves albedo and emissive images in SRGB mode, the rest are linear mode
 // 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used. 
 //
-void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, bool *pSrgbOut, float *pCutoff)
+void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, std::unordered_map<int, int> const &textureToImage, bool *pSrgbOut, float *pCutoff)
 {
     *pSrgbOut = false;
     *pCutoff = 1.0f; // no cutoff
+
+    auto GetImageID = [&](int textureID) {
+      if (textureToImage.find(textureID) != textureToImage.end()) 
+        return textureToImage.find(textureID)->second;
+      return -1;
+    };
 
     for (int m = 0; m < materials.size(); m++)
     {
         const json &material = materials[m];
 
-        if (GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1) == imageIndex)
+        if (GetImageID(GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
 
@@ -204,19 +210,19 @@ void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, b
             return;
         }
 
-        if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/specularGlossinessTexture/index", -1) == imageIndex)
+        if (GetImageID(GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/specularGlossinessTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
             return;
         }
 
-        if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/diffuseTexture/index", -1) == imageIndex)
+        if (GetImageID(GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/diffuseTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
             return;
         }
 
-        if (GetElementInt(material, "emissiveTexture/index", -1) == imageIndex)
+        if (GetImageID(GetElementInt(material, "emissiveTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
             return;

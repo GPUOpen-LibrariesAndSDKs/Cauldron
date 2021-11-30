@@ -193,6 +193,7 @@ namespace CAULDRON_VK
 
             assert(SpvSize != 0);
             CreateModule(device, SpvData, SpvSize, &pShader->module);
+            free(SpvData);
 
 #ifdef USE_MULTITHREADED_CACHE
             s_shaderCache.UpdateCache(hash, &pShader->module);
@@ -248,6 +249,7 @@ namespace CAULDRON_VK
         {
             VkResult res = VKCompileFromString(device, sourceType, shader_type, pShaderCode, pShaderEntryPoint, shaderCompilerParams, pDefines, pShader);
             SetResourceName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)pShader->module, pFilename);
+            free(pShaderCode);
             return res;
         }
 

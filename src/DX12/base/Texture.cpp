@@ -571,4 +571,18 @@ namespace CAULDRON_DX12
 
         return result;
     }
+    
+    void Texture::CreateRawBufferUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV)
+    {
+        D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        uavDesc.Buffer.FirstElement = 0;
+        uavDesc.Buffer.NumElements = (m_header.width * m_structuredBufferStride) / 4;
+        uavDesc.Buffer.StructureByteStride = 0;
+        uavDesc.Buffer.CounterOffsetInBytes = 0;
+        uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+        CreateUAV(index, pCounterTex, pRV, &uavDesc);
+    }
 }

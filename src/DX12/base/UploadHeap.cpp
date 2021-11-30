@@ -91,7 +91,7 @@ namespace CAULDRON_DX12
             std::unique_lock<std::mutex> lock(m_mutex);
 
             // make sure resource (and its mips) would fit the upload heap, if not please make the upload heap bigger
-            assert(uSize < (size_t)(m_pDataBegin - m_pDataEnd));
+            assert(uSize < (size_t)(m_pDataEnd - m_pDataBegin));
 
             m_pDataCur = reinterpret_cast<UINT8*>(AlignUp(reinterpret_cast<SIZE_T>(m_pDataCur), SIZE_T(uAlign)));
 
@@ -134,7 +134,7 @@ namespace CAULDRON_DX12
         allocating.Dec();
     }
 
-    void UploadHeap::AddBufferCopy(const void *pData, int size, ID3D12Resource *pBufferDst)
+    void UploadHeap::AddBufferCopy(const void *pData, int size, ID3D12Resource *pBufferDst, D3D12_RESOURCE_STATES state)
     {
         UINT8 *pixels = BeginSuballocate(size, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
         memcpy(pixels, pData, size);
@@ -142,14 +142,14 @@ namespace CAULDRON_DX12
 
         {
             std::unique_lock<std::mutex> lock(m_mutex);
-            m_bufferCopies.push_back({ pBufferDst, (UINT64)(pixels - BasePtr()), size });
+            m_bufferCopies.push_back({ pBufferDst, (UINT64)(pixels - BasePtr()), size, state });
 
             D3D12_RESOURCE_BARRIER RBDesc = {};
             RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             RBDesc.Transition.pResource = pBufferDst;
             RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
             RBDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-            RBDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            RBDesc.Transition.StateAfter = state;
             m_toBarrierIntoShaderResource.push_back(RBDesc);
         }
     }
@@ -203,6 +203,15 @@ namespace CAULDRON_DX12
 
         for (BufferCopy c : m_bufferCopies)
         {
+            {
+                D3D12_RESOURCE_BARRIER RBDesc = {};
+                RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                RBDesc.Transition.pResource = c.pBufferDst;
+                RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                RBDesc.Transition.StateBefore = c.state;
+                RBDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+                m_pCommandList->ResourceBarrier(1, &RBDesc);
+            }
             m_pCommandList->CopyBufferRegion(c.pBufferDst, 0, GetResource(), c.offset, c.size);
         }
         m_bufferCopies.clear();

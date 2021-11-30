@@ -23,6 +23,8 @@
 #include "Base/StaticBufferPool.h"
 #include "Base/DynamicBufferRing.h"
 
+#include <unordered_map>
+
 namespace CAULDRON_VK
 {
     // This class takes a GltfCommon class (that holds all the non-GPU specific data) as an input and loads all the GPU specific data
@@ -46,6 +48,8 @@ namespace CAULDRON_VK
         std::vector<VkImageView> m_textureViews;
 
         std::map<int, VkDescriptorBufferInfo> m_skeletonMatricesBuffer;
+        // texture id to image id, that is being referenced.
+        std::unordered_map<int, int> m_textureToImage;
 
         StaticBufferPool *m_pStaticBufferPool;
         DynamicBufferRing *m_pDynamicBufferRing;

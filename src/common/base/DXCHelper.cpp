@@ -100,7 +100,6 @@ public:
 
         IDxcBlobEncoding *pSource;
         ThrowIfFailed(m_pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)pData, (UINT32)bytes, CP_UTF8, &pSource));
-
         *ppIncludeSource = pSource;
 
         return S_OK;

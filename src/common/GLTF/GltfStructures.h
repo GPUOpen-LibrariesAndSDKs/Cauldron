@@ -107,7 +107,7 @@ struct tfNode
 
     std::string m_name;
 
-    Transform m_tranform;
+    Transform m_transform;
 };
 
 struct NodeMatrixPostTransform

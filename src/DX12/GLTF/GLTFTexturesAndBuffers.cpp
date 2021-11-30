@@ -46,10 +46,13 @@ namespace CAULDRON_DX12
         //
         if (m_pGLTFCommon->j3.find("images") != m_pGLTFCommon->j3.end())
         {
+            
             m_pTextureNodes = &m_pGLTFCommon->j3["textures"];
             const json &images = m_pGLTFCommon->j3["images"];
             const json &materials = m_pGLTFCommon->j3["materials"];
-
+            for (int textureIndex = 0; textureIndex < m_pTextureNodes->size(); textureIndex++) {
+                m_textureToImage[textureIndex] =   (*m_pTextureNodes)[textureIndex]["source"].get<int>();
+            }
             m_textures.resize(images.size());
             for (int imageIndex = 0; imageIndex < images.size(); imageIndex++)
             {
@@ -60,7 +63,7 @@ namespace CAULDRON_DX12
                 {
                     bool useSRGB;
                     float cutOff;
-                    GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, &useSRGB, &cutOff);
+                    GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, m_textureToImage, &useSRGB, &cutOff);
 
                     bool result = pTex->InitFromFile(m_pDevice, m_pUploadHeap, filename.c_str(), useSRGB, cutOff);
                     assert(result != false);

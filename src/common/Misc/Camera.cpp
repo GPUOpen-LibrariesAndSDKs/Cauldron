@@ -25,6 +25,8 @@ Camera::Camera()
     m_View = math::Matrix4::identity();
     m_eyePos = math::Vector4(0, 0, 0, 0);
     m_distance = -1;
+    m_speed = 0;
+    m_LastMoveDir = math::Vector4(0, 0, 0, 0);
 }
 
 //--------------------------------------------------------------------------------------
@@ -88,12 +90,26 @@ void Camera::LookAt(float yaw, float pitch, float distance, const math::Vector4&
 //--------------------------------------------------------------------------------------
 void Camera::UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], double deltaTime)
 {   
-    m_eyePos += math::transpose(m_View) * (MoveWASD(keyDown) * m_speed * (float)deltaTime);
+    auto movedir = MoveWASD(keyDown);
+    // Smooth movement
+    if (abs(movedir.getX()) > 0.1f || abs(movedir.getY()) > 0.1f || abs(movedir.getZ()) > 0.1f) {
+      if (keyDown[VK_SHIFT])
+        m_speed = m_speed + (5.0f - m_speed) * (1.0f - std::exp(-(float)deltaTime*1.0f));
+      else
+        m_speed = m_speed + (2.0f - m_speed) * (1.0f - std::exp(-(float)deltaTime*3.0f));
+      
+    }
+    else
+      m_speed = m_speed + (0.0f - m_speed) * (1.0f - std::exp(-(float)deltaTime*8.0f));
+
+    m_LastMoveDir = m_LastMoveDir + (movedir - m_LastMoveDir) * (1.0f - std::exp(-(float)deltaTime*3.0f));
+
+    m_eyePos += math::transpose(m_View) * (m_LastMoveDir * m_speed * (float)deltaTime);
     math::Vector4 dir = PolarToVector(yaw, pitch) * m_distance;
     LookAt(GetPosition(), GetPosition() - dir);
 }
 
-void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance)
+void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance, const bool *keyDown, double deltaTime)
 {
     pitch = std::max(-XM_PIDIV2 + 1e-3f, std::min(pitch, XM_PIDIV2 - 1e-3f));
 
@@ -104,6 +120,9 @@ void Camera::UpdateCameraPolar(float yaw, float pitch, float x, float y, float d
     // Orbits camera, rotates a camera about the target
     math::Vector4 dir = GetDirection();
     math::Vector4 pol = PolarToVector(yaw, pitch);
+
+    if (keyDown)
+        m_eyePos += math::transpose(m_View) * (MoveWASD(keyDown) * m_speed * (float)deltaTime);
 
     math::Vector4 at = m_eyePos - (dir * m_distance);
 
@@ -167,7 +186,7 @@ math::Matrix4 LookAtRH(const math::Vector4& eyePos, const math::Vector4& lookAt)
 
 math::Vector4 MoveWASD(const bool keyDown[256])
 { 
-    float scale = keyDown[VK_SHIFT] ? 5.0f : 1.0f;
+    float scale = 1.0f;
     float x = 0, y = 0, z = 0;
 
     if (keyDown['W'])
@@ -195,5 +214,7 @@ math::Vector4 MoveWASD(const bool keyDown[256])
         y = -scale;
     }
 
-    return math::Vector4(x, y, z, 0.0f);
+    float len = std::max(1.0e-3f, sqrtf(x * x + y * y + z * z));
+
+    return math::Vector4(x / len, y / len, z / len, 0.0f);
 }

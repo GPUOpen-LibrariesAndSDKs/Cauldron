@@ -249,19 +249,19 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                 m_lightInstances.push_back({ lightIdx, i});
             }
 
-            tfnode->m_tranform.m_translation = GetElementVector(node, "translation", math::Vector4(0, 0, 0, 0));
-            tfnode->m_tranform.m_scale = GetElementVector(node, "scale", math::Vector4(1, 1, 1, 0));
+            tfnode->m_transform.m_translation = GetElementVector(node, "translation", math::Vector4(0, 0, 0, 0));
+            tfnode->m_transform.m_scale = GetElementVector(node, "scale", math::Vector4(1, 1, 1, 0));
 
 
             if (node.find("name") != node.end())
                 tfnode->m_name = GetElementString(node, "name", "unnamed");
 
             if (node.find("rotation") != node.end())
-                tfnode->m_tranform.m_rotation = math::Matrix4(math::Quat(GetVector(node["rotation"].get<json::array_t>())), math::Vector3(0.f, 0.f, 0.f));
+                tfnode->m_transform.m_rotation = math::Matrix4(math::Quat(GetVector(node["rotation"].get<json::array_t>())), math::Vector3(0.f, 0.f, 0.f));
             else if (node.find("matrix") != node.end())
-                tfnode->m_tranform.m_rotation = GetMatrix(node["matrix"].get<json::array_t>());
+                tfnode->m_transform.m_rotation = GetMatrix(node["matrix"].get<json::array_t>());
             else
-                tfnode->m_tranform.m_rotation = math::Matrix4::identity();
+                tfnode->m_transform.m_rotation = math::Matrix4::identity();
         }
     }
 
@@ -408,7 +408,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
         for (auto it = anim->m_channels.begin(); it != anim->m_channels.end(); it++)
         {
-            Transform *pSourceTrans = &m_nodes[it->first].m_tranform;
+            Transform *pSourceTrans = &m_nodes[it->first].m_transform;
             Transform animated;
 
             float frac, *pCurr, *pNext;
@@ -558,7 +558,7 @@ void GLTFCommon::InitTransformedData()
     m_animatedMats.resize(m_nodes.size());
     for (uint32_t i = 0; i < m_nodes.size(); i++)
     {
-        m_animatedMats[i] = m_nodes[i].m_tranform.GetWorldMat();
+        m_animatedMats[i] = m_nodes[i].m_transform.GetWorldMat();
     }
 }
 
@@ -668,7 +668,7 @@ tfNodeIdx GLTFCommon::AddNode(const tfNode& node)
     tfNodeIdx idx = (tfNodeIdx)(m_nodes.size() - 1);
     m_scenes[0].m_nodes.push_back(idx);
     
-    m_animatedMats.push_back(node.m_tranform.GetWorldMat());
+    m_animatedMats.push_back(node.m_transform.GetWorldMat());
 
     return idx;
 }

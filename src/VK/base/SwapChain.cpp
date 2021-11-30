@@ -64,9 +64,10 @@ namespace CAULDRON_VK
         {
             VkFenceCreateInfo fence_ci = {};
             fence_ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-            // The first call to WaitForSwapChain will wait on the fence 0 but use the fence 1 without resetting it
-            // so any fence except 0 should be in an unsignaled state at the beginning
-            fence_ci.flags = i == 0 ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
+
+            // In each frame in WaitForSwapChain we wait for the executed fences to become signalled, before we can reuse the respective command buffers.
+            // Hence all of them must start in the signalled bit initially (meaning "can be reused").
+            fence_ci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
             res = vkCreateFence(device, &fence_ci, NULL, &m_cmdBufExecutedFences[i]);
             assert(res == VK_SUCCESS);
@@ -155,8 +156,8 @@ namespace CAULDRON_VK
         if (m_semaphoreIndex >= m_backBufferCount)
             m_semaphoreIndex = 0;
 
-        vkWaitForFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_prevSemaphoreIndex], VK_TRUE, UINT64_MAX);
-        vkResetFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_prevSemaphoreIndex]);
+        vkWaitForFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_semaphoreIndex], VK_TRUE, UINT64_MAX);
+        vkResetFences(m_pDevice->GetDevice(), 1, &m_cmdBufExecutedFences[m_semaphoreIndex]);
 
         return m_imageIndex;
     }

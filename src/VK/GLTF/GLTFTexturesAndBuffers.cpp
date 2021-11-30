@@ -49,7 +49,9 @@ namespace CAULDRON_VK
             const json &materials = m_pGLTFCommon->j3["materials"];
 
             std::vector<Async *> taskQueue(images.size());
-
+            for (int textureIndex = 0; textureIndex < m_pTextureNodes->size(); textureIndex++) {
+                m_textureToImage[textureIndex] =   (*m_pTextureNodes)[textureIndex]["source"].get<int>();
+            }
             m_textures.resize(images.size());
             m_textureViews.resize(images.size());
             for (int imageIndex = 0; imageIndex < images.size(); imageIndex++)
@@ -61,7 +63,7 @@ namespace CAULDRON_VK
                 {
                     bool useSRGB;
                     float cutOff;
-                    GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, &useSRGB, &cutOff);
+                    GetSrgbAndCutOffOfImageGivenItsUse(imageIndex, materials, m_textureToImage, &useSRGB, &cutOff);
 
                     bool result = pTex->InitFromFile(m_pDevice, m_pUploadHeap, filename.c_str(), useSRGB, 0 /*VkImageUsageFlags*/, cutOff);
                     assert(result != false);

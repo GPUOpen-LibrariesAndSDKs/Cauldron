@@ -84,13 +84,13 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWi
     uint32_t Height = 1080;
     pFramework->OnParseCommandLine(lpCmdLine, &Width, &Height);
 
+    // This makes sure that in a multi-monitor setup with different resolutions, get monitor info returns correct dimensions
+    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
     // Window setup based on config params
     lwindowStyle = WS_OVERLAPPEDWINDOW;
     RECT windowRect = { 0, 0, (LONG)Width, (LONG)Height };
     AdjustWindowRect(&windowRect, lwindowStyle, FALSE);    // adjust the size
-
-    // This makes sure that in a multi-monitor setup with different resolutions, get monitor info returns correct dimensions
-    SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
     // Create the window
     hWnd = CreateWindowEx(NULL,

@@ -39,7 +39,7 @@ namespace CAULDRON_DX12
                 m_pDevice->GetDevice()->CreateCommittedResource(
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
                     D3D12_HEAP_FLAG_NONE,
-                    &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
+                    &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
                     D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
                     nullptr,
                     IID_PPV_ARGS(&m_pVidMemBuffer))

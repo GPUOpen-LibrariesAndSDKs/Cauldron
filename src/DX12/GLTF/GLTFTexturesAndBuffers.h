@@ -24,6 +24,8 @@
 #include "Base/DynamicBufferRing.h" 
 #include "GLTF/GltfCommon.h"
 
+#include <unordered_map>
+
 class DefineList;
 
 namespace CAULDRON_DX12
@@ -46,6 +48,8 @@ namespace CAULDRON_DX12
         const json *m_pTextureNodes;
 
         std::vector<Texture> m_textures;
+        // texture id to image id, that is being referenced.
+        std::unordered_map<int, int> m_textureToImage;
 
         std::map<int, D3D12_GPU_VIRTUAL_ADDRESS> m_skeletonMatricesBuffer;
         std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC> m_InverseBindMatrices;

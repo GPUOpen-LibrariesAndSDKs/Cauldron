@@ -23,23 +23,21 @@
 
 namespace CAULDRON_DX12
 {
-    // In DX12 resource views are represented by handles(called also Descriptors handles). This handles live in a special type of array 
-    // called Descriptor Heap. Placing a few views in contiguously in the same Descriptor Heap allows you 
-    // to create a 'table', that is you can reference the whole table with just a offset(into the descriptor heap)
-    // and a length. This is a good practice to use tables since the harware runs more efficiently this way.
+    // In DX12 resource views are represented by handles (also called Descriptor handles). These handles live in a special type of array 
+    // called Descriptor Heap. Placing a few views contiguously in the same Descriptor Heap allows you to create a table that you can
+    // efficiently access.
     //
-    // We need then to allocate arrays of Descriptors into the descriptor heap. The following classes implement a very simple 
-    // linear allocator. Also includes some functions to create Shader/Depth-Stencil/Samples views and assign it to a certain Descriptor.
+    // We need then to allocate arrays of Descriptors into the Descriptor Heap. The following classes implement a very simple 
+    // linear allocator, and also includes some functions to create Shader/Depth-Stencil/Samples views and assign it to a certain Descriptor.
     //
-    // For every descriptor Heaps there are two types of Descriptor handles, CPU handles an GPU handles.
+    // For every Descriptor Heaps there are two types of Descriptor handles, CPU handles and GPU handles.
     // To create a view you need a:
     //      - resource 
     //      - a view description structure you need to fill
-    //      - a CPU handle (lets say the i-th one in your CPU Descritor heap)
+    //      - a CPU handle (lets say the i-th one in your CPU Descriptor Heap)
     //
-    // In order to bind that resource into the pipeline you'll need to use the i-th handle but from the GPU heap
-    // this GPU handle is used in SetGraphicsRootDescriptorTable.
-    //
+    // In order to bind that resource into the pipeline you'll need to use the i-th GPU descriptor handle and set it with
+    // SetGraphicsRootDescriptorTable()
     //
     // Since views are represented by just a pair of handles (one for the GPU another for the CPU) we can use a class for all of them.
     // Just to avoid mistaking a Sample handle by a Shader Resource, later we'll be creating different types of views.
