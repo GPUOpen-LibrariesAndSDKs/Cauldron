@@ -68,10 +68,10 @@ float3 ReinhardInverse(in float3 sdr)
 void mainCS(uint3 globalID : SV_DispatchThreadID, uint3 localID : SV_GroupThreadID, uint localIndex : SV_GroupIndex, uint3 groupID : SV_GroupID)
 {
     const float3 center = TAABuffer[globalID.xy].xyz;
-    const float3 top    = TAABuffer[globalID.xy + uint2( 0,  1)].xyz;
-    const float3 left   = TAABuffer[globalID.xy + uint2( 1,  0)].xyz;
-    const float3 right  = TAABuffer[globalID.xy + uint2(-1,  0)].xyz;
-    const float3 bottom = TAABuffer[globalID.xy + uint2( 0, -1)].xyz;
+    const float3 top    = TAABuffer[globalID.xy + int2( 0,  1)].xyz;
+    const float3 left   = TAABuffer[globalID.xy + int2( 1,  0)].xyz;
+    const float3 right  = TAABuffer[globalID.xy + int2(-1,  0)].xyz;
+    const float3 bottom = TAABuffer[globalID.xy + int2( 0, -1)].xyz;
 
     const float3 color = ApplySharpening(center, top, left, right, bottom);
 
