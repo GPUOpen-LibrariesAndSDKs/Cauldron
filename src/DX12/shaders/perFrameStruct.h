@@ -68,9 +68,10 @@ struct PerFrame
 
     float4        u_WireframeOptions;
 
-    float         u_LodBias;
-    int2          u_padding;
+    float2        u_mCameraCurrJitter;
+    float2        u_mCameraPrevJitter;
 
-    int           u_lightCount;
     Light         u_lights[MAX_LIGHT_INSTANCES];
+    int           u_lightCount;
+    float         u_LodBias;
 };

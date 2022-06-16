@@ -28,11 +28,12 @@
 //--------------------------------------------------------------------------------------
 // Constant Buffer
 //--------------------------------------------------------------------------------------
+#include "perFrameStruct.h"
 
-layout (std140, binding = ID_PER_FRAME) uniform myFrame 
+layout (std140, binding = ID_PER_FRAME) uniform _PerFrame 
 {
-    mat4 u_MVPMatrix;
-} myPerFrame;
+    PerFrame myPerFrame;
+};
 
 layout (std140, binding = ID_PER_OBJECT) uniform perObject
 {
@@ -46,7 +47,7 @@ mat4 GetWorldMatrix()
 
 mat4 GetCameraViewProj()
 {
-    return myPerFrame.u_MVPMatrix;
+    return myPerFrame.u_mCameraCurrViewProj;
 }
 
 #include "GLTFVertexFactory.glsl"

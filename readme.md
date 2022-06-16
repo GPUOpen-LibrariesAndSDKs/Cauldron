@@ -16,9 +16,10 @@ Cauldron is compiled as a static library. To see it in action check projects bel
 - [FidelityFX-ParallelSort](https://github.com/GPUOpen-Effects/FidelityFX-ParallelSort) GPU-based optimised sorting
 - [FidelityFX-CAS](https://github.com/GPUOpen-Effects/FidelityFX-CAS/) Contrast Adaptive Sharpenening (CAS)
 - [FidelityFX-FSR](https://github.com/GPUOpen-Effects/FidelityFX-FSR) Super Resolution (FSR)
+- [FidelityFX-FSR2](https://github.com/GPUOpen-Effects/FidelityFX-FSR2) Super Resolution 2.0 (FSR2)
 - [TressFX](https://github.com/GPUOpen-Effects/TressFX), a library that simulates and renders realistic hair and fur
-- [GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample), a simple demo app to show off Cauldron's features
-  ![GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample/raw/master/screenshot.png)
+- [glTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/glTFSample), a simple demo app to show off Cauldron's features
+  ![glTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/glTFSample/raw/master/screenshot.png)
 
 # Cauldron Features
 
@@ -28,7 +29,7 @@ Cauldron is compiled as a static library. To see it in action check projects bel
     - Baking skinning into buffers (DX12 only)
   - PBR Materials 
     - Metallic-Roughness 
-    - Specular-Glossiness (KHR_materials_pbrSpecularGlossiness)
+    - Specular-Glossiness (`KHR_materials_pbrSpecularGlossiness`)
   - Lighting 
       - KHR_lights_punctual extension
         - Point 
@@ -83,6 +84,7 @@ Cauldron is compiled as a static library. To see it in action check projects bel
   - `dxc` : DirectX Shader Compiler 
   - `imgui` : Graphical User Interface library
   - `json` : Library for adding JSON support w/ C++ syntax
+  - `stb` : `stb_image.h` and `stb_image_write.h` from [stb](https://github.com/nothings/stb)
 - `media` : Builtin textures and other data
 - `src` : Source code files
   - [`common`](./src/common/) : Common code used by both DX12/VK
@@ -95,10 +97,10 @@ Note: more info on the rendering backends can be found in the Readme of their re
 
 ## Prerequisites
 
-- [CMake 3.16](https://cmake.org/download/)
-- [Visual Studio 2017](https://visualstudio.microsoft.com/downloads/)
-- [Windows 10 SDK 10.0.18362.0](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)
-- [Vulkan SDK 1.2.131.2](https://www.lunarg.com/vulkan-sdk/)
+- [CMake 3.24](https://cmake.org/download/)
+- [Visual Studio 2019](https://visualstudio.microsoft.com/downloads/)
+- [Windows 10 SDK 10.0.20348.0](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)
+- [Vulkan SDK 1.3.204.1](https://www.lunarg.com/vulkan-sdk/)
 
 ## How-to-Build
 
@@ -145,11 +147,11 @@ Cauldron was originally written using DX12 and later on ported to Vulkan using t
 
 Please bear in mind that in order to keep Cauldron simple we are only covering the most frequently used features (for now). 
 
-Please feel free to [open an issue](TODO:LinkToGitHubRepoIssuesPage) for bug reports.
+Please feel free to [open an issue](https://github.com/GPUOpen-LibrariesAndSDKs/Cauldron/issues) for bug reports.
 
 # Contribution
 
-Cauldron should be very easy to extend, should you want to contribute to Cauldron, you can [open a merge request](TODO:LinkToGitHubRepoMergeRequestPage).
+Cauldron should be very easy to extend, should you want to contribute to Cauldron, you can [open a pull request](https://github.com/GPUOpen-LibrariesAndSDKs/Cauldron/pulls).
 
 # 3rd-Party Open Source Projects Used
 
@@ -159,4 +161,4 @@ Cauldron should be very easy to extend, should you want to contribute to Cauldro
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
 - [D3DX12](https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/Libraries/D3DX12)
-- [stb_image](http://nothings.org/stb)
+- [stb_image.h and stb_image_write.h](https://github.com/nothings/stb)

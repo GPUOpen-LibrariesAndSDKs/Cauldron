@@ -29,7 +29,7 @@ namespace CAULDRON_VK
     class SkyDome
     {
     public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount);
+        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount, bool invertedDepth);
         void OnDestroy();
         void Draw(VkCommandBuffer cmd_buf, const math::Matrix4& invViewProj);
         void GenerateDiffuseMapFromEnvironmentMap();
@@ -61,5 +61,7 @@ namespace CAULDRON_VK
         PostProcPS  m_skydome;
 
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
+
+        bool m_bInvertedDepth;
     };
 }

@@ -27,11 +27,12 @@
 
 namespace CAULDRON_VK
 {
-    void SkyDomeProc::OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, VkSampleCountFlagBits sampleDescCount)
+    void SkyDomeProc::OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, VkSampleCountFlagBits sampleDescCount, bool invertedDepth)
     {
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pResourceViewHeaps = pResourceViewHeaps;
+        m_bInvertedDepth = invertedDepth;
 
         // Create Descriptor Set Layout, all we need is a uniform dynamic buffer to pass some parameters to the shader. All is procedural and we need no textures.
         //
@@ -45,7 +46,7 @@ namespace CAULDRON_VK
         m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindings, &m_descriptorLayout, &m_descriptorSet);
         pDynamicBufferRing->SetDescriptorSet(0, sizeof(SkyDomeProc::Constants), m_descriptorSet);
 
-        m_skydome.OnCreate(pDevice, renderPass, "SkyDomeProc.hlsl", "main", "-T ps_6_0", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount);
+        m_skydome.OnCreate(pDevice, renderPass, "SkyDomeProc.glsl", "main", "", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount, m_bInvertedDepth);
     }
 
     void SkyDomeProc::OnDestroy()

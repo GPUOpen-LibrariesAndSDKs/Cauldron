@@ -35,16 +35,21 @@ namespace CAULDRON_DX12
 
         if (bUseVidMem)
         {
+            // Agility SDK does not like creating in D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_INDEX_BUFFER, 
+            // so use D3D12_RESOURCE_STATE_COMMON until first barrier
+            m_VidMemBufferState = D3D12_RESOURCE_STATE_COMMON;
+
             ThrowIfFailed(
                 m_pDevice->GetDevice()->CreateCommittedResource(
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
                     D3D12_HEAP_FLAG_NONE,
                     &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
-                    D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+                    m_VidMemBufferState,
                     nullptr,
                     IID_PPV_ARGS(&m_pVidMemBuffer))
             );
             SetName(m_pVidMemBuffer, "StaticBufferPoolDX12::m_pVidMemBuffer");
+            
         }
 
         ThrowIfFailed(
@@ -167,21 +172,12 @@ namespace CAULDRON_DX12
     {
         if (m_bUseVidMem)
         {
-            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_COPY_DEST));
+            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, m_VidMemBufferState, D3D12_RESOURCE_STATE_COPY_DEST));
 
             pCmdList->CopyBufferRegion(m_pVidMemBuffer, m_memInit, m_pSysMemBuffer, m_memInit, m_memOffset - m_memInit);
 
-            // With 'dynamic resources' we can use a same resource to hold Constant, Index and Vertex buffers.
-            // That is because we dont need to use a transition.
-            //
-            // With static buffers though we need to transition them and we only have 2 options
-            //      1) D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER
-            //      2) D3D12_RESOURCE_STATE_INDEX_BUFFER
-            // Because we need to transition the whole buffer we cant have now Index buffers to share the 
-            // same resource with the Vertex or Constant buffers. Hence is why we need separate classes.
-            // For Index and Vertex buffers we *could* use the same resource, but index buffers need their own resource.
-            // Please note that in the interest of clarity vertex buffers and constant buffers have been split into two different classes though
-            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_INDEX_BUFFER));
+            m_VidMemBufferState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_INDEX_BUFFER;
 
             m_memInit = m_memOffset;
         }

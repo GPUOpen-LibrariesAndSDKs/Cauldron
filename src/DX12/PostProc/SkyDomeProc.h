@@ -40,7 +40,7 @@ namespace CAULDRON_DX12
             float mieDirectionalG;
         };
 
-        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool *pStaticBufferPool, DXGI_FORMAT outFormat, uint32_t sampleDescCount);
+        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool *pStaticBufferPool, DXGI_FORMAT outFormat, uint32_t sampleDescCount, bool bInvertedDepth);
         void OnDestroy();
         void Draw(ID3D12GraphicsCommandList* pCommandList, SkyDomeProc::Constants constants);
 

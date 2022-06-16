@@ -19,6 +19,8 @@
 #pragma once
 
 #include "../../libs/vectormath/vectormath.hpp"
+#include <stdint.h>
+#include <minmax.h>
 
 enum ColorSpace
 {
@@ -50,3 +52,101 @@ math::Matrix4 CalculateRGBToXYZMatrix(float xw, float yw, float xr, float yr, fl
 math::Matrix4 CalculateXYZToRGBMatrix(float xw, float yw, float xr, float yr, float xg, float yg, float xb, float yb, bool scaleLumaFlag);
 
 void SetupGamutMapperMatrices(ColorSpace gamutIn, ColorSpace gamutOut, math::Matrix4* inputToOutputRecMatrix);
+
+enum PresentationMode
+{
+    PRESENTATIONMODE_WINDOWED,
+    PRESENTATIONMODE_BORDERLESS_FULLSCREEN,
+    PRESENTATIONMODE_EXCLUSIVE_FULLSCREEN
+};
+
+enum DisplayMode
+{
+    DISPLAYMODE_SDR,
+    DISPLAYMODE_FSHDR_Gamma22,
+    DISPLAYMODE_FSHDR_SCRGB,
+    DISPLAYMODE_HDR10_2084,
+    DISPLAYMODE_HDR10_SCRGB
+};
+
+struct LPMPrimaries
+{
+    float RedPrimary[2];
+    float GreenPrimary[2];
+    float BluePrimary[2];
+    float WhitePoint[2];
+    float MinLuminance;
+    float MaxLuminance;
+};
+
+struct LPMConfig
+{
+    bool con;
+    bool soft;
+    bool con2;
+    bool clip;
+    bool scaleOnly;
+};
+
+struct LPMInputParams
+{
+    DisplayMode  displayMode;
+    ColorSpace   colorSpace;
+    bool         shoulder;
+    float        softGap;
+    float        hdrMax;
+    float        lpmExposure;
+    float        contrast;
+    float        shoulderContrast;
+    float        saturationR;
+    float        saturationG;
+    float        saturationB;
+    float        crosstalk[3];
+    LPMPrimaries fs2Primaries;
+};
+
+struct LPMOutputParams
+{
+    bool          shoulder;
+    LPMConfig     lpmConfig;
+    DisplayMode   displayMode;
+    math::Matrix4 inputToOutputMatrix;
+    uint32_t      ctl[24 * 4];
+};
+
+struct LPMConsts
+{
+    uint32_t      shoulder;            // Use optional extra shoulderContrast tuning (set to false if shoulderContrast is 1.0).
+    uint32_t      con;                 // Use first RGB conversion matrix, if 'soft' then 'con' must be true also.
+    uint32_t      soft;                // Use soft gamut mapping.
+    uint32_t      con2;                // Use last RGB conversion matrix.
+    uint32_t      clip;                // Use clipping in last conversion matrix.
+    uint32_t      scaleOnly;           // Scale only for last conversion matrix (used for 709 HDR to scRGB).
+    uint32_t      displayMode;         // Display mode to target
+    uint32_t      pad;
+    math::Matrix4 inputToOutputMatrix; // Conversion matrix to set into right colourspace pre LPM
+    uint32_t      ctl[24 * 4];         // Store data from LPMSetup call
+};
+
+void SetLPMConfig(bool conIn, bool softIn, bool con2In, bool clipIn, bool scaleOnlyIn, LPMConfig& lpmConfig);
+void SetLPMColors(float         xyRedWIn[2],
+                  float         xyGreenWIn[2],
+                  float         xyBlueWIn[2],
+                  float         xyWhiteWIn[2],
+                  float         xyRedOIn[2],
+                  float         xyGreenOIn[2],
+                  float         xyBlueOIn[2],
+                  float         xyWhiteOIn[2],
+                  float         xyRedCIn[2],
+                  float         xyGreenCIn[2],
+                  float         xyBlueCIn[2],
+                  float         xyWhiteCIn[2],
+                  float         scaleCIn,
+                  LPMPrimaries& workingPrimaries,
+                  LPMPrimaries& outputPrimaries,
+                  LPMPrimaries& containerPrimaries,
+                  float&        scaleCOut);
+
+void SetupLPM(LPMInputParams& lpmInputParams);
+
+const LPMOutputParams& GetLPMParameters();

@@ -113,14 +113,15 @@ namespace CAULDRON_VK
         }
     }
 
-    void ColorConversionPS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV)
+    void ColorConversionPS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, uint32_t isLPMToneMapperSelected)
     {
         SetPerfMarkerBegin(cmd_buf, "ColorConversion");
 
-        VkDescriptorBufferInfo cbTonemappingHandle;
+        VkDescriptorBufferInfo cbColorConversionHandle;
         ColorConversionConsts *pColorConversionConsts;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ColorConversionConsts), (void **)&pColorConversionConsts, &cbTonemappingHandle);
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ColorConversionConsts), (void **)&pColorConversionConsts, &cbColorConversionHandle);
         *pColorConversionConsts = m_colorConversionConsts;
+        pColorConversionConsts->m_isLPMToneMapperSelected = isLPMToneMapperSelected;
 
         // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we 
         // need to do some basic buffering. Just to keep it safe and simple we'll have 10 buffers.
@@ -132,7 +133,7 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ColorConversionConsts), descriptorSet);
 
         // Draw!
-        m_ColorConversion.Draw(cmd_buf, &cbTonemappingHandle, descriptorSet);
+        m_ColorConversion.Draw(cmd_buf, &cbColorConversionHandle, descriptorSet);
 
         SetPerfMarkerEnd(cmd_buf);
     }

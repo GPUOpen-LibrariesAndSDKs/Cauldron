@@ -75,16 +75,17 @@ namespace CAULDRON_DX12
         };
 
         void OnCreate(
-            Device *pDevice,
-            UploadHeap *pUploadHeap,
-            ResourceViewHeaps *pHeaps,
-            DynamicBufferRing *pDynamicBufferRing,
-            GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-            SkyDome *pSkyDome,
+            Device* pDevice,
+            UploadHeap* pUploadHeap,
+            ResourceViewHeaps* pHeaps,
+            DynamicBufferRing* pDynamicBufferRing,
+            GLTFTexturesAndBuffers* pGLTFTexturesAndBuffers,
+            SkyDome* pSkyDome,
             bool bUseSSAOMask,
             bool bUseShadowMask,
-            GBufferRenderPass *pGBufferRenderPass,
-            AsyncPool *pAsyncPool = NULL);
+            GBufferRenderPass* pGBufferRenderPass,
+            AsyncPool* pAsyncPool = NULL,
+            bool bInvertedDepth = false);
 
         void OnDestroy();
         void OnUpdateWindowSizeDependentResources(Texture *pSSAO);
@@ -113,6 +114,8 @@ namespace CAULDRON_DX12
         DXGI_FORMAT              m_depthFormat;
         std::vector<DXGI_FORMAT> m_outFormats;
         uint32_t                 m_sampleCount;
+
+        bool                     m_bInvertedDepth;
 
         void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, bool bUseShadowMask, bool bUseSSAOMask);
         void CreateRootSignature(bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);

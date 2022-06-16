@@ -23,6 +23,8 @@
 
 #include <array>
 
+using namespace CAULDRON_DX12;
+
 LRESULT CALLBACK WindowProc(HWND hWnd,
     UINT message,
     WPARAM wParam,
@@ -47,7 +49,7 @@ static constexpr bool ENABLE_CPU_VALIDATION_DEFAULT = false;
 static constexpr bool ENABLE_GPU_VALIDATION_DEFAULT = false;
 #endif
 
-int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWindows *pFramework)
+int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWindows* pFramework)
 {
     // Init logging
     int result = Log::InitLogSystem();
@@ -118,8 +120,6 @@ int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWi
     lBorderedStyle = GetWindowLong(hWnd, GWL_STYLE);
     lBorderlessStyle = lBorderedStyle & ~(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU);
 
-    // Force parsed internal resolution
-    pFramework->OnResize(Width, Height);
     // main loop
     MSG msg = { 0 };
     while (msg.message != WM_QUIT)
@@ -567,7 +567,9 @@ namespace CAULDRON_DX12
             m_swapChain.EnumerateDisplayModes(&m_displayModesAvailable, &m_displayModesNamesAvailable);
             m_monitor = currentMonitor;
             m_previousDisplayModeNamesIndex = m_currentDisplayModeNamesIndex = DISPLAYMODE_SDR;
+
             UpdateDisplay(m_disableLocalDimming);
+            OnResize(true);
         }
     }
 

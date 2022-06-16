@@ -37,7 +37,7 @@ namespace CAULDRON_VK
 
     // Creates a Render pass that will use the contents of the render target for blending.
     //
-    VkRenderPass SimpleColorBlendRenderPass(VkDevice device, VkImageLayout initialLayout, VkImageLayout passLayout, VkImageLayout finalLayout);
+    VkRenderPass SimpleColorBlendRenderPass(VkDevice device, VkFormat format, VkImageLayout initialLayout, VkImageLayout passLayout, VkImageLayout finalLayout);
 
     // Sets the i-th Descriptor Set entry to use a given image view + sampler. The sampler can be null is a static one is being used.
     //

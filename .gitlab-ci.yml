@@ -1,5 +1,7 @@
 variables:
   CMakeConfig: -G "Visual Studio 16 2019" -A x64
+  FF_USE_FASTZIP: "true"
+  ARTIFACT_COMPRESSION_LEVEL: "fast"
 
 stages:
   - build
@@ -11,7 +13,7 @@ build_dx12_debug:
   stage: build
   script:
     - 'cmake -S . -B build/DX12 -DGFX_API=DX12 %CMakeConfig%'
-    - 'cmake --build build/DX12 --config Debug'
+    - 'cmake --build build/DX12 --config Debug --parallel 4 -- /p:CL_MPcount=16'
 
 build_dx12_release:
   tags:
@@ -20,7 +22,7 @@ build_dx12_release:
   stage: build
   script:
     - 'cmake -S . -B build/DX12 -DGFX_API=DX12 %CMakeConfig%'
-    - 'cmake --build build/DX12 --config Release'
+    - 'cmake --build build/DX12 --config Release --parallel 4 -- /p:CL_MPcount=16'
 
 build_vk_debug:
   tags:
@@ -29,7 +31,7 @@ build_vk_debug:
   stage: build
   script:
   - 'cmake -S . -B build/Vk -DGFX_API=VK %CMakeConfig%'
-  - 'cmake --build build/Vk --config Debug'
+  - 'cmake --build build/Vk --config Debug --parallel 4 -- /p:CL_MPcount=16'
 
 build_vk_release:
   tags:
@@ -38,4 +40,4 @@ build_vk_release:
   stage: build
   script:
   - 'cmake -S . -B build/Vk -DGFX_API=VK %CMakeConfig%'
-  - 'cmake --build build/Vk --config Release'
+  - 'cmake --build build/Vk --config Release --parallel 4 -- /p:CL_MPcount=16'

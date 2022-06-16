@@ -37,7 +37,8 @@ namespace CAULDRON_VK
             DynamicBufferRing *pDynamicBufferRing,
             VkDescriptorSetLayout descriptorSetLayout,
             VkPipelineColorBlendStateCreateInfo *pBlendDesc = NULL,
-            VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT
+            VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT,
+            bool invertedDepth = false
         );
         void OnDestroy();
         void UpdatePipeline(VkRenderPass renderPass, VkPipelineColorBlendStateCreateInfo *pBlendDesc = NULL, VkSampleCountFlagBits sampleDescCount = VK_SAMPLE_COUNT_1_BIT);
@@ -56,7 +57,6 @@ namespace CAULDRON_VK
         VkPipeline m_pipeline = VK_NULL_HANDLE;
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-
     };
 }
 

@@ -74,6 +74,14 @@ layout(location = HAS_MOTION_VECTORS_RT) out vec2 Output_motionVect;
     layout (location = HAS_NORMALS_RT) out vec4 Output_normal;
 #endif
 
+#ifdef HAS_UPSCALE_REACTIVE_RT
+    layout (location = HAS_UPSCALE_REACTIVE_RT) out float Output_upscaleReactive;
+#endif
+
+#ifdef HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT
+    layout (location = HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT) out float Output_upscaleTransparencyAndComposition;
+#endif
+
 //--------------------------------------------------------------------------------------
 //
 // Constant Buffers 
@@ -129,8 +137,13 @@ void main()
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
 
 #ifdef HAS_MOTION_VECTORS_RT
-    Output_motionVect = Input.CurrPosition.xy / Input.CurrPosition.w -
-                        Input.PrevPosition.xy / Input.PrevPosition.w;
+    vec2 cancelJitter = myPerFrame.u_mCameraPrevJitter - myPerFrame.u_mCameraCurrJitter;
+    Output_motionVect =
+        (Input.PrevPosition.xy / Input.PrevPosition.w) - (Input.CurrPosition.xy / Input.CurrPosition.w)
+                + cancelJitter;
+
+    // Transform motion vector from NDC space to UV space (+Y is top-down).
+    Output_motionVect *= vec2(0.5f, -0.5f);
 #endif
 
 #ifdef HAS_SPECULAR_ROUGHNESS_RT
@@ -149,4 +162,20 @@ void main()
 	Output_finalColor = vec4(doPbrLighting(Input, myPerFrame, diffuseColor, specularColor, perceptualRoughness), alpha);
     Output_finalColor = mix(Output_finalColor, vec4(myPerFrame.u_WireframeOptions.rgb, 1.0), myPerFrame.u_WireframeOptions.w);
 #endif
+   
+#ifdef HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT
+    #if defined(HAS_NORMAL_UV_TRANSFORM)
+        || defined(HAS_EMISSIVE_UV_TRANSFORM)
+        || defined(HAS_OCCLSION_UV_TRANSFORM)
+        || defined(HAS_BASECOLOR_UV_TRANSFORM)
+        || defined(HAS_METALLICROUGHNESS_UV_TRANSFORM)
+        || defined(HAS_SPECULARGLOSSINESS_UV_TRANSFORM)
+        || defined(HAS_DIFFUSE_UV_TRANSFORM)
+        float hasAnimatedTexture = 1.f;
+    #else
+        float hasAnimatedTexture = 0.f;
+    #endif
+    Output_upscaleTransparencyAndComposition = max(alpha, hasAnimatedTexture);
+#endif
+
 }

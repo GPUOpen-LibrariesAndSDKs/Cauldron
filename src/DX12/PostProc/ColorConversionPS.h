@@ -28,7 +28,7 @@ namespace CAULDRON_DX12
         void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat);
         void OnDestroy();
         void UpdatePipelines(DXGI_FORMAT outFormat, DisplayMode displayMode);
-        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV);
+        void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, uint32_t isLPMToneMapperSelected = 0);
 
     private:
         PostProcPS m_ColorConversion;
@@ -41,6 +41,7 @@ namespace CAULDRON_DX12
             DisplayMode m_displayMode;
             float m_displayMinLuminancePerNits;
             float m_displayMaxLuminancePerNits;
+            uint32_t m_isLPMToneMapperSelected;
         };
 
         ColorConversionConsts m_colorConversionConsts;

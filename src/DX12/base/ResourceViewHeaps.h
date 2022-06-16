@@ -44,19 +44,24 @@ namespace CAULDRON_DX12
     class ResourceView
     {
     public:
-        uint32_t GetSize()
+        uint32_t GetSize() const
         {
             return m_Size;
         }
 
-        D3D12_CPU_DESCRIPTOR_HANDLE GetCPU(uint32_t i = 0)
+        uint32_t GetDescriptorSize() const
+        {
+            return m_descriptorSize;
+        }
+
+        D3D12_CPU_DESCRIPTOR_HANDLE GetCPU(uint32_t i = 0) const
         {
             D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptor = m_CPUDescriptor;
             CPUDescriptor.ptr += i * m_descriptorSize;
             return CPUDescriptor;
         }
 
-        D3D12_GPU_DESCRIPTOR_HANDLE GetGPU(uint32_t i = 0)
+        D3D12_GPU_DESCRIPTOR_HANDLE GetGPU(uint32_t i = 0) const
         {
             D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptor = m_GPUDescriptor;
             GPUDescriptor.ptr += i * m_descriptorSize;
@@ -106,8 +111,12 @@ namespace CAULDRON_DX12
             D3D12_CPU_DESCRIPTOR_HANDLE CPUView = m_pHeap->GetCPUDescriptorHandleForHeapStart();
             CPUView.ptr += m_index * m_descriptorElementSize;
 
-            D3D12_GPU_DESCRIPTOR_HANDLE GPUView = m_pHeap->GetGPUDescriptorHandleForHeapStart();
-            GPUView.ptr += m_index * m_descriptorElementSize;
+            D3D12_GPU_DESCRIPTOR_HANDLE GPUView = {};
+            if (m_pHeap->GetDesc().Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+            {
+                GPUView = m_pHeap->GetGPUDescriptorHandleForHeapStart();
+                GPUView.ptr += m_index * m_descriptorElementSize;
+            }
 
             m_index += size;
 

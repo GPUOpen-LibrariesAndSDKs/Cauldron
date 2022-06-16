@@ -31,7 +31,7 @@ layout (std140, binding = ID_SKINNING_MATRICES) uniform perSkeleton
     Matrix2 u_ModelMatrix[200];
 } myPerSkeleton;
 
-mat4 GetSkinningMatrix(vec4 Weights, uvec4 Joints)
+mat4 GetCurrentSkinningMatrix(vec4 Weights, uvec4 Joints)
 {
     mat4 skinningMatrix =
         Weights.x * myPerSkeleton.u_ModelMatrix[Joints.x].m_current +
@@ -40,4 +40,15 @@ mat4 GetSkinningMatrix(vec4 Weights, uvec4 Joints)
         Weights.w * myPerSkeleton.u_ModelMatrix[Joints.w].m_current;
     return skinningMatrix;
 }
+
+mat4 GetPreviousSkinningMatrix(vec4 Weights, uvec4 Joints)
+{
+    mat4 skinningMatrix =
+        Weights.x * myPerSkeleton.u_ModelMatrix[Joints.x].m_previous +
+        Weights.y * myPerSkeleton.u_ModelMatrix[Joints.y].m_previous +
+        Weights.z * myPerSkeleton.u_ModelMatrix[Joints.z].m_previous +
+        Weights.w * myPerSkeleton.u_ModelMatrix[Joints.w].m_previous;
+    return skinningMatrix;
+}
+
 #endif

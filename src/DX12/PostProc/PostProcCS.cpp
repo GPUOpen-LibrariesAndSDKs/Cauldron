@@ -141,7 +141,7 @@ namespace CAULDRON_DX12
             descPso.NodeMask = 0;
 
             ThrowIfFailed(m_pDevice->GetDevice()->CreateComputePipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline)));
-            SetName(m_pRootSignature, std::string("PostProcCS::m_pPipeline::") + params.shaderFilename);
+            SetName(m_pPipeline, std::string("PostProcCS::m_pPipeline::") + params.shaderFilename);
         }
     }
 

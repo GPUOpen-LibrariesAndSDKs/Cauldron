@@ -41,14 +41,15 @@ namespace CAULDRON_DX12
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
         DXGI_FORMAT motionVectorsBufferFormat,
         DXGI_FORMAT normalBufferFormat,
-        AsyncPool *pAsyncPool)
+        AsyncPool *pAsyncPool,
+        bool bInvertedDepth)
     {
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pHeaps;
         m_pStaticBufferPool = pStaticBufferPool;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
-
+        m_bInvertedDepth = bInvertedDepth;
         m_normalBufferFormat = normalBufferFormat;
         m_motionVectorsBufferFormat = motionVectorsBufferFormat;
 
@@ -337,7 +338,7 @@ namespace CAULDRON_DX12
         descPso.RasterizerState.CullMode = (pPrimitive->m_pMaterial->m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT;
         descPso.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         descPso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-        descPso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+        descPso.DepthStencilState.DepthFunc = m_bInvertedDepth ? D3D12_COMPARISON_FUNC_GREATER : D3D12_COMPARISON_FUNC_LESS;
         descPso.SampleMask = UINT_MAX;
         descPso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         descPso.NumRenderTargets = (UINT)formats.size();

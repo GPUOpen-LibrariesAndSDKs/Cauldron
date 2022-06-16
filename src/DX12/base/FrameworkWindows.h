@@ -107,6 +107,5 @@ namespace CAULDRON_DX12
 	};
 } // CAULDRON_DX12
 
-using namespace CAULDRON_DX12;
-int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWindows *pFramework);
+int  RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, CAULDRON_DX12::FrameworkWindows* pFramework);
 void SetFullscreen(HWND hWnd, bool fullscreen);

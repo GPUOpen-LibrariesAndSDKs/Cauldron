@@ -41,13 +41,15 @@ namespace CAULDRON_DX12
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
         AsyncPool* pAsyncPool,
-        DXGI_FORMAT depthFormat)
+        DXGI_FORMAT depthFormat,
+        bool bInvertedDepth)
     {
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pHeaps;
         m_pStaticBufferPool = pStaticBufferPool;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
+        m_bInvertedDepth = bInvertedDepth;
 
         const json &j3 = pGLTFTexturesAndBuffers->m_pGLTFCommon->j3;
 
@@ -316,7 +318,7 @@ namespace CAULDRON_DX12
         descPso.RasterizerState.DepthClipEnable = false;
         descPso.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         descPso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-        descPso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+        descPso.DepthStencilState.DepthFunc = m_bInvertedDepth ? D3D12_COMPARISON_FUNC_LESS : D3D12_COMPARISON_FUNC_GREATER;
         descPso.SampleMask = UINT_MAX;
         descPso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         descPso.DSVFormat = depthFormat;

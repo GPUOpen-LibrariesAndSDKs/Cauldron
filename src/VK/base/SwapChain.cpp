@@ -210,8 +210,25 @@ namespace CAULDRON_VK
         // if SDR then use a gamma corrected swapchain so the blending is correct
         if (m_displayMode == DISPLAYMODE_SDR)
         {
-            assert(m_swapChainFormat.format == VK_FORMAT_R8G8B8A8_UNORM);
-            m_swapChainFormat.format = VK_FORMAT_R8G8B8A8_SRGB;
+            // Query support for VK_FORMAT_R8G8B8A8_SRGB or VK_FORMAT_B8G8R8A8_SRGB
+            uint32_t formatCount = 0;
+            std::vector<VkSurfaceFormatKHR> surfaceFormats;
+            vkGetPhysicalDeviceSurfaceFormatsKHR(m_pDevice->GetPhysicalDevice(), m_pDevice->GetSurface(), &formatCount, nullptr);
+
+            if (formatCount != 0)
+            {
+                surfaceFormats.resize(formatCount);
+                vkGetPhysicalDeviceSurfaceFormatsKHR(m_pDevice->GetPhysicalDevice(), m_pDevice->GetSurface(), &formatCount, &surfaceFormats[0]);
+            }
+
+            for (int i = 0; i < surfaceFormats.size(); i++)
+            {
+                if ((surfaceFormats[i].format == VK_FORMAT_R8G8B8A8_SRGB || surfaceFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB) && surfaceFormats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+                {
+                    m_swapChainFormat = surfaceFormats[i];
+                    break;
+                }
+            }
         }
 
         VkResult res;
@@ -293,7 +310,7 @@ namespace CAULDRON_VK
         VkSwapchainCreateInfoKHR swapchain_ci = {};
         swapchain_ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
         swapchain_ci.pNext = nullptr;
-        if (ExtAreFreeSyncHDRExtensionsPresent())
+        if (ExtAreFSEExtensionsPresent())
         {
             // NOTE: what GetVkSurfaceFullScreenExclusiveInfoEXT returns is set up by the previous IsModeSupported call
             swapchain_ci.pNext = GetVkSurfaceFullScreenExclusiveInfoEXT();

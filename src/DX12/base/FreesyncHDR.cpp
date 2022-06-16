@@ -91,7 +91,7 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     inline int ComputeIntersectionArea(int ax1, int ay1, int ax2, int ay2, int bx1, int by1, int bx2, int by2)
     {
-        return std::max(0, std::min(ax2, bx2) - std::max(ax1, bx1)) * std::max(0, std::min(ay2, by2) - std::max(ay1, by1));
+        return max(0, min(ax2, bx2) - max(ax1, bx1)) * max(0, min(ay2, by2) - max(ay1, by1));
     }
 
     bool FindBestDisplayIndex(RECT *windowRect, RECT *monitorRect, float *bestIntersectArea)
@@ -365,7 +365,7 @@ namespace CAULDRON_DX12
                 HDR10MetaData.BluePrimary[1] = static_cast<UINT16>(s_desc1.BluePrimary[1] * 50000.0f);
                 HDR10MetaData.WhitePoint[0] = static_cast<UINT16>(s_desc1.WhitePoint[0] * 50000.0f);
                 HDR10MetaData.WhitePoint[1] = static_cast<UINT16>(s_desc1.WhitePoint[1] * 50000.0f);
-                HDR10MetaData.MaxMasteringLuminance = static_cast<UINT>(s_desc1.MaxLuminance * 10000.0f);
+                HDR10MetaData.MaxMasteringLuminance = static_cast<UINT>(s_desc1.MaxLuminance);
                 HDR10MetaData.MinMasteringLuminance = static_cast<UINT>(s_desc1.MinLuminance * 10000.0f);
                 ThrowIfFailed(pSwapchain->SetHDRMetaData(DXGI_HDR_METADATA_TYPE_HDR10, sizeof(DXGI_HDR_METADATA_HDR10), &HDR10MetaData));
                 ThrowIfFailed(pSwapchain->SetColorSpace1(s_desc1.ColorSpace));

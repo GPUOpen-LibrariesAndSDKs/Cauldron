@@ -28,11 +28,12 @@
 
 namespace CAULDRON_VK
 {
-    void SkyDome::OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount)
+    void SkyDome::OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, VkSampleCountFlagBits sampleDescCount, bool invertedDepth)
     {
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pResourceViewHeaps = pResourceViewHeaps;
+        m_bInvertedDepth = invertedDepth;
 
         m_CubeDiffuseTexture.InitFromFile(pDevice, pUploadHeap, pDiffuseCubemap, true); // SRGB
         m_CubeSpecularTexture.InitFromFile(pDevice, pUploadHeap, pSpecularCubemap, true);
@@ -93,7 +94,7 @@ namespace CAULDRON_VK
         pDynamicBufferRing->SetDescriptorSet(0, sizeof(math::Matrix4), m_descriptorSet);
         SetDescriptorSpec(1, m_descriptorSet);
 
-        m_skydome.OnCreate(pDevice, renderPass, "SkyDome.glsl", "main", "", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount);
+        m_skydome.OnCreate(pDevice, renderPass, "SkyDome.glsl", "main", "", pStaticBufferPool, pDynamicBufferRing, m_descriptorLayout, NULL, sampleDescCount, m_bInvertedDepth);
     }
 
     void SkyDome::OnDestroy()

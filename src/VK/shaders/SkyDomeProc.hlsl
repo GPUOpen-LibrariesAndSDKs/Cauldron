@@ -20,6 +20,7 @@
 // aka The Preetham Model, the de facto standard analytic skydome model
 // http://www.cs.utah.edu/~shirley/papers/sunsky/sunsky.pdf
 
+
 //--------------------------------------------------------------------------------------
 // Constant Buffer
 //--------------------------------------------------------------------------------------
@@ -41,7 +42,7 @@
 //--------------------------------------------------------------------------------------
 struct VERTEX
 {
-    [[vk::location(0)]] float2 vTexcoord : TEXCOORD;
+	[[vk::location(0)]] float2 vTexcoord : TEXCOORD;
 };
 
 //--------------------------------------------------------------------------------------
@@ -122,9 +123,9 @@ float hgPhase( float cosTheta, float g ) {
     return ONE_OVER_FOURPI * ( ( 1.0 - g2 ) * inverse );
 }
 
-[[vk::location(0)]] float4 main(VERTEX Input) : SV_Target
+[[vk::location(0)]] float4 mainPS(VERTEX Input) : SV_Target
 {
-    float4 clip = float4(2 * Input.vTexcoord.x - 1, 1 - 2 * Input.vTexcoord.y, 1, 1);
+    float4 clip = float4(2 * Input.vTexcoord.x - 1, 1 - 2 * Input.vTexcoord.y, FAR_DEPTH, 1);
     float3 vWorldPosition = (mul(u_mClipToWord, clip)).xyz;
 
     //this can be done in a VS
@@ -180,8 +181,8 @@ float hgPhase( float cosTheta, float g ) {
 
     float3 texColor = ( Lin + L0 ) * 0.04 + float3( 0.0, 0.0003, 0.00075 );
 
-    //no tonemapped
-    float3 color = ( log2( 2.0 / pow( luminance, 4.0 ) ) ) * texColor;
+	//no tonemapped
+	float3 color = ( log2( 2.0 / pow( luminance, 4.0 ) ) ) * texColor;
 
     float3 retColor = pow(abs(color), ( 1.0 / ( 1.2 + ( 1.2 * vSunfade ) ) ) );
 

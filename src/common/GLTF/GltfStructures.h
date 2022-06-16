@@ -40,7 +40,7 @@ public:
         if (i >= m_count)
             i = m_count - 1;
 
-        return (const char*)m_data + m_stride*i;
+        return (const char*)m_data + m_stride * i;
     }
 
     int FindClosestFloatIndex(float val) const

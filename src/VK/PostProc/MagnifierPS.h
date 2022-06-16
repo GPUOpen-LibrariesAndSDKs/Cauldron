@@ -72,7 +72,7 @@ namespace CAULDRON_VK
 		);
 
 		void OnDestroy();
-		void OnCreateWindowSizeDependentResources(Texture* pTexture);
+		void OnCreateWindowSizeDependentResources(uint32_t Width, uint32_t Height);
 		void OnDestroyWindowSizeDependentResources();
 		void BeginPass(VkCommandBuffer cmd, VkRect2D renderArea, SwapChain* pSwapChain = nullptr);
 		void EndPass(VkCommandBuffer cmd);
@@ -84,11 +84,13 @@ namespace CAULDRON_VK
 		void Draw(
 			VkCommandBuffer         cmd
 			, const PassParameters& params
+			, VkImageView			imageViewSrc
 			, SwapChain*            pSwapChain = nullptr
 		);
 
 		inline Texture& GetPassOutput() { assert(!m_bOutputsToSwapchain); return m_TexPassOutput; }
 		inline VkImage GetPassOutputResource() const { assert(!m_bOutputsToSwapchain); return m_TexPassOutput.Resource(); }
+		inline VkImageView GetPassOutputRTV() const { assert(!m_bOutputsToSwapchain); return m_RTVOutput; }
 		inline VkImageView GetPassOutputSRV() const  { assert(!m_bOutputsToSwapchain); return m_SRVOutput; }
 		inline VkRenderPass GetPassRenderPass() const { assert(!m_bOutputsToSwapchain); return m_RenderPass; }
 		void UpdatePipelines(VkRenderPass renderPass);
@@ -117,14 +119,14 @@ namespace CAULDRON_VK
 		//
 		// DESCRIPTOR SETS & LAYOUTS
 		//
-		VkDescriptorSet m_DescriptorSet;
+		VkDescriptorSet m_DescriptorSet[3];
 		VkDescriptorSetLayout m_DescriptorSetLayout;
+		uint32_t m_DescriptorSetIndex = 0;
 
 		//
 		// RENDER PASSES & RESOURCE VIEWS
 		//
 		VkSampler   m_SamplerSrc;
-		VkImageView m_ImageViewSrc;
 
 		VkRenderPass  m_RenderPass;
 		VkFramebuffer m_FrameBuffer;
@@ -139,6 +141,7 @@ namespace CAULDRON_VK
 		//
 		// TEXTURES
 		//
+		VkFormat m_OutFormat;
 		Texture m_TexPassOutput;
 
 		// 

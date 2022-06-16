@@ -72,7 +72,8 @@ namespace CAULDRON_DX12
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             DXGI_FORMAT motionVectorsBufferFormat,
             DXGI_FORMAT normalBufferFormat = DXGI_FORMAT_UNKNOWN,
-            AsyncPool *pAsyncPool = NULL);
+            AsyncPool *pAsyncPool = NULL,
+            bool bInvertedDepth = false);
 
         void OnDestroy();
         GltfMotionVectorsPass::per_frame *SetPerFrameConstants();
@@ -94,6 +95,8 @@ namespace CAULDRON_DX12
 
         DXGI_FORMAT m_normalBufferFormat;
         DXGI_FORMAT m_motionVectorsBufferFormat;
+
+        bool m_bInvertedDepth;
 
         void CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, MotionVectorPrimitives *pPrimitive);
     };

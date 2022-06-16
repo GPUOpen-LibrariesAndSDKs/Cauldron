@@ -41,7 +41,7 @@ namespace CAULDRON_VK
             float mieDirectionalG;
         };
 
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, VkSampleCountFlagBits sampleDescCount);
+        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap* pUploadHeap, VkFormat outFormat, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, VkSampleCountFlagBits sampleDescCount, bool invertedDepth = false);
         void OnDestroy();
         void Draw(VkCommandBuffer cmd_buf, SkyDomeProc::Constants constants);
 
@@ -56,5 +56,7 @@ namespace CAULDRON_VK
         PostProcPS  m_skydome;
 
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
+
+        bool m_bInvertedDepth;
     };
 }

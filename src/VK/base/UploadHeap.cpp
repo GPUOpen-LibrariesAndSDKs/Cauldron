@@ -40,7 +40,6 @@ namespace CAULDRON_VK
             VkCommandPoolCreateInfo cmd_pool_info = {};
             cmd_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
             cmd_pool_info.queueFamilyIndex = m_pDevice->GetGraphicsQueueFamilyIndex();
-            cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
             res = vkCreateCommandPool(m_pDevice->GetDevice(), &cmd_pool_info, NULL, &m_commandPool);
             assert(res == VK_SUCCESS);
 
@@ -286,6 +285,8 @@ namespace CAULDRON_VK
         vkResetFences(m_pDevice->GetDevice(), 1, &m_fence);
 
         // Reset so it can be reused
+        vkResetCommandPool(m_pDevice->GetDevice(), m_commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
+
         VkCommandBufferBeginInfo cmd_buf_info = {};
         cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 

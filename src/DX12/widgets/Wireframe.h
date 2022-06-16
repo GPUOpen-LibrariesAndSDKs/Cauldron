@@ -36,7 +36,8 @@ namespace CAULDRON_DX12
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
             DXGI_FORMAT outFormat,
-            uint32_t sampleDescCount);
+            uint32_t sampleDescCount,
+            bool bInvertedDepth = false);
 
         void OnDestroy();
         void Draw(ID3D12GraphicsCommandList* pCommandList, int numIndices, D3D12_INDEX_BUFFER_VIEW IBV, D3D12_VERTEX_BUFFER_VIEW VBV, const math::Matrix4& WorldViewProj, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor);

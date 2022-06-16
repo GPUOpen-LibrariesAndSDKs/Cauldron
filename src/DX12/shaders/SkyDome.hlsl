@@ -44,7 +44,7 @@ SamplerState     samLinearWrap    :register(s0);
 //--------------------------------------------------------------------------------------
 float4 mainPS(VERTEX Input) : SV_Target
 {
-    float4 clip = float4(2 * Input.vTexcoord.x - 1, 1 - 2 * Input.vTexcoord.y, 1, 1);
+    float4 clip = float4(2 * Input.vTexcoord.x - 1, 1 - 2 * Input.vTexcoord.y, FAR_DEPTH, 1);
 
     float4 pixelDir = mul(u_mClipToWord, clip);
 

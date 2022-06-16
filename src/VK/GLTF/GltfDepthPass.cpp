@@ -43,7 +43,8 @@ namespace CAULDRON_VK
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
         GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-        AsyncPool *pAsyncPool)
+        AsyncPool *pAsyncPool,
+        bool invertedDepth)
     {
         m_pDevice = pDevice;
         m_renderPass = renderPass;
@@ -52,6 +53,7 @@ namespace CAULDRON_VK
         m_pStaticBufferPool = pStaticBufferPool;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
+        m_bInvertedDepth = invertedDepth;
 
         const json &j3 = pGLTFTexturesAndBuffers->m_pGLTFCommon->j3;
 
@@ -352,14 +354,14 @@ namespace CAULDRON_VK
         rs.pNext = NULL;
         rs.flags = 0;
         rs.polygonMode = VK_POLYGON_MODE_FILL;
-        rs.cullMode = pPrimitive->m_pMaterial->m_doubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;;
+        rs.cullMode = VK_CULL_MODE_NONE;//pPrimitive->m_pMaterial->m_doubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT;; // following DX12 path
         rs.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rs.depthClampEnable = VK_FALSE;
         rs.rasterizerDiscardEnable = VK_FALSE;
         rs.depthBiasEnable = VK_FALSE;
         rs.depthBiasConstantFactor = 0;
         rs.depthBiasClamp = 0;
-        rs.depthBiasSlopeFactor = 0;
+        rs.depthBiasSlopeFactor = 1.0f;
         rs.lineWidth = 1.0f;
 
         VkPipelineColorBlendAttachmentState att_state[1];
@@ -416,7 +418,7 @@ namespace CAULDRON_VK
         ds.flags = 0;
         ds.depthTestEnable = true;
         ds.depthWriteEnable = true;
-        ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        ds.depthCompareOp = m_bInvertedDepth ? VK_COMPARE_OP_LESS_OR_EQUAL : VK_COMPARE_OP_GREATER_OR_EQUAL;
         ds.back.failOp = VK_STENCIL_OP_KEEP;
         ds.back.passOp = VK_STENCIL_OP_KEEP;
         ds.back.compareOp = VK_COMPARE_OP_ALWAYS;
@@ -476,10 +478,10 @@ namespace CAULDRON_VK
     // SetPerFrameConstants
     //
     //--------------------------------------------------------------------------------------
-    GltfDepthPass::per_frame *GltfDepthPass::SetPerFrameConstants()
+    per_frame *GltfDepthPass::SetPerFrameConstants()
     {
-        GltfDepthPass::per_frame *cbPerFrame;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(GltfDepthPass::per_frame), (void **)&cbPerFrame, &m_perFrameDesc);
+        per_frame *cbPerFrame;
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(per_frame), (void **)&cbPerFrame, &m_perFrameDesc);
 
         return cbPerFrame;
     }

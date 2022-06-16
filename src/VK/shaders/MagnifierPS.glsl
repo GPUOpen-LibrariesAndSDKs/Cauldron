@@ -1,3 +1,5 @@
+#version 400
+
 // AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
@@ -17,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#version 400
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 

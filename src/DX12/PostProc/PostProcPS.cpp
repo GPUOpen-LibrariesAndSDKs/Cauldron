@@ -42,7 +42,8 @@ namespace CAULDRON_DX12
         D3D12_DEPTH_STENCIL_DESC *pDepthStencilDesc,
         uint32_t numRenderTargets,
         const char *pVSTarget,
-        const char *pPSTarget
+        const char *pPSTarget,
+        bool bInvertedDepth
     )
     {
         m_pDevice = pDevice;
@@ -50,8 +51,8 @@ namespace CAULDRON_DX12
 
         // Create the vertex shader
         static const char* vertexShader =
-           "static const float4 FullScreenVertsPos[3] = { float4(-1, 1, 1, 1), float4(3, 1, 1, 1), float4(-1, -3, 1, 1) };\
-             static const float2 FullScreenVertsUVs[3] = { float2(0, 0), float2(2, 0), float2(0, 2) };\
+           "static const float4 FullScreenVertsPos[3] = { float4(-1, 1, FAR_DEPTH, 1), float4(3, 1, FAR_DEPTH, 1), float4(-1, -3, FAR_DEPTH, 1) };\
+            static const float2 FullScreenVertsUVs[3] = { float2(0, 0), float2(2, 0), float2(0, 2) };\
             struct VERTEX_OUT\
             {\
                 float2 vTexture : TEXCOORD;\
@@ -69,6 +70,7 @@ namespace CAULDRON_DX12
         //
         {
             DefineList defines;
+            defines["FAR_DEPTH"] = bInvertedDepth ? "0" : "1";
             CompileShaderFromString(vertexShader, &defines, "mainVS", pVSTarget, &m_shaderVert);
             CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", pPSTarget, &m_shaderPixel);
         }

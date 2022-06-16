@@ -76,6 +76,20 @@ namespace CAULDRON_DX12
         {
             m_RenderTargetViewList.push_back(m_pGBuffer->m_SpecularRoughnessRTV.GetCPU());
         }
+
+        // Upscale Reactive
+        //
+        if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE)
+        {
+            m_RenderTargetViewList.push_back(m_pGBuffer->m_UpscaleReactiveRTV.GetCPU());
+        }
+
+        // Upscale Transparency and Composition
+        //
+        if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            m_RenderTargetViewList.push_back(m_pGBuffer->m_UpscaleTransparencyAndCompositionRTV.GetCPU());
+        }
     }
 
     void GBufferRenderPass::OnDestroyWindowSizeDependentResources()
@@ -86,15 +100,22 @@ namespace CAULDRON_DX12
     {
         if (bClear)
         {
-            float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
             for (D3D12_CPU_DESCRIPTOR_HANDLE handle : m_RenderTargetViewList)
             {
+                float clearColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
                 pCommandList->ClearRenderTargetView(handle, clearColor, 0, nullptr);
             }
 
             if (m_GBufferFlags & GBUFFER_DEPTH)
             {
-                pCommandList->ClearDepthStencilView(m_DepthBuffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+                if (m_GBufferFlags & GBUFFER_INVERTED_DEPTH)
+                {
+                    pCommandList->ClearDepthStencilView(m_DepthBuffer, D3D12_CLEAR_FLAG_DEPTH, 0.0f, 0, 0, nullptr);
+                }
+                else
+                {
+                    pCommandList->ClearDepthStencilView(m_DepthBuffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+                }
             }
         }
 
@@ -151,6 +172,58 @@ namespace CAULDRON_DX12
             defines["HAS_SPECULAR_ROUGHNESS_RT"] = std::to_string(rtIndex++);
             outFormats.push_back(m_pGBuffer->m_SpecularRoughness.GetFormat());
         }
+
+        // Upscale reactive data
+        //
+        if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE)
+        {
+            defines["HAS_UPSCALE_REACTIVE_RT"] = std::to_string(rtIndex++);
+            outFormats.push_back(m_pGBuffer->m_UpscaleReactive.GetFormat());
+        }
+
+        // Upscale transparency and composition data
+        //
+        if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            defines["HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT"] = std::to_string(rtIndex++);
+            outFormats.push_back(m_pGBuffer->m_UpscaleTransparencyAndComposition.GetFormat());
+        }
+    }
+    int GBufferRenderPass::GetRtIndex(GBufferFlagBits pass)
+    {
+        if (m_GBufferFlags & pass)
+        {
+            int rtIndex = 0;
+
+            if (pass == GBUFFER_FORWARD) 
+                return rtIndex;
+            else if (m_GBufferFlags & GBUFFER_FORWARD) rtIndex++;
+
+            if (pass == GBUFFER_MOTION_VECTORS)
+                return rtIndex;
+            else if (m_GBufferFlags & GBUFFER_MOTION_VECTORS) rtIndex++;
+
+            if (pass == GBUFFER_NORMAL_BUFFER)
+                return rtIndex;
+            else if (m_GBufferFlags & GBUFFER_NORMAL_BUFFER) rtIndex++;
+
+            if (pass == GBUFFER_DIFFUSE)
+                return rtIndex;
+            else if (m_GBufferFlags & GBUFFER_DIFFUSE) rtIndex++;
+
+            if (pass == GBUFFER_SPECULAR_ROUGHNESS)
+                return rtIndex;
+            else if (m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS) rtIndex++;
+
+            if (pass == GBUFFER_UPSCALEREACTIVE)
+                return rtIndex;
+            else if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE) rtIndex++;
+
+            if (pass == GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+                return rtIndex;
+            else if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION) rtIndex++;
+        }
+        return -1;
     }
 
     int32_t GBufferRenderPass::GetSampleCount()
@@ -158,9 +231,9 @@ namespace CAULDRON_DX12
         return m_pGBuffer->GetSampleCount(); 
     }
 
-    void GBuffer::OnCreate(Device *pDevice, ResourceViewHeaps *pHeaps, const std::map<GBufferFlags, DXGI_FORMAT> &formats, uint32_t sampleCount)
+    void GBuffer::OnCreate(Device *pDevice, ResourceViewHeaps *pHeaps, const std::map<GBufferFlags, DXGI_FORMAT> &formats, uint32_t sampleCount, GBufferFlags flag)
     {
-        m_GBufferFlags = GBUFFER_NONE;
+        m_GBufferFlags = flag;
         for (auto a : formats)
             m_GBufferFlags = m_GBufferFlags | a.first;
 
@@ -188,6 +261,12 @@ namespace CAULDRON_DX12
         
         pHeaps->AllocRTVDescriptor(1, &m_SpecularRoughnessRTV);
         pHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_SpecularRoughnessSRV);        
+
+        pHeaps->AllocRTVDescriptor(1, &m_UpscaleReactiveRTV);
+        pHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_UpscaleReactiveSRV);
+
+        pHeaps->AllocRTVDescriptor(1, &m_UpscaleTransparencyAndCompositionRTV);
+        pHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_UpscaleTransparencyAndCompositionSRV);
     }
 
     void GBuffer::OnDestroy()
@@ -199,7 +278,7 @@ namespace CAULDRON_DX12
     {
         if (m_GBufferFlags & GBUFFER_DEPTH)
         {
-            m_DepthBuffer.InitDepthStencil(m_pDevice, "m_depthbuffer", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DEPTH], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL));
+            m_DepthBuffer.InitDepthStencil(m_pDevice, "m_depthbuffer", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DEPTH], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL), m_GBufferFlags & GBUFFER_INVERTED_DEPTH ? 0.f : 1.f);
             m_DepthBuffer.CreateDSV(0, &m_DepthBufferDSV);
             m_DepthBuffer.CreateSRV(0, &m_DepthBufferSRV);
         }
@@ -249,10 +328,32 @@ namespace CAULDRON_DX12
             m_SpecularRoughness.CreateRTV(0, &m_SpecularRoughnessRTV);
             m_SpecularRoughness.CreateSRV(0, &m_SpecularRoughnessSRV);
         }
+
+        // Upscale reactive data
+        //
+        if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE)
+        {
+            m_UpscaleReactive.InitRenderTarget(m_pDevice, "m_UpscaleReactive", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_UPSCALEREACTIVE], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS));
+            m_UpscaleReactive.CreateRTV(0, &m_UpscaleReactiveRTV);
+            m_UpscaleReactive.CreateSRV(0, &m_UpscaleReactiveSRV);
+        }
+
+        if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            m_UpscaleTransparencyAndComposition.InitRenderTarget(m_pDevice, "m_UpscaleTransparencyAndCompositon", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+            m_UpscaleTransparencyAndComposition.CreateRTV(0, &m_UpscaleTransparencyAndCompositionRTV);
+            m_UpscaleTransparencyAndComposition.CreateSRV(0, &m_UpscaleTransparencyAndCompositionSRV);
+        }
     }
 
     void GBuffer::OnDestroyWindowSizeDependentResources()
     {
+        if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE)
+            m_UpscaleReactive.OnDestroy();
+
+        if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+            m_UpscaleTransparencyAndComposition.OnDestroy();
+
         if (m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS)
             m_SpecularRoughness.OnDestroy();
         

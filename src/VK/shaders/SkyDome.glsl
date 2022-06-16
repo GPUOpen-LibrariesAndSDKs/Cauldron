@@ -48,7 +48,7 @@ layout(set=0, binding=1) uniform samplerCube inputSampler;
 //--------------------------------------------------------------------------------------
 void main()
 {
-    vec4 clip = vec4(2 * inTexCoord.x - 1, 1 - 2 * inTexCoord.y, 1, 1);
+    vec4 clip = vec4(2 * inTexCoord.x - 1, 1 - 2 * inTexCoord.y, FAR_DEPTH, 1);
 
     vec4 pixelDir = myPerFrame.u_mClipToWord * clip;
 

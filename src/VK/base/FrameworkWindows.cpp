@@ -23,6 +23,8 @@
 
 #include <array>
 
+using namespace CAULDRON_VK;
+
 LRESULT CALLBACK WindowProc(HWND hWnd,
     UINT message,
     WPARAM wParam,
@@ -348,7 +350,7 @@ namespace CAULDRON_VK
         , m_currentDisplayModeNamesIndex (DISPLAYMODE_SDR)
         , m_displayModesAvailable()
         , m_displayModesNamesAvailable()
-        , m_enableLocalDimming(true)
+        , m_disableLocalDimming(false)
 
         // System info
         , m_systemInfo() // initialized after device
@@ -368,7 +370,7 @@ namespace CAULDRON_VK
         m_monitor = MonitorFromWindow(m_windowHwnd, MONITOR_DEFAULTTONEAREST);
 
         // Create Swapchain
-        uint32_t dwNumberOfBackBuffers = 2;
+        uint32_t dwNumberOfBackBuffers = 3;
         m_swapChain.OnCreate(&m_device, dwNumberOfBackBuffers, m_windowHwnd);
 
         m_swapChain.EnumerateDisplayModes(&m_displayModesAvailable, &m_displayModesNamesAvailable);
@@ -497,7 +499,7 @@ namespace CAULDRON_VK
         OnResize(nw, nh);
         if (resizeResources)
         {
-            UpdateDisplay();
+            UpdateDisplay(m_disableLocalDimming);
             OnResize(true);
         }
     }
@@ -533,7 +535,7 @@ namespace CAULDRON_VK
         m_currentDisplayModeNamesIndex = WindowActive && (m_fullscreenMode != PRESENTATIONMODE_WINDOWED) ? m_previousDisplayModeNamesIndex : DisplayMode::DISPLAYMODE_SDR;
         if (old != m_currentDisplayModeNamesIndex)
         {
-            UpdateDisplay();
+            UpdateDisplay(m_disableLocalDimming);
             OnResize(true);
         }
     }
@@ -547,7 +549,7 @@ namespace CAULDRON_VK
             m_monitor = currentMonitor;
             m_previousDisplayModeNamesIndex = m_currentDisplayModeNamesIndex = DISPLAYMODE_SDR;
             OnResize(m_Width, m_Height);
-            UpdateDisplay();
+            UpdateDisplay(m_disableLocalDimming);
         }
     }
 
@@ -558,12 +560,12 @@ namespace CAULDRON_VK
         m_Height = height;
         if (fr)
         {
-            UpdateDisplay();
+            UpdateDisplay(m_disableLocalDimming);
             OnResize(true);
         }
     }
 
-    void FrameworkWindows::UpdateDisplay()
+    void FrameworkWindows::UpdateDisplay(bool disableLocalDimming)
     {
         // Nothing was changed in UI
         if (m_displayModesAvailable[m_currentDisplayModeNamesIndex] < 0)
@@ -577,7 +579,9 @@ namespace CAULDRON_VK
 
         m_swapChain.OnDestroyWindowSizeDependentResources();
 
-        m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height, m_VsyncEnabled, m_displayModesAvailable[m_currentDisplayModeNamesIndex], m_fullscreenMode, m_enableLocalDimming);
+        m_disableLocalDimming = disableLocalDimming;
+
+        m_swapChain.OnCreateWindowSizeDependentResources(m_Width, m_Height, m_VsyncEnabled, m_displayModesAvailable[m_currentDisplayModeNamesIndex], m_fullscreenMode, !m_disableLocalDimming);
 
         // Call sample defined UpdateDisplay()
         OnUpdateDisplay();
@@ -617,7 +621,7 @@ namespace CAULDRON_VK
     {
         // Flush GPU
         m_device.GPUFlush();
-        fsHdrSetLocalDimmingMode(m_swapChain.GetSwapChain(), m_enableLocalDimming);
+        fsHdrSetLocalDimmingMode(m_swapChain.GetSwapChain(), !m_disableLocalDimming);
     }
 
 } // namespace CAULDRON_VK

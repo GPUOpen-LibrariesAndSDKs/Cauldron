@@ -20,6 +20,7 @@
 
 #include "PostProcPS.h"
 #include "Base/ResourceViewHeaps.h"
+#include "Misc/ColorConversion.h"
 
 namespace CAULDRON_VK
 {
@@ -48,6 +49,9 @@ namespace CAULDRON_VK
         VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
         VkDescriptorSetLayout m_descriptorSetLayout;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        struct ToneMappingConsts {
+            float exposure; int toneMapper; float pad0; float pad1;
+            LPMConsts lpmConsts;
+        };
     };
 }

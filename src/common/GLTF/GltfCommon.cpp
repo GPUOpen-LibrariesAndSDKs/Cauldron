@@ -614,13 +614,19 @@ per_frame* GLTFCommon::SetPerFrameData(const Camera& cam)
 
     //Sets the camera
     m_perFrameData.mCameraCurrViewProj = cam.GetProjection() * cam.GetView();
-    m_perFrameData.mCameraPrevViewProj = cam.GetProjection() * cam.GetPrevView();
+    m_perFrameData.mCameraPrevViewProj = cam.GetPrevProjection() * cam.GetPrevView();
     // more accurate calculation
     m_perFrameData.mInverseCameraCurrViewProj = math::affineInverse(cam.GetView()) * math::inverse(cam.GetProjection());
     m_perFrameData.cameraPos = cam.GetPosition();
 
     m_perFrameData.wireframeOptions = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 
+    // Grab projection jitter from the projection matrix
+    m_perFrameData.mCameraCurrJitter[0] = cam.GetProjection().getCol2().getX();
+    m_perFrameData.mCameraCurrJitter[1] = cam.GetProjection().getCol2().getY();
+
+    m_perFrameData.mCameraPrevJitter[0] = cam.GetPrevProjection().getCol2().getX();
+    m_perFrameData.mCameraPrevJitter[1] = cam.GetPrevProjection().getCol2().getY();
     // Process lights
     m_perFrameData.lightCount = (int32_t)m_lightInstances.size();
     int32_t ShadowMapIndex = 0;

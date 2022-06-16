@@ -110,6 +110,20 @@ namespace CAULDRON_VK
         {
             defines["HAS_SPECULAR_ROUGHNESS_RT"] = std::to_string(rtIndex++);
         }
+
+        // Upscale reactive data
+        //
+        if (m_flags & GBUFFER_UPSCALEREACTIVE)
+        {
+            defines["HAS_UPSCALE_REACTIVE_RT"] = std::to_string(rtIndex++);
+        }
+
+        // Upscale transparency and composition data
+        //
+        if (m_flags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            defines["HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT"] = std::to_string(rtIndex++);
+        }
     }
 
     VkSampleCountFlagBits GBufferRenderPass::GetSampleCount()
@@ -181,6 +195,18 @@ namespace CAULDRON_VK
         {
             addAttachment(m_formats[GBUFFER_DEPTH], m_sampleCount, previousDepth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &depthAttachment);
             assert(m_GBufferFlags & GBUFFER_DEPTH); // asserts if there if the RT is not present in the GBuffer
+        }
+
+        if (flags & GBUFFER_UPSCALEREACTIVE)
+        {
+            addAttachment(m_formats[GBUFFER_UPSCALEREACTIVE], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            assert(m_GBufferFlags & GBUFFER_UPSCALEREACTIVE); // asserts if there if the RT is not present in the GBuffer
+        }
+
+        if (flags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            addAttachment(m_formats[GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            assert(m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION); // asserts if there if the RT is not present in the GBuffer
         }
 
         return CreateRenderPassOptimal(m_pDevice->GetDevice(), colorAttanchmentCount, colorAttachments, &depthAttachment);
@@ -260,6 +286,34 @@ namespace CAULDRON_VK
             }
         }
 
+        // Upscale reactive data
+        //
+        if (flags & GBUFFER_UPSCALEREACTIVE)
+        {
+            pAttachments->push_back(m_UpscaleReactiveSRV);
+
+            if (pClearValues)
+            {
+                VkClearValue cv;
+                cv.color = { 0.0f, 0.0f, 0.0f, 0.0f };
+                pClearValues->push_back(cv);
+            }
+        }
+
+        // Upscale transparency and composition data
+        //
+        if (flags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            pAttachments->push_back(m_UpscaleTransparencyAndCompositionSRV);
+
+            if (pClearValues)
+            {
+                VkClearValue cv;
+                cv.color = { 0.0f, 0.0f, 0.0f, 0.0f };
+                pClearValues->push_back(cv);
+            }
+        }
+
         // Create depth buffer
         //
         if (flags & GBUFFER_DEPTH)
@@ -269,7 +323,7 @@ namespace CAULDRON_VK
             if (pClearValues)
             {
                 VkClearValue cv;
-                cv.depthStencil = { 1.0f, 0 };
+                cv.depthStencil = { flags & GBUFFER_INVERTED_DEPTH ? 0.0f : 1.0f, 0 };
                 pClearValues->push_back(cv);
             }
         }
@@ -317,6 +371,22 @@ namespace CAULDRON_VK
             m_SpecularRoughness.CreateSRV(&m_SpecularRoughnessSRV);
         }
 
+        // Upscale reactive data
+        //
+        if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE)
+        {
+            m_UpscaleReactive.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_UPSCALEREACTIVE], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), false, "m_UpscaleReactive");
+            m_UpscaleReactive.CreateSRV(&m_UpscaleReactiveSRV);
+        }
+
+        // Upscale transparency and composition data
+        //
+        if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            m_UpscaleTransparencyAndComposition.InitRenderTarget(m_pDevice, Width, Height, m_formats[GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION], m_sampleCount, (VkImageUsageFlags)(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT), false, "m_UpscaleTransparencyAndComposition");
+            m_UpscaleTransparencyAndComposition.CreateSRV(&m_UpscaleTransparencyAndCompositionSRV);
+        }
+
         // Create depth buffer
         //
         if (m_GBufferFlags & GBUFFER_DEPTH)
@@ -329,6 +399,18 @@ namespace CAULDRON_VK
 
     void GBuffer::OnDestroyWindowSizeDependentResources()
     {
+        if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
+        {
+            vkDestroyImageView(m_pDevice->GetDevice(), m_UpscaleTransparencyAndCompositionSRV, nullptr);
+            m_UpscaleTransparencyAndComposition.OnDestroy();
+        }
+
+        if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE)
+        {
+            vkDestroyImageView(m_pDevice->GetDevice(), m_UpscaleReactiveSRV, nullptr);
+            m_UpscaleReactive.OnDestroy();
+        }
+
         if (m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS)
         {
             vkDestroyImageView(m_pDevice->GetDevice(), m_SpecularRoughnessSRV, nullptr);

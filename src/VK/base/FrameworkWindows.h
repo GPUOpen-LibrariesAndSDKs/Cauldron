@@ -51,7 +51,7 @@ namespace CAULDRON_VK
 		void HandleFullScreen();
 		void OnActivate(bool windowActive);
 		void OnWindowMove();
-		void UpdateDisplay();
+		void UpdateDisplay(bool disableLocalDimming);
 		void OnResize(uint32_t Width, uint32_t Height);
 		void OnLocalDimmingChanged();
 
@@ -62,7 +62,7 @@ namespace CAULDRON_VK
 		inline DisplayMode        GetCurrentDisplayMode() const { return m_currentDisplayModeNamesIndex; }
 		inline size_t             GetNumDisplayModes() const { return m_displayModesAvailable.size(); }
 		inline const char* const* GetDisplayModeNames() const { return &m_displayModesNamesAvailable[0]; }
-		inline bool               GetLocalDimmingEnableState() const { return m_enableLocalDimming; }
+		inline bool               GetLocalDimmingDisableState() const { return m_disableLocalDimming; }
 
 	protected:
 		LPCSTR m_Name; // sample application name
@@ -93,7 +93,7 @@ namespace CAULDRON_VK
 		DisplayMode               m_currentDisplayModeNamesIndex ;
 		std::vector<DisplayMode>  m_displayModesAvailable;
 		std::vector<const char*>  m_displayModesNamesAvailable;
-		bool                      m_enableLocalDimming;
+		bool                      m_disableLocalDimming;
 
 		// System info
 		struct SystemInfo
@@ -106,6 +106,5 @@ namespace CAULDRON_VK
 	};
 } // CAULDRON_VK;
 
-using namespace CAULDRON_VK;
-int RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, FrameworkWindows *pFramework);
+int  RunFramework(HINSTANCE hInstance, LPSTR lpCmdLine, int nCmdShow, CAULDRON_VK::FrameworkWindows* pFramework);
 void SetFullscreen(HWND hWnd, bool fullscreen);

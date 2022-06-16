@@ -87,7 +87,8 @@ namespace CAULDRON_VK
         ExtCheckFSEDeviceExtensions(pDp);
         ExtCheckFreeSyncHDRDeviceExtensions(pDp);
         pDp->AddDeviceExtensionName(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-        pDp->AddDeviceExtensionName(VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME);
+        pDp->AddDeviceExtensionName(VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
+        pDp->AddDeviceExtensionName(VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME);
     }
 
     void Device::OnCreateEx(VkInstance vulkanInstance, VkPhysicalDevice physicalDevice, HWND hWnd, DeviceProperties *pDp)
@@ -205,6 +206,7 @@ namespace CAULDRON_VK
         queue_info[1].queueFamilyIndex = compute_queue_family_index;
 
         VkPhysicalDeviceFeatures physicalDeviceFeatures = {};
+        physicalDeviceFeatures.drawIndirectFirstInstance = true;
         physicalDeviceFeatures.fillModeNonSolid = true;
         physicalDeviceFeatures.pipelineStatisticsQuery = true;
         physicalDeviceFeatures.fragmentStoresAndAtomics = true;
@@ -212,7 +214,7 @@ namespace CAULDRON_VK
         physicalDeviceFeatures.shaderImageGatherExtended = true;
         physicalDeviceFeatures.wideLines = true; //needed for drawing lines with a specific width.
         physicalDeviceFeatures.independentBlend = true; // needed for having different blend for each render target 
-        physicalDeviceFeatures.shaderInt16 = true; // to enable 16bit types via DXC
+        physicalDeviceFeatures.shaderInt16 = m_usingFp16; // to enable 16bit types via DXC
 
         // enable feature to support fp16 with subgroup operations
         //

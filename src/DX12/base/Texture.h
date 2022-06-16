@@ -36,7 +36,7 @@ namespace CAULDRON_DX12
         virtual bool InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f, D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE);
         INT32 Init(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue);
         INT32 InitRenderTarget(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET, const FLOAT *clearColor = nullptr);
-        INT32 InitDepthStencil(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc);
+        INT32 InitDepthStencil(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, float clearValue);
         bool InitBuffer(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, uint32_t structureSize, D3D12_RESOURCE_STATES state);     // structureSize needs to be 0 if using a valid DXGI_FORMAT
         bool InitCounter(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pCounterDesc, uint32_t counterSize, D3D12_RESOURCE_STATES state);
         bool InitFromData(Device *pDevice, const char *pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void *data);

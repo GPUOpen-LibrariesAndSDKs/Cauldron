@@ -52,10 +52,12 @@ void MagnifierPS::OnCreate(
 	m_pResourceViewHeaps = pResourceViewHeaps;
 	m_pDynamicBufferRing = pDynamicBufferRing;
 	m_bOutputsToSwapchain = bOutputsToSwapchain;
+	m_OutFormat = outFormat;
+	m_SRVOutput = nullptr;
 
 	InitializeDescriptorSets();
 	
-	m_RenderPass = SimpleColorBlendRenderPass(m_pDevice->GetDevice(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_RenderPass = SimpleColorBlendRenderPass(m_pDevice->GetDevice(), m_OutFormat, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	CompileShaders(pStaticBufferPool, outFormat); // expects a non-null Render Pass!
 }
 
@@ -69,23 +71,20 @@ void MagnifierPS::OnDestroy()
 }
 
 
-void MagnifierPS::OnCreateWindowSizeDependentResources(Texture* pTexture)
+void MagnifierPS::OnCreateWindowSizeDependentResources(uint32_t Width, uint32_t Height)
 {
-	pTexture->CreateSRV(&m_ImageViewSrc);
-	UpdateDescriptorSets(m_ImageViewSrc);
-
 	if (!m_bOutputsToSwapchain)
 	{
 		VkDevice device = m_pDevice->GetDevice();
-		const uint32_t ImgWidth = pTexture->GetWidth();
-		const uint32_t ImgHeight = pTexture->GetHeight();
+		const uint32_t ImgWidth = Width;
+		const uint32_t ImgHeight = Height;
 
 		// create pass output image and its views
 		VkImageCreateInfo image_info = {};
 		image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 		image_info.pNext = NULL;
 		image_info.imageType = VK_IMAGE_TYPE_2D;
-		image_info.format = pTexture->GetFormat();
+		image_info.format = m_OutFormat;
 		image_info.extent.width = ImgWidth;
 		image_info.extent.height = ImgHeight;
 		image_info.extent.depth = 1;
@@ -124,19 +123,23 @@ void MagnifierPS::OnCreateWindowSizeDependentResources(Texture* pTexture)
 void MagnifierPS::OnDestroyWindowSizeDependentResources()
 {
 	VkDevice device = m_pDevice->GetDevice();
-	
-	vkDestroyImageView(m_pDevice->GetDevice(), m_ImageViewSrc, NULL);
-
-	vkDestroyImageView(device, m_SRVOutput, NULL);
-
-	vkDestroySampler(m_pDevice->GetDevice(), m_SamplerSrc, nullptr);
+	if (m_SamplerSrc)
+	{
+		vkDestroySampler(m_pDevice->GetDevice(), m_SamplerSrc, nullptr);
+		m_SamplerSrc = nullptr;
+	}
 
 	if (!m_bOutputsToSwapchain)
 	{
+		vkDestroyImageView(device, m_SRVOutput, NULL);
 		vkDestroyImageView(device, m_RTVOutput, NULL);
 		m_TexPassOutput.OnDestroy();
 
 		vkDestroyFramebuffer(device, m_FrameBuffer, NULL);
+
+		m_SRVOutput = nullptr;
+		m_RTVOutput = nullptr;
+		m_FrameBuffer = nullptr;
 	}
 }
 
@@ -163,7 +166,6 @@ void MagnifierPS::DestroyShaders()
 	m_ShaderMagnify.OnDestroy();
 }
 
-
 void MagnifierPS::InitializeDescriptorSets()
 {
 	std::vector<VkDescriptorSetLayoutBinding> layoutBindingsMagnifier(2);
@@ -181,8 +183,13 @@ void MagnifierPS::InitializeDescriptorSets()
 	layoutBindingsMagnifier[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 	layoutBindingsMagnifier[1].pImmutableSamplers = NULL;
 
-	m_pResourceViewHeaps->CreateDescriptorSetLayoutAndAllocDescriptorSet(&layoutBindingsMagnifier, &m_DescriptorSetLayout, &m_DescriptorSet);
-	m_pDynamicBufferRing->SetDescriptorSet(1, sizeof(PassParameters), m_DescriptorSet);
+	m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindingsMagnifier, &m_DescriptorSetLayout);
+
+	for (int i = 0; i < 3; i++)
+	{
+		m_pResourceViewHeaps->AllocDescriptor(m_DescriptorSetLayout, &m_DescriptorSet[i]);
+		m_pDynamicBufferRing->SetDescriptorSet(1, sizeof(PassParameters), m_DescriptorSet[i]);
+	}
 }
 void MagnifierPS::UpdateDescriptorSets(VkImageView ImageViewSrc)
 {
@@ -214,7 +221,7 @@ void MagnifierPS::UpdateDescriptorSets(VkImageView ImageViewSrc)
 	for (size_t i = 0; i < NUM_WRITES; ++i)
 	{
 		SetWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		SetWrites[i].dstSet = m_DescriptorSet;
+		SetWrites[i].dstSet = m_DescriptorSet[m_DescriptorSetIndex];
 		SetWrites[i].descriptorCount = 1;
 		SetWrites[i].pImageInfo = ImgInfo + i;
 	}
@@ -229,7 +236,8 @@ void MagnifierPS::UpdateDescriptorSets(VkImageView ImageViewSrc)
 
 void MagnifierPS::DestroyDescriptorSets()
 {
-	m_pResourceViewHeaps->FreeDescriptor(m_DescriptorSet);
+	for (int i = 0; i < 3; i++)
+		m_pResourceViewHeaps->FreeDescriptor(m_DescriptorSet[i]);
 	vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_DescriptorSetLayout, NULL);
 }
 
@@ -261,6 +269,7 @@ void MagnifierPS::EndPass(VkCommandBuffer cmd)
 void MagnifierPS::Draw(
 	VkCommandBuffer           cmd
 	, const PassParameters&   params
+	, VkImageView			imageViewSrc
 	, SwapChain* pSwapChain /* = nullptr*/
 )
 {
@@ -272,6 +281,8 @@ void MagnifierPS::Draw(
 		return;
 	}
 
+	UpdateDescriptorSets(imageViewSrc);
+
 	cbHandle_t cbHandle = SetConstantBufferData(params);
 
 	VkRect2D renderArea;
@@ -281,9 +292,14 @@ void MagnifierPS::Draw(
 	renderArea.extent.height = params.uImageHeight;
 	BeginPass(cmd, renderArea, pSwapChain);
 
-	m_ShaderMagnify.Draw(cmd, &cbHandle, m_DescriptorSet);
+	m_ShaderMagnify.Draw(cmd, &cbHandle, m_DescriptorSet[m_DescriptorSetIndex]);
 	EndPass(cmd);
 	SetPerfMarkerEnd(cmd);
+
+	m_DescriptorSetIndex++;
+
+	if (m_DescriptorSetIndex >= 3)
+		m_DescriptorSetIndex = 0;
 }
 
 

@@ -75,7 +75,7 @@ namespace CAULDRON_VK
 
         // Create a Render pass that accounts for blending
         //
-        m_blendPass = SimpleColorBlendRenderPass(pDevice->GetDevice(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        m_blendPass = SimpleColorBlendRenderPass(pDevice->GetDevice(), m_outFormat, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         //blending add
         {

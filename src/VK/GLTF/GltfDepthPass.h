@@ -55,11 +55,6 @@ namespace CAULDRON_VK
     class GltfDepthPass
     {
     public:
-        struct per_frame
-        {
-            math::Matrix4 mViewProj;
-        };
-
         struct per_object
         {
             math::Matrix4 mWorld;
@@ -73,10 +68,11 @@ namespace CAULDRON_VK
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-            AsyncPool *pAsyncPool = NULL);
+            AsyncPool *pAsyncPool = NULL,
+            bool invertedDepth = false);
 
         void OnDestroy();
-        GltfDepthPass::per_frame *SetPerFrameConstants();
+        per_frame *SetPerFrameConstants();
         void Draw(VkCommandBuffer cmd_buf);
     private:
         ResourceViewHeaps *m_pResourceViewHeaps;
@@ -93,6 +89,8 @@ namespace CAULDRON_VK
         VkRenderPass m_renderPass = VK_NULL_HANDLE;
         VkSampler m_sampler = VK_NULL_HANDLE;
         VkDescriptorBufferInfo m_perFrameDesc;
+
+        bool                     m_bInvertedDepth;
 
         void CreateDescriptors(int inverseMatrixBufferSize, DefineList *pAttributeDefines, DepthPrimitives *pPrimitive);
         void CreatePipeline(std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, DepthPrimitives *pPrimitive);

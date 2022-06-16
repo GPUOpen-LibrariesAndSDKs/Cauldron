@@ -59,14 +59,16 @@ void ImGUI_Shutdown()
     g_hWnd = NULL;
 }
 
-void ImGUI_UpdateIO()
+void ImGUI_UpdateIO(int w, int h)
 {
     ImGuiIO& io = ImGui::GetIO();
 
     // Setup display size (every frame to accommodate for window resizing)
     RECT rect;
     GetClientRect(g_hWnd, &rect);
-    io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+    ImVec2 windowSize((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+
+    io.DisplaySize = ImVec2((float)w, (float)h);
 
     // Read keyboard modifiers inputs
     io.KeyCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
@@ -95,6 +97,12 @@ static bool IsAnyMouseButtonDown()
 IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     ImGuiIO& io = ImGui::GetIO();
+
+    // Setup display size (every frame to accommodate for window resizing)
+    RECT rect;
+    GetClientRect(g_hWnd, &rect);
+    ImVec2 scale(io.DisplaySize.x / (float)(rect.right - rect.left), io.DisplaySize.y / (float)(rect.bottom - rect.top));
+
     switch (msg)
     {
     case WM_LBUTTONDOWN:
@@ -127,8 +135,8 @@ IMGUI_API LRESULT ImGUI_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         io.MouseWheel += GET_WHEEL_DELTA_WPARAM(wParam) > 0 ? +1.0f : -1.0f;
         return 0;
     case WM_MOUSEMOVE:
-        io.MousePos.x = (signed short)(lParam);
-        io.MousePos.y = (signed short)(lParam >> 16);
+        io.MousePos.x = (signed short)(lParam) * scale.x;
+        io.MousePos.y = (signed short)(lParam >> 16) * scale.y;
         return 0;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:

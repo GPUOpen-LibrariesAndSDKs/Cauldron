@@ -28,20 +28,21 @@ namespace CAULDRON_DX12
     {
     public:
         void OnCreate(
-            Device *pDevice,
-            const std::string &shaderFilename,
-            ResourceViewHeaps *pResourceViewHeaps,
-            StaticBufferPool *pStaticBufferPool,
+            Device* pDevice,
+            const std::string& shaderFilename,
+            ResourceViewHeaps* pResourceViewHeaps,
+            StaticBufferPool* pStaticBufferPool,
             uint32_t dwSRVTableSize,
             uint32_t dwStaticSamplersCount,
-            D3D12_STATIC_SAMPLER_DESC *pStaticSamplers,
+            D3D12_STATIC_SAMPLER_DESC* pStaticSamplers,
             DXGI_FORMAT outFormat,
             uint32_t psoSampleDescCount = 1,
-            D3D12_BLEND_DESC *pBlendDesc = NULL,
-            D3D12_DEPTH_STENCIL_DESC *pDepthStencilDesc = NULL,
+            D3D12_BLEND_DESC* pBlendDesc = NULL,
+            D3D12_DEPTH_STENCIL_DESC* pDepthStencilDesc = NULL,
             uint32_t numRenderTargets = 1,
-            const char *pVSTarget = "-T vs_6_0",
-            const char *pPSTarget = "-T ps_6_0"
+            const char* pVSTarget = "-T vs_6_0",
+            const char* pPSTarget = "-T ps_6_0",
+            bool bInvertedDepth = false
         );
         void OnDestroy();
 

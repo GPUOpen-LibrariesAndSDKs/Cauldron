@@ -51,9 +51,9 @@ void gltfVertexFactory()
 {
 #ifdef ID_WEIGHTS_0
     mat4 skinningMatrix;
-    skinningMatrix  = GetSkinningMatrix(a_Weights0, a_Joints0);
+    skinningMatrix  = GetCurrentSkinningMatrix(a_Weights0, a_Joints0);
 #ifdef ID_WEIGHTS_1
-    skinningMatrix += GetSkinningMatrix(a_Weights1, a_Joints1);
+    skinningMatrix += GetCurrentSkinningMatrix(a_Weights1, a_Joints1);
 #endif
 #else
     mat4 skinningMatrix =

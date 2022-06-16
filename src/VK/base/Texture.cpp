@@ -536,7 +536,7 @@ namespace CAULDRON_VK
 
          
         UINT8* pixels = NULL;
-        UINT64 UplHeapSize = m_header.width * m_header.height * 4;
+        UINT64 UplHeapSize = m_header.width * m_header.height * bytePP;
         pixels =  uploadHeap.Suballocate(UplHeapSize, 512);
         assert(pixels != NULL);
 

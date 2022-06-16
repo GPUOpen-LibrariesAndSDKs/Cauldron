@@ -89,7 +89,8 @@ namespace CAULDRON_VK
             bool bUseSSAOMask,
             std::vector<VkImageView>& ShadowMapViewPool,
             GBufferRenderPass *pRenderPass,
-            AsyncPool *pAsyncPool = NULL
+            AsyncPool *pAsyncPool = NULL,
+            bool invertedDepth = false
         );
 
         void OnDestroy();
@@ -118,6 +119,8 @@ namespace CAULDRON_VK
         Texture m_brdfLutTexture;
         VkImageView m_brdfLutView = VK_NULL_HANDLE;
         VkSampler m_brdfLutSampler = VK_NULL_HANDLE;
+
+        bool                     m_bInvertedDepth;
 
         void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, std::vector<VkImageView>& ShadowMapViewPool, bool bUseSSAOMask);
         void CreateDescriptors(int inverseMatrixBufferSize, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);

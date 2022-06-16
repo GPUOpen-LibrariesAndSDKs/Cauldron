@@ -31,13 +31,15 @@ namespace CAULDRON_VK
         ResourceViewHeaps *pResourceViewHeaps,
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
-        VkSampleCountFlagBits sampleDescCount)
+        VkSampleCountFlagBits sampleDescCount,
+        bool invertedDepth)
     {
         VkResult res;
 
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pResourceViewHeaps = pResourceViewHeaps;
+        m_bInvertedDepth = invertedDepth;
 
         // the vertex shader
         static const char* vertexShader =
@@ -218,7 +220,7 @@ namespace CAULDRON_VK
         ds.flags = 0;
         ds.depthTestEnable = true;
         ds.depthWriteEnable = true;
-        ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        ds.depthCompareOp = m_bInvertedDepth ? VK_COMPARE_OP_GREATER_OR_EQUAL : VK_COMPARE_OP_LESS_OR_EQUAL;
         ds.depthBoundsTestEnable = VK_FALSE;
         ds.stencilTestEnable = VK_FALSE;
         ds.back.failOp = VK_STENCIL_OP_KEEP;

@@ -35,7 +35,10 @@ namespace CAULDRON_VK
         GBUFFER_MOTION_VECTORS = 4,
         GBUFFER_NORMAL_BUFFER = 8,
         GBUFFER_DIFFUSE = 16,
-        GBUFFER_SPECULAR_ROUGHNESS = 32
+        GBUFFER_SPECULAR_ROUGHNESS = 32,
+        GBUFFER_INVERTED_DEPTH = 64,
+        GBUFFER_UPSCALEREACTIVE = 128,
+        GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION = 256,
     } GBufferFlagBits;
 
     typedef uint32_t GBufferFlags;
@@ -93,6 +96,14 @@ namespace CAULDRON_VK
         // specular
         Texture                         m_SpecularRoughness;
         VkImageView                     m_SpecularRoughnessSRV;
+
+        // upscale reactive data
+        Texture                         m_UpscaleReactive;
+        VkImageView                     m_UpscaleReactiveSRV;
+
+        // upscale transparency and composition data
+        Texture                         m_UpscaleTransparencyAndComposition;
+        VkImageView                     m_UpscaleTransparencyAndCompositionSRV;
 
         // motion vectors
         Texture                         m_MotionVectors;

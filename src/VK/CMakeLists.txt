@@ -112,12 +112,14 @@ set(Shaders_PostProc_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/blur.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/DownSamplePS.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappers.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/LPMTonemapperHelper.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemapping.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAASharpenerCS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAA.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/tonemappingCS.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.glsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/MagnifierPS.glsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/transferFunction.h
 )
 
 set(Shaders_GLTF_src

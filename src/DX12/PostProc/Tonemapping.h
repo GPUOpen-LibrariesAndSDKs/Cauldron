@@ -18,6 +18,7 @@
 // THE SOFTWARE.
 #pragma once
 
+#include "Misc/ColorConversion.h"
 #include "PostProcPS.h"
 
 namespace CAULDRON_DX12
@@ -34,6 +35,9 @@ namespace CAULDRON_DX12
         PostProcPS m_toneMapping;
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; int gamma2; };
+        struct ToneMappingConsts {
+            float exposure; int toneMapper; int gamma2; float pad1;
+            LPMConsts lpmConsts;
+        };
     };
 }

@@ -53,20 +53,21 @@ namespace CAULDRON_DX12
         ID3D12Resource *GetResource();
 
     private:
-        Device          *m_pDevice = nullptr;
+        Device                  *m_pDevice = nullptr;
 
-        std::mutex       m_mutex = {};
+        std::mutex               m_mutex = {};
 
-        bool             m_bUseVidMem = true;
+        bool                     m_bUseVidMem = true;
 
-        char            *m_pData = nullptr;
-        uint32_t         m_memInit = 0;
-        uint32_t         m_memOffset = 0;
-        uint32_t         m_totalMemSize = 0;
+        char                    *m_pData = nullptr;
+        uint32_t                 m_memInit = 0;
+        uint32_t                 m_memOffset = 0;
+        uint32_t                 m_totalMemSize = 0;
 
-        ID3D12Resource  *m_pMemBuffer = nullptr;
-        ID3D12Resource  *m_pSysMemBuffer = nullptr;
-        ID3D12Resource  *m_pVidMemBuffer = nullptr;
+        ID3D12Resource          *m_pMemBuffer = nullptr;
+        ID3D12Resource          *m_pSysMemBuffer = nullptr;
+        ID3D12Resource          *m_pVidMemBuffer = nullptr;
+        D3D12_RESOURCE_STATES    m_VidMemBufferState = D3D12_RESOURCE_STATE_COMMON;
     };
 }
 

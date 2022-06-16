@@ -51,7 +51,7 @@ float2 GetClosestVelocity(in float2 uv, in float2 texelSize, out bool isSkyPixel
             }
         }
     isSkyPixel = (closestDepth == 1.0f);
-    return velocity * float2(0.5f, -0.5f);  // from ndc to uv
+    return velocity;
 }
 
 /**********************************************************************
@@ -210,7 +210,7 @@ void main(uint3 globalID : SV_DispatchThreadID, uint3 localID : SV_GroupThreadID
     const float3 nmin = ex - dev * boxSize;
     const float3 nmax = ex + dev * boxSize;
 
-    const float3 history = SampleHistoryCatmullRom(uv - velocity, texelSize);
+    const float3 history = SampleHistoryCatmullRom(uv + velocity, texelSize);
     const float3 clampedHistory = clamp(history, nmin, nmax);
     const float3 center = Tap(tilePos); // retrieve center value
     const float3 result = lerp(clampedHistory, center, 1.0f / 16.0f);

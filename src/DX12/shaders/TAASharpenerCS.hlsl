@@ -59,7 +59,7 @@ float3 ApplySharpening(in float3 center, in float3 top, in float3 left, in float
 
 float3 ReinhardInverse(in float3 sdr)
 {
-    return sdr / max(1.0f - sdr, 1e-5f);
+    return sdr / max(1.0f - sdr, 1e-2f);
 }
 
 //--------------------------------------------------------------------------------------

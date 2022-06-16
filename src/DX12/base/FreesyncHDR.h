@@ -24,24 +24,10 @@
 #include <dxgi1_6.h>
 #include "..\AGS\amd_ags.h"
 
+#include "Misc/ColorConversion.h"
+
 namespace CAULDRON_DX12
 {
-    enum PresentationMode
-    {
-        PRESENTATIONMODE_WINDOWED,
-        PRESENTATIONMODE_BORDERLESS_FULLSCREEN,
-        PRESENTATIONMODE_EXCLUSIVE_FULLSCREEN
-    };
-
-    enum DisplayMode
-    {
-        DISPLAYMODE_SDR,
-        DISPLAYMODE_FSHDR_Gamma22,
-        DISPLAYMODE_FSHDR_SCRGB,
-        DISPLAYMODE_HDR10_2084,
-        DISPLAYMODE_HDR10_SCRGB
-    };
-
     bool fsHdrInit(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hwnd);
     void fsHdrDestroy();
     bool fsHdrEnumerateDisplayModes(std::vector<DisplayMode> *pModes);

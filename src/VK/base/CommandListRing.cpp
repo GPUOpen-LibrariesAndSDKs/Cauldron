@@ -57,7 +57,7 @@ namespace CAULDRON_VK
             {
                 cmd_pool_info.queueFamilyIndex = pDevice->GetComputeQueueFamilyIndex();
             }
-            cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+            cmd_pool_info.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
             VkResult res = vkCreateCommandPool(pDevice->GetDevice(), &cmd_pool_info, NULL, &pCBPF->m_commandPool);
             assert(res == VK_SUCCESS);
 
@@ -123,6 +123,8 @@ namespace CAULDRON_VK
     void CommandListRing::OnBeginFrame()
     {
         m_pCurrentFrame = &m_pCommandBuffers[m_frameIndex % m_numberOfAllocators];
+
+        vkResetCommandPool(m_pDevice->GetDevice(), m_pCurrentFrame->m_commandPool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
 
         m_pCurrentFrame->m_UsedCls = 0;
 

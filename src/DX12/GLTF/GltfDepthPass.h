@@ -57,14 +57,15 @@ namespace CAULDRON_DX12
         };
 
         void OnCreate(
-            Device *pDevice,
-            UploadHeap *pUploadHeap,
-            ResourceViewHeaps *pHeaps,
-            DynamicBufferRing *pDynamicBufferRing,
-            StaticBufferPool *pStaticBufferPool,
-            GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-            AsyncPool *pAsyncPool = NULL,
-            DXGI_FORMAT depthFormat = DXGI_FORMAT_D32_FLOAT);
+            Device* pDevice,
+            UploadHeap* pUploadHeap,
+            ResourceViewHeaps* pHeaps,
+            DynamicBufferRing* pDynamicBufferRing,
+            StaticBufferPool* pStaticBufferPool,
+            GLTFTexturesAndBuffers* pGLTFTexturesAndBuffers,
+            AsyncPool* pAsyncPool = NULL,
+            DXGI_FORMAT depthFormat = DXGI_FORMAT_D32_FLOAT,
+            bool bInvertedDepth = false);
 
         void OnDestroy();
         per_frame *SetPerFrameConstants(int passIndex = 0);
@@ -83,6 +84,8 @@ namespace CAULDRON_DX12
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
         D3D12_STATIC_SAMPLER_DESC m_samplerDesc;
         D3D12_GPU_VIRTUAL_ADDRESS m_perFrameDesc[5];
+
+        bool m_bInvertedDepth; 
 
         void CreatePipeline(bool bUsingSkinning, std::vector<D3D12_INPUT_ELEMENT_DESC> layout, DefineList &defines, DepthPrimitives *pPrimitive, DXGI_FORMAT depthFormat);
     };

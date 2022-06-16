@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include "ResourceViewHeaps.h"
 #include "Misc/misc.h"
+#include "ExtDebugUtils.h"
 
 namespace CAULDRON_VK
 {
@@ -47,6 +48,8 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateDescriptorPool(pDevice->GetDevice(), &descriptor_pool, NULL, &m_descriptorPool);
         assert(res == VK_SUCCESS);
+
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_DESCRIPTOR_POOL, (uint64_t)m_descriptorPool, "ResourceViewHeap");
     }
 
     void ResourceViewHeaps::OnDestroy()

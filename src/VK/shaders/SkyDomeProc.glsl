@@ -128,7 +128,7 @@ float hgPhase( float cosTheta, float g ) {
 
 void main() {
 
-    vec4 clip = vec4(2 * inTexCoord.x - 1, 1 - 2 * inTexCoord.y, 1, 1);
+    vec4 clip = vec4(2 * inTexCoord.x - 1, 1 - 2 * inTexCoord.y, FAR_DEPTH, 1);
     vec3 vWorldPosition = (myPerFrame.u_mClipToWord * clip).xyz;
 
     //this can be done in a VS

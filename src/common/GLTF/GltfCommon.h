@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "../json/json.h"
+#include "json.h"
 #include "../Misc/Camera.h"
 #include "GltfStructures.h"
 
@@ -90,10 +90,13 @@ struct per_frame
     float     invScreenResolution[2];
 
     math::Vector4 wireframeOptions;
-    float     lodBias = 0.0f;
-    uint32_t  padding[2];
-    uint32_t  lightCount;
+
+    float     mCameraCurrJitter[2];
+    float     mCameraPrevJitter[2];
+
     Light     lights[MaxLightInstances];
+    uint32_t  lightCount;
+    float     lodBias = 0.0f;
 };
 
 //

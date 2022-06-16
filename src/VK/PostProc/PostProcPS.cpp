@@ -46,14 +46,15 @@ namespace CAULDRON_VK
         DynamicBufferRing *pDynamicBufferRing,
         VkDescriptorSetLayout descriptorSetLayout,
         VkPipelineColorBlendStateCreateInfo *pBlendDesc,
-        VkSampleCountFlagBits sampleDescCount
+        VkSampleCountFlagBits sampleDescCount,
+        bool invertedDepth 
     )
     {
         m_pDevice = pDevice;
 
         // Create the vertex shader
         static const char* vertexShader =
-	       "static const float4 FullScreenVertsPos[3] = { float4(-1, 1, 1, 1), float4(3, 1, 1, 1), float4(-1, -3, 1, 1) };\
+            "static const float4 FullScreenVertsPos[3] = { float4(-1, 1, FAR_DEPTH, 1), float4(3, 1, FAR_DEPTH, 1), float4(-1, -3, FAR_DEPTH, 1) };\
             static const float2 FullScreenVertsUVs[3] = { float2(0, 0), float2(2, 0), float2(0, 2) };\
             struct VERTEX_OUT\
             {\
@@ -73,6 +74,7 @@ namespace CAULDRON_VK
         // Compile shaders
         //
         DefineList attributeDefines;
+        attributeDefines["FAR_DEPTH"] = invertedDepth ? "0" : "1";
 
         VkPipelineShaderStageCreateInfo m_vertexShader;
 #ifdef _DEBUG
@@ -216,7 +218,7 @@ namespace CAULDRON_VK
         ds.flags = 0;
         ds.depthTestEnable = VK_TRUE;
         ds.depthWriteEnable = VK_FALSE;
-        ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        ds.depthCompareOp = VK_COMPARE_OP_EQUAL;
         ds.depthBoundsTestEnable = VK_FALSE;
         ds.stencilTestEnable = VK_FALSE;
         ds.back.failOp = VK_STENCIL_OP_KEEP;

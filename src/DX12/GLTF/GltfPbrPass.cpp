@@ -41,7 +41,8 @@ namespace CAULDRON_DX12
         bool bUseSSAOMask,
         bool bUseShadowMask,
         GBufferRenderPass *pGBufferRenderPass,
-        AsyncPool *pAsyncPool)
+        AsyncPool *pAsyncPool,
+        bool bInvertedDepth)
     {
         m_pDevice = pDevice;
         m_pGBufferRenderPass = pGBufferRenderPass;
@@ -49,6 +50,7 @@ namespace CAULDRON_DX12
         m_pResourceViewHeaps = pHeaps;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
+        m_bInvertedDepth = bInvertedDepth;
 
         m_doLighting = true;
 
@@ -376,17 +378,40 @@ namespace CAULDRON_DX12
 
         // Set blending
         //
+        int upscaleReactiveRT = m_pGBufferRenderPass->GetRtIndex(GBUFFER_UPSCALEREACTIVE);
+        int upscaleTransparencyAndCompositionRT = m_pGBufferRenderPass->GetRtIndex(GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION);
         CD3DX12_BLEND_DESC blendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-        blendState.RenderTarget[0] = D3D12_RENDER_TARGET_BLEND_DESC
+        blendState.IndependentBlendEnable = (upscaleReactiveRT != -1);
+        for (int i = 0; i < this->m_outFormats.size(); ++i)
         {
-            (defines.Has("DEF_alphaMode_BLEND")),
-            FALSE,
-            D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_INV_SRC_ALPHA, D3D12_BLEND_OP_ADD,
-            D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
-            D3D12_LOGIC_OP_NOOP,
-            D3D12_COLOR_WRITE_ENABLE_ALL,
-        }; 
+            blendState.RenderTarget[i] = D3D12_RENDER_TARGET_BLEND_DESC
+            {
+                (defines.Has("DEF_alphaMode_BLEND")),
+                FALSE,
+                D3D12_BLEND_SRC_ALPHA, D3D12_BLEND_INV_SRC_ALPHA, D3D12_BLEND_OP_ADD,
+                D3D12_BLEND_ONE, D3D12_BLEND_ZERO, D3D12_BLEND_OP_ADD,
+                D3D12_LOGIC_OP_NOOP,
+                D3D12_COLOR_WRITE_ENABLE_ALL,
+            };
+            if (i == upscaleReactiveRT || i == upscaleTransparencyAndCompositionRT)
+            {
+                true,
+                blendState.RenderTarget[i].SrcBlend = defines.Has("DEF_alphaMode_BLEND") ? D3D12_BLEND_INV_DEST_COLOR : D3D12_BLEND_ONE;
+                blendState.RenderTarget[i].DestBlend = D3D12_BLEND_ONE;
+                blendState.RenderTarget[i].RenderTargetWriteMask = defines.Has("DEF_alphaMode_BLEND") ? D3D12_COLOR_WRITE_ENABLE_RED : D3D12_COLOR_WRITE_ENABLE_ALPHA;
 
+                bool bHasAnimatedTexture = false;
+                bHasAnimatedTexture |= defines.Has("HAS_NORMAL_UV_TRANSFORM");
+                bHasAnimatedTexture |= defines.Has("HAS_EMISSIVE_UV_TRANSFORM");
+                bHasAnimatedTexture |= defines.Has("HAS_OCCLSION_UV_TRANSFORM");
+                bHasAnimatedTexture |= defines.Has("HAS_BASECOLOR_UV_TRANSFORM");
+                bHasAnimatedTexture |= defines.Has("HAS_METALLICROUGHNESS_UV_TRANSFORM");
+                bHasAnimatedTexture |= defines.Has("HAS_SPECULARGLOSSINESS_UV_TRANSFORM");
+                bHasAnimatedTexture |= defines.Has("HAS_DIFFUSE_UV_TRANSFORM");
+                if (bHasAnimatedTexture)
+                    blendState.RenderTarget[i].RenderTargetWriteMask |= D3D12_COLOR_WRITE_ENABLE_BLUE;
+            }
+        }
         // Create a PSO description
         //
         D3D12_GRAPHICS_PIPELINE_STATE_DESC descPso = {};
@@ -398,7 +423,12 @@ namespace CAULDRON_DX12
         descPso.RasterizerState.CullMode = (pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT;
         descPso.BlendState = blendState;
         descPso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-        descPso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        if (defines.Has("DEF_alphaMode_BLEND")) {
+            descPso.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+        } else {
+            descPso.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+        }
+        descPso.DepthStencilState.DepthFunc = m_bInvertedDepth ? D3D12_COMPARISON_FUNC_GREATER_EQUAL : D3D12_COMPARISON_FUNC_LESS_EQUAL;
         descPso.SampleMask = UINT_MAX;
         descPso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
         descPso.NumRenderTargets = (UINT)m_outFormats.size();

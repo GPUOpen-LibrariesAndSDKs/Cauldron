@@ -29,7 +29,8 @@ namespace CAULDRON_DX12
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
         DXGI_FORMAT outFormat,
-        uint32_t sampleDescCount)
+        uint32_t sampleDescCount,
+        bool bInvertedDepth)
     {
         m_pResourceViewHeaps = pHeaps;
         m_pDynamicBufferRing = pDynamicBufferRing;
@@ -142,7 +143,7 @@ namespace CAULDRON_DX12
         descPso.RasterizerState.AntialiasedLineEnable = TRUE;
         descPso.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         descPso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-        descPso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+        descPso.DepthStencilState.DepthFunc = bInvertedDepth ? D3D12_COMPARISON_FUNC_GREATER : D3D12_COMPARISON_FUNC_LESS;
         descPso.SampleMask = UINT_MAX;
         descPso.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
         descPso.NumRenderTargets = 1;

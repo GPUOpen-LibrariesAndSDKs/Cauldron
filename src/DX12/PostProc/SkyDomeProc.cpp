@@ -34,7 +34,8 @@ namespace CAULDRON_DX12
         DynamicBufferRing *pDynamicBufferRing,
         StaticBufferPool *pStaticBufferPool,
         DXGI_FORMAT outFormat,
-        uint32_t sampleDescCount)
+        uint32_t sampleDescCount,
+        bool bInvertedDepth)
     {
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;
@@ -43,7 +44,7 @@ namespace CAULDRON_DX12
         D3D12_BLEND_DESC blendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         D3D12_DEPTH_STENCIL_DESC depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
         depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC::D3D12_COMPARISON_FUNC_EQUAL;
-        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, 0, NULL, outFormat, sampleDescCount, &blendDesc, &depthStencilDesc);
+        m_skydome.OnCreate(pDevice, "SkyDomeProc.hlsl", pResourceViewHeaps, pStaticBufferPool, 0, 0, NULL, outFormat, sampleDescCount, &blendDesc, &depthStencilDesc, 1, "-T vs_6_0", "-T ps_6_0", bInvertedDepth);
     }
 
     void SkyDomeProc::OnDestroy()

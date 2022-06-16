@@ -194,11 +194,11 @@ namespace CAULDRON_VK
         return renderPass;
     }
 
-    VkRenderPass SimpleColorBlendRenderPass(VkDevice device, VkImageLayout initialLayout, VkImageLayout passLayout, VkImageLayout finalLayout)
+    VkRenderPass SimpleColorBlendRenderPass(VkDevice device, VkFormat format, VkImageLayout initialLayout, VkImageLayout passLayout, VkImageLayout finalLayout)
     {
         // color RT
         VkAttachmentDescription attachments[1];
-        attachments[0].format = VK_FORMAT_R16G16B16A16_SFLOAT;
+        attachments[0].format = format;
         attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
         attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -222,14 +222,23 @@ namespace CAULDRON_VK
         subpass.preserveAttachmentCount = 0;
         subpass.pPreserveAttachments = NULL;
 
-        VkSubpassDependency dep = {};
-        dep.dependencyFlags = 0;
-        dep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-        dep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dep.dstSubpass = VK_SUBPASS_EXTERNAL;
-        dep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        dep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dep.srcSubpass = 0;
+        VkSubpassDependency dependencies[2];
+
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependencies[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         VkRenderPassCreateInfo rp_info = {};
         rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -238,8 +247,8 @@ namespace CAULDRON_VK
         rp_info.pAttachments = attachments;
         rp_info.subpassCount = 1;
         rp_info.pSubpasses = &subpass;
-        rp_info.dependencyCount = 1;
-        rp_info.pDependencies = &dep;
+        rp_info.dependencyCount = 2;
+        rp_info.pDependencies = dependencies;
 
         VkRenderPass renderPass;
         VkResult res = vkCreateRenderPass(device, &rp_info, NULL, &renderPass);

@@ -81,15 +81,15 @@ namespace CAULDRON_DX12
         }
     }
 
-    void ColorConversionPS::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV)
+    void ColorConversionPS::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, uint32_t isLPMToneMapperSelected)
     {
         UserMarker marker(pCommandList, "ColorConversionPS");
 
-        D3D12_GPU_VIRTUAL_ADDRESS cbTonemappingHandle;
+        D3D12_GPU_VIRTUAL_ADDRESS cbColorConversionHandle;
         ColorConversionConsts *pColorConversionConsts;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ColorConversionConsts), (void **)&pColorConversionConsts, &cbTonemappingHandle);
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ColorConversionConsts), (void **)&pColorConversionConsts, &cbColorConversionHandle);
         *pColorConversionConsts = m_colorConversionConsts;
-
-        m_ColorConversion.Draw(pCommandList, 1, pHDRSRV, cbTonemappingHandle);
+        pColorConversionConsts->m_isLPMToneMapperSelected = isLPMToneMapperSelected;
+        m_ColorConversion.Draw(pCommandList, 1, pHDRSRV, cbColorConversionHandle);
     }
 }

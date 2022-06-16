@@ -1,3 +1,5 @@
+#version 420
+
 // AMD Cauldron code
 // 
 // Copyright(c) 2018 Advanced Micro Devices, Inc.All rights reserved.
@@ -17,7 +19,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#version 400
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
@@ -32,6 +33,17 @@ layout (std140, binding = 0) uniform perBatch
     float u_exposure; 
     int u_toneMapper; 
     int u_applyGamma;
+    float u_pad1;
+    bool u_shoulder;
+    bool u_con;
+    bool u_soft;
+    bool u_con2;
+    bool u_clip;
+    bool u_scaleOnly;
+    uint u_displayMode;
+    uint u_pad;
+    mat4 u_inputToOutputMatrix;
+    ivec4 u_ctl[24];
 } myPerScene;
 
 layout(set=0, binding=1) uniform sampler2D sSampler;
@@ -40,6 +52,8 @@ vec3 ApplyGamma(vec3 color)
 {
     return pow(abs(color.rgb), vec3(1.0 / 2.2));    
 }
+
+#include "LPMTonemapperHelper.glsl"
 
 vec3 Tonemap(vec3 color, float exposure, int tonemapper)
 {
@@ -53,6 +67,7 @@ vec3 Tonemap(vec3 color, float exposure, int tonemapper)
         case 3: return Uncharted2Tonemap(color);
         case 4: return tonemapACES( color );
         case 5: return color;
+        case 6: return LPMTonemapper(color, myPerScene.u_shoulder, myPerScene.u_con, myPerScene.u_soft, myPerScene.u_con2, myPerScene.u_clip, myPerScene.u_scaleOnly, myPerScene.u_inputToOutputMatrix);
         default: return vec3(1, 1, 1);
     } 
 }

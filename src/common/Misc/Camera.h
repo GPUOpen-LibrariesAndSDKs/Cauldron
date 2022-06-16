@@ -30,6 +30,8 @@ public:
     void LookAt(float yaw, float pitch, float distance, const math::Vector4& at);
     void SetFov(float fov, uint32_t width, uint32_t height, float nearPlane, float farPlane);
     void SetFov(float fov, float aspectRatio, float nearPlane, float farPlane);
+    void SetFov(float fov, uint32_t width, uint32_t height, float nearPlane);   // inverted depth with infinite zFar
+    void SetFov(float fov, float aspectRatio, float nearPlane);                 // inverted depth with infinite zFar
     void UpdateCameraPolar(float yaw, float pitch, float x, float y, float distance, const bool *keyDown = NULL /* keyDown[256] */, double deltaTime = 0.0);
     void UpdateCameraWASD(float yaw, float pitch, const bool keyDown[256], double deltaTime);
 
@@ -38,11 +40,11 @@ public:
     math::Matrix4 GetViewport() const { return m_Viewport; }
     math::Vector4 GetPosition() const { return m_eyePos;   }
 
-	
     math::Vector4 GetDirection()    const { return math::Vector4((math::transpose(m_View) * math::Vector4(0.0f, 0.0f, 1.0f, 0.0f)).getXYZ(), 0); }
     math::Vector4 GetUp()           const { return math::Vector4((math::transpose(m_View) * math::Vector4(0.0f, 1.0f, 0.0f, 0.0f)).getXYZ(), 0); }
     math::Vector4 GetSide()         const { return math::Vector4((math::transpose(m_View) * math::Vector4(1.0f, 1.0f, 0.0f, 0.0f)).getXYZ(), 0); }
-    math::Matrix4 GetProjection()   const { return m_Proj; }
+    math::Matrix4 GetProjection()   const { return m_ProjJittered; }
+    math::Matrix4 GetPrevProjection()   const { return m_PrevProjJittered; }
 
     float GetFovH() const { return m_fovH; }
     float GetFovV() const { return m_fovV; }
@@ -59,13 +61,16 @@ public:
     void SetSpeed( float speed ) { m_speed = speed; }
     void SetProjectionJitter(float jitterX, float jitterY);
     void SetProjectionJitter(uint32_t width, uint32_t height, uint32_t &seed);
-    void UpdatePreviousMatrices() { m_PrevView = m_View; }
+    void UpdatePreviousMatrices() { m_PrevView = m_View; m_PrevProj = m_Proj; m_PrevProjJittered = m_ProjJittered;  }
 
 private:
     math::Vector4       m_LastMoveDir;
     math::Matrix4       m_View;
     math::Matrix4       m_Proj;
+    math::Matrix4       m_ProjJittered;
     math::Matrix4       m_PrevView;
+    math::Matrix4       m_PrevProj;
+    math::Matrix4       m_PrevProjJittered;
     math::Matrix4       m_Viewport;
     math::Vector4       m_eyePos;
     float               m_distance;

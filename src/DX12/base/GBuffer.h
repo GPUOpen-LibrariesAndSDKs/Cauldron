@@ -34,7 +34,10 @@ namespace CAULDRON_DX12
         GBUFFER_MOTION_VECTORS = 4,
         GBUFFER_NORMAL_BUFFER = 8,
         GBUFFER_DIFFUSE = 16,
-        GBUFFER_SPECULAR_ROUGHNESS = 32
+        GBUFFER_SPECULAR_ROUGHNESS = 32,
+        GBUFFER_INVERTED_DEPTH = 64,
+        GBUFFER_UPSCALEREACTIVE = 128,
+        GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION = 256,
     } GBufferFlagBits;
 
     typedef uint32_t GBufferFlags;
@@ -52,6 +55,7 @@ namespace CAULDRON_DX12
         void EndPass();
         void GetCompilerDefinesAndGBufferFormats(DefineList &defines, std::vector<DXGI_FORMAT> &outFormats, DXGI_FORMAT &depthFormat);
         int32_t GetSampleCount();
+        int GetRtIndex(GBufferFlagBits pass);    // return RT index for a given GBuffer target
     private:
         GBufferFlags                    m_GBufferFlags;
         GBuffer                        *m_pGBuffer;
@@ -63,7 +67,7 @@ namespace CAULDRON_DX12
     class GBuffer
     {
     public:
-        void OnCreate(Device* pDevice, ResourceViewHeaps *pHeaps, const std::map<GBufferFlags, DXGI_FORMAT> &formats, uint32_t sampleCount);
+        void OnCreate(Device* pDevice, ResourceViewHeaps *pHeaps, const std::map<GBufferFlags, DXGI_FORMAT> &formats, uint32_t sampleCount, GBufferFlags flag = GBUFFER_NONE);
         void OnDestroy();
 
         void OnCreateWindowSizeDependentResources(SwapChain *pSwapChain, uint32_t Width, uint32_t Height);
@@ -85,6 +89,16 @@ namespace CAULDRON_DX12
         Texture                         m_SpecularRoughness;
         RTV                             m_SpecularRoughnessRTV;
         CBV_SRV_UAV                     m_SpecularRoughnessSRV;
+
+        // upscale reactive data
+        Texture                         m_UpscaleReactive;
+        RTV                             m_UpscaleReactiveRTV;
+        CBV_SRV_UAV                     m_UpscaleReactiveSRV;
+
+        // upscale transparency and composition data
+        Texture                         m_UpscaleTransparencyAndComposition;
+        RTV                             m_UpscaleTransparencyAndCompositionRTV;
+        CBV_SRV_UAV                     m_UpscaleTransparencyAndCompositionSRV;
 
         // motion vectors
         Texture                         m_MotionVectors;

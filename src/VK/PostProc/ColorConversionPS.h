@@ -31,7 +31,7 @@ namespace CAULDRON_VK
 
         void UpdatePipelines(VkRenderPass renderPass, DisplayMode displayMode);
 
-        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV);
+        void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, uint32_t isLPMToneMapperSelected = 0);
 
     private:
         Device* m_pDevice;
@@ -54,6 +54,7 @@ namespace CAULDRON_VK
             DisplayMode m_displayMode;
             float m_displayMinLuminancePerNits;
             float m_displayMaxLuminancePerNits;
+            uint32_t m_isLPMToneMapperSelected;
         };
 
         ColorConversionConsts m_colorConversionConsts;

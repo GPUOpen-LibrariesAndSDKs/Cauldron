@@ -136,6 +136,14 @@ struct Output
 #ifdef HAS_NORMALS_RT
     float4 normals : TARGET(HAS_NORMALS_RT);
 #endif
+
+#ifdef HAS_UPSCALE_REACTIVE_RT
+    float upscaleReactive : TARGET(HAS_UPSCALE_REACTIVE_RT);
+#endif
+
+#ifdef HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT
+    float upscaleTransparencyAndComposition : TARGET(HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT);
+#endif
 };
 
 Output mainPS(VS_OUTPUT_SCENE Input, bool bIsFontFacing : SV_IsFrontFace)
@@ -155,8 +163,13 @@ Output mainPS(VS_OUTPUT_SCENE Input, bool bIsFontFacing : SV_IsFrontFace)
     Output output;
 
 #ifdef HAS_MOTION_VECTORS_RT
-    output.motionVectors = Input.svCurrPosition.xy / Input.svCurrPosition.w -
-                           Input.svPrevPosition.xy / Input.svPrevPosition.w;    
+    float2 cancelJitter = myPerFrame.u_mCameraPrevJitter - myPerFrame.u_mCameraCurrJitter;
+    output.motionVectors =
+        (Input.svPrevPosition.xy / Input.svPrevPosition.w) - (Input.svCurrPosition.xy / Input.svCurrPosition.w)
+                + cancelJitter;
+
+    // Transform motion vector from NDC space to UV space (+Y is top-down).
+    output.motionVectors *= float2(0.5f, -0.5f);
 #endif       
     
 #ifdef HAS_SPECULAR_ROUGHNESS_RT
@@ -176,5 +189,20 @@ Output mainPS(VS_OUTPUT_SCENE Input, bool bIsFontFacing : SV_IsFrontFace)
     output.normals = float4(getPixelNormal(Input, bIsFontFacing) / 2 + 0.5f, 0);
 #endif
     
+#ifdef HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT
+    #if defined(HAS_NORMAL_UV_TRANSFORM)
+        || defined(HAS_EMISSIVE_UV_TRANSFORM)
+        || defined(HAS_OCCLSION_UV_TRANSFORM)
+        || defined(HAS_BASECOLOR_UV_TRANSFORM)
+        || defined(HAS_METALLICROUGHNESS_UV_TRANSFORM)
+        || defined(HAS_SPECULARGLOSSINESS_UV_TRANSFORM)
+        || defined(HAS_DIFFUSE_UV_TRANSFORM)
+        float hasAnimatedTexture = 1.f;
+    #else
+        float hasAnimatedTexture = 0.f;
+    #endif
+    output.upscaleTransparencyAndComposition = max(alpha, hasAnimatedTexture);
+#endif
+
     return output;
 }

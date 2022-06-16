@@ -33,7 +33,8 @@ namespace CAULDRON_VK
             ResourceViewHeaps *pHeaps,
             DynamicBufferRing *pDynamicBufferRing,
             StaticBufferPool *pStaticBufferPool,
-            VkSampleCountFlagBits sampleDescCount);
+            VkSampleCountFlagBits sampleDescCount,
+            bool invertedDepth = false);
 
         void OnDestroy();
         void Draw(VkCommandBuffer cmd_buf, int numIndices, VkDescriptorBufferInfo IBV, VkDescriptorBufferInfo VBV, const math::Matrix4& worldMatrix, const math::Vector4& vCenter, const math::Vector4& vRadius, const math::Vector4& vColor);
@@ -49,6 +50,8 @@ namespace CAULDRON_VK
 
         VkDescriptorSet             m_descriptorSet;
         VkDescriptorSetLayout       m_descriptorSetLayout;
+
+        bool m_bInvertedDepth;
 
         struct per_object
         {

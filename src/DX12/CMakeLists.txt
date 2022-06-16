@@ -106,6 +106,7 @@ set(Shaders_PostProc_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Debug.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/DownSamplePS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Tonemappers.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/LPMTonemapperHelper.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Tonemapping.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TonemappingCS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/ColorConversionPS.hlsl
@@ -113,6 +114,15 @@ set(Shaders_PostProc_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/TAASharpenerCS.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/motionBlur.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/MagnifierPS.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/transferFunction.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_core.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_common_types.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_core_cpu.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_core_gpu_common.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_core_gpu_common_half.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_core_portability.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_core_hlsl.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../common/FidelityFX/include/gpu/ffx_lpm.h
 )
 
 set(Shaders_GLTF_src
@@ -139,7 +149,7 @@ set(Shaders_GLTF_src
 
 add_library (Cauldron_DX12 STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} )
 
-target_link_libraries (Cauldron_DX12 Cauldron_Common D3D12X winpixeventruntimelib)
+target_link_libraries (Cauldron_DX12 Cauldron_Common D3D12X winpixeventruntimelib DX12AgilitySDK)
 target_include_directories (Cauldron_DX12 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 copyTargetCommand("${Shaders_GLTF_src}" ${CMAKE_HOME_DIRECTORY}/bin/ShaderLibDX copied_dx12_shaders_gltf_src)

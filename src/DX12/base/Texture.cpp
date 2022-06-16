@@ -259,7 +259,7 @@ namespace CAULDRON_DX12
         //
         for (uint32_t y = 0; y < num_rows; y++)
         {
-            memcpy(pixels + y * placedTex2D.Footprint.RowPitch, (UINT8*)data + y * placedTex2D.Footprint.RowPitch, row_sizes_in_bytes);
+            memcpy(pixels + y * placedTex2D.Footprint.RowPitch, (UINT8*)data + y * row_sizes_in_bytes, row_sizes_in_bytes);
         }
 
         CD3DX12_TEXTURE_COPY_LOCATION Dst(m_pResource, 0);
@@ -334,6 +334,12 @@ namespace CAULDRON_DX12
             switch (resourceDesc.Format)
             {
             // Override TYPELESS resources to prevent device removed.
+            case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+                srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+                break;
+            case DXGI_FORMAT_D24_UNORM_S8_UINT:
+                srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+                break;
             case DXGI_FORMAT_D32_FLOAT:
             case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; 
                 break;
@@ -441,7 +447,7 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    INT32 Texture::InitDepthStencil(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc)
+    INT32 Texture::InitDepthStencil(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc, float fClearValue)
     {
         // depth buffers need to be created as typeless! That way we can create different views out of them
         //assert(pDesc->Format == DXGI_FORMAT_R32_TYPELESS);
@@ -449,7 +455,7 @@ namespace CAULDRON_DX12
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
         clearValue.Format = (pDesc->Format == DXGI_FORMAT_R32_TYPELESS) ? DXGI_FORMAT_D32_FLOAT : pDesc->Format;
-        clearValue.DepthStencil.Depth = 1.0f;
+        clearValue.DepthStencil.Depth = fClearValue;
         clearValue.DepthStencil.Stencil = 0;
 
         D3D12_RESOURCE_STATES states = D3D12_RESOURCE_STATE_COMMON;

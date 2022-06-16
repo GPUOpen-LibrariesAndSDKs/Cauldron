@@ -45,7 +45,8 @@ namespace CAULDRON_VK
         bool bUseSSAOMask,
         std::vector<VkImageView>& ShadowMapViewPool,
         GBufferRenderPass *pRenderPass,
-        AsyncPool *pAsyncPool
+        AsyncPool *pAsyncPool,
+        bool invertedDepth
     )
     {
         m_pDevice = pDevice;
@@ -54,6 +55,7 @@ namespace CAULDRON_VK
         m_pStaticBufferPool = pStaticBufferPool;
         m_pDynamicBufferRing = pDynamicBufferRing;
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
+        m_bInvertedDepth = invertedDepth;
 
         //set bindings for the render targets
         //
@@ -533,7 +535,7 @@ namespace CAULDRON_VK
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
-            att_state.blendEnable = VK_FALSE;
+            att_state.blendEnable = defines.Has("DEF_alphaMode_BLEND");
             att_state.alphaBlendOp = VK_BLEND_OP_ADD;
             att_state.colorBlendOp = VK_BLEND_OP_ADD;
             att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -546,7 +548,7 @@ namespace CAULDRON_VK
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
-            att_state.blendEnable = VK_FALSE;
+            att_state.blendEnable = defines.Has("DEF_alphaMode_BLEND");
             att_state.alphaBlendOp = VK_BLEND_OP_ADD;
             att_state.colorBlendOp = VK_BLEND_OP_ADD;
             att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -559,7 +561,7 @@ namespace CAULDRON_VK
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
-            att_state.blendEnable = VK_FALSE;
+            att_state.blendEnable = defines.Has("DEF_alphaMode_BLEND");
             att_state.alphaBlendOp = VK_BLEND_OP_ADD;
             att_state.colorBlendOp = VK_BLEND_OP_ADD;
             att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -572,7 +574,7 @@ namespace CAULDRON_VK
         {
             VkPipelineColorBlendAttachmentState att_state = {};
             att_state.colorWriteMask = 0xf;
-            att_state.blendEnable = VK_FALSE;
+            att_state.blendEnable = defines.Has("DEF_alphaMode_BLEND");
             att_state.alphaBlendOp = VK_BLEND_OP_ADD;
             att_state.colorBlendOp = VK_BLEND_OP_ADD;
             att_state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -580,6 +582,35 @@ namespace CAULDRON_VK
             att_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
             att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
             att_states.push_back(att_state);
+        }
+        {
+            VkPipelineColorBlendAttachmentState att_state = {};
+            att_state.colorWriteMask = defines.Has("DEF_alphaMode_BLEND") ? VK_COLOR_COMPONENT_R_BIT : VK_COLOR_COMPONENT_A_BIT;
+            att_state.blendEnable = defines.Has("DEF_alphaMode_BLEND");
+            att_state.alphaBlendOp = VK_BLEND_OP_ADD;
+            att_state.colorBlendOp = VK_BLEND_OP_ADD;
+            att_state.srcColorBlendFactor = defines.Has("DEF_alphaMode_BLEND") ? VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR : VK_BLEND_FACTOR_ONE;
+            att_state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+            att_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+            att_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+
+            bool bHasAnimatedTexture = false;
+            bHasAnimatedTexture |= defines.Has("HAS_NORMAL_UV_TRANSFORM");
+            bHasAnimatedTexture |= defines.Has("HAS_EMISSIVE_UV_TRANSFORM");
+            bHasAnimatedTexture |= defines.Has("HAS_OCCLSION_UV_TRANSFORM");
+            bHasAnimatedTexture |= defines.Has("HAS_BASECOLOR_UV_TRANSFORM");
+            bHasAnimatedTexture |= defines.Has("HAS_METALLICROUGHNESS_UV_TRANSFORM");
+            bHasAnimatedTexture |= defines.Has("HAS_SPECULARGLOSSINESS_UV_TRANSFORM");
+            bHasAnimatedTexture |= defines.Has("HAS_DIFFUSE_UV_TRANSFORM");
+
+            if (bHasAnimatedTexture)
+                att_state.colorWriteMask |= VK_COLOR_COMPONENT_B_BIT;
+
+            if (defines.Has("HAS_UPSCALE_REACTIVE_RT"))
+                att_states.push_back(att_state);
+
+            if (defines.Has("HAS_UPSCALE_TRANSPARENCY_AND_COMPOSITION_RT"))
+                att_states.push_back(att_state);
         }
 
         // Color blend state
@@ -625,8 +656,13 @@ namespace CAULDRON_VK
         ds.pNext = NULL;
         ds.flags = 0;
         ds.depthTestEnable = true;
-        ds.depthWriteEnable = true;
-        ds.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        if (defines.Has("DEF_alphaMode_BLEND")) {
+            ds.depthWriteEnable = false;
+        }
+        else {
+            ds.depthWriteEnable = true;
+        }
+        ds.depthCompareOp = m_bInvertedDepth ? VK_COMPARE_OP_GREATER_OR_EQUAL : VK_COMPARE_OP_LESS_OR_EQUAL;
         ds.back.failOp = VK_STENCIL_OP_KEEP;
         ds.back.passOp = VK_STENCIL_OP_KEEP;
         ds.back.compareOp = VK_COMPARE_OP_ALWAYS;

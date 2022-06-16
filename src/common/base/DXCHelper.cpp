@@ -143,18 +143,26 @@ bool DXCompileToDXO(size_t hash,
 
     // get defines
     //
-    wchar_t names[50][128];
-    wchar_t values[50][128];
-    DxcDefine defines[50];
+    
+    struct DefineElement
+    {
+        wchar_t name[128];
+        wchar_t value[128];
+    };
+    std::vector<DefineElement> defineElements(pDefines ? pDefines->size() : 0);
+    std::vector<DxcDefine> defines(pDefines ? pDefines->size() : 0);
+
     int defineCount = 0;
     if (pDefines != NULL)
     {
         for (auto it = pDefines->begin(); it != pDefines->end(); it++)
         {
-            swprintf_s<128>(names[defineCount], L"%S", it->first.c_str());
-            swprintf_s<128>(values[defineCount], L"%S", it->second.c_str());
-            defines[defineCount].Name = names[defineCount];
-            defines[defineCount].Value = values[defineCount];
+            auto& defineElement = defineElements[defineCount];
+            swprintf_s<128>(defineElement.name, L"%S", it->first.c_str());
+            swprintf_s<128>(defineElement.value, L"%S", it->second.c_str());
+
+            defines[defineCount].Name = defineElement.name;
+            defines[defineCount].Value = defineElement.value;
             defineCount++;
         }
     }
@@ -203,7 +211,7 @@ bool DXCompileToDXO(size_t hash,
     swprintf_s<256>(pEntryPointW, L"%S", pEntryPoint);
 
     IDxcOperationResult *pResultPre;
-    HRESULT res1 = pCompiler->Preprocess(pSource, L"", NULL, 0, defines, defineCount, &Includer, &pResultPre);
+    HRESULT res1 = pCompiler->Preprocess(pSource, L"", NULL, 0, defines.data(), defineCount, &Includer, &pResultPre);
     if (res1 == S_OK)
     {
         Microsoft::WRL::ComPtr<IDxcBlob> pCode1;
@@ -226,7 +234,7 @@ bool DXCompileToDXO(size_t hash,
         {
             Microsoft::WRL::ComPtr<IDxcBlob> pPDB;
             LPWSTR pDebugBlobName[1024];
-            res = pCompiler->CompileWithDebug(pSource, NULL, pEntryPointW, L"", ppArgs.data(), (UINT32)ppArgs.size(), defines, defineCount, &Includer, &pOpRes, pDebugBlobName, pPDB.GetAddressOf());
+            res = pCompiler->CompileWithDebug(pSource, NULL, pEntryPointW, L"", ppArgs.data(), (UINT32)ppArgs.size(), defines.data(), defineCount, &Includer, &pOpRes, pDebugBlobName, pPDB.GetAddressOf());
 
             // Setup the correct name for the PDB
             if (pPDB)
@@ -238,7 +246,7 @@ bool DXCompileToDXO(size_t hash,
         }
         else
         {
-            res = pCompiler->Compile(pSource, NULL, pEntryPointW, L"", ppArgs.data(), (UINT32)ppArgs.size(), defines, defineCount, &Includer, &pOpRes);
+            res = pCompiler->Compile(pSource, NULL, pEntryPointW, L"", ppArgs.data(), (UINT32)ppArgs.size(), defines.data(), defineCount, &Includer, &pOpRes);
         }
 
         // Clean up allocated memory

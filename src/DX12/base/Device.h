@@ -69,3 +69,7 @@ namespace CAULDRON_DX12
         bool                  m_barycentricsSupported = false;
     };
 }
+
+#define CAULDRON_APP_USE_DX12_AGILITY_SDK(Version, Path)    \
+    extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = Version; }   \
+    extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = Path; }

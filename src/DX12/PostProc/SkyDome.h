@@ -31,7 +31,7 @@ namespace CAULDRON_DX12
     class SkyDome
     {
     public:
-        void OnCreate(Device* pDevice, UploadHeap* pUploadHeap, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, DXGI_FORMAT outFormat, uint32_t sampleDescCount);
+        void OnCreate(Device* pDevice, UploadHeap* pUploadHeap, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, const char *pDiffuseCubemap, const char *pSpecularCubemap, DXGI_FORMAT outFormat, uint32_t sampleDescCount, bool bInvertedDepth);
         void OnDestroy();
         void Draw(ID3D12GraphicsCommandList* pCommandList, const math::Matrix4& invViewProj);
         void GenerateDiffuseMapFromEnvironmentMap();
