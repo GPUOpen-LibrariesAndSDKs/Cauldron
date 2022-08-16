@@ -190,7 +190,7 @@
 #define FFX_BROADCAST_MIN_INT16X4(x) FFX_MIN16_I4(FFX_MIN16_I(x))
 
 #if !defined(FFX_SKIP_EXT)
-#if FFX_HALF
+#if defined(FFX_HALF)
     #extension GL_EXT_shader_16bit_storage : require
     #extension GL_EXT_shader_explicit_arithmetic_types : require
 #endif // FFX_HALF
@@ -1226,7 +1226,7 @@ FfxUInt32 AShrSU1(FfxUInt32 a, FfxUInt32 b)
     return FfxUInt32(FfxInt32(a) >> FfxInt32(b));
 }
 
-#if FFX_HALF
+#if defined(FFX_HALF)
 
 #define FFX_UINT32_TO_FLOAT16X2(x) unpackFloat2x16(FfxUInt32(x))
 
@@ -1541,7 +1541,7 @@ FfxUInt32x4 AWaveXorU4(FfxUInt32x4 v, FfxUInt32 x)
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
-#if FFX_HALF
+#if defined(FFX_HALF)
 FfxFloat16x2 ffxWaveXorFloat16x2(FfxFloat16x2 v, FfxUInt32 x)
 {
     return FFX_UINT32_TO_FLOAT16X2(subgroupShuffleXor(FFX_FLOAT16X2_TO_UINT32(v), x));

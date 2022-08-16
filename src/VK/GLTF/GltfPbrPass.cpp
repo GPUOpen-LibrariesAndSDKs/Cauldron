@@ -630,6 +630,7 @@ namespace CAULDRON_VK
 
         std::vector<VkDynamicState> dynamicStateEnables = {
             VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_FRAGMENT_SHADING_RATE_KHR,
             VK_DYNAMIC_STATE_SCISSOR
         };
         VkPipelineDynamicStateCreateInfo dynamicState = {};

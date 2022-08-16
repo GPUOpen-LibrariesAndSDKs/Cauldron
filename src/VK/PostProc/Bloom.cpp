@@ -226,13 +226,32 @@ namespace CAULDRON_VK
 
         for (int i = 0; i < m_mipCount; i++)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].m_SRV, NULL);
-            vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].m_RTV, NULL);
-            vkDestroyFramebuffer(m_pDevice->GetDevice(), m_mip[i].m_frameBuffer, NULL);
+            if (m_mip[i].m_SRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].m_SRV, NULL);
+                m_mip[i].m_SRV = {};
+            }
+            if (m_mip[i].m_RTV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].m_RTV, NULL);
+                m_mip[i].m_RTV = {};
+            }
+            if (m_mip[i].m_frameBuffer != nullptr)
+            {
+                vkDestroyFramebuffer(m_pDevice->GetDevice(), m_mip[i].m_frameBuffer, NULL);
+                m_mip[i].m_frameBuffer = {};
+            }
         }
-
-        vkDestroyImageView(m_pDevice->GetDevice(), m_output.m_RTV, NULL);
-        vkDestroyFramebuffer(m_pDevice->GetDevice(), m_output.m_frameBuffer, NULL);
+        if (m_output.m_RTV != nullptr)
+        {
+            vkDestroyImageView(m_pDevice->GetDevice(), m_output.m_RTV, NULL);
+            m_output.m_RTV = {};
+        }
+        if (m_output.m_frameBuffer != nullptr)
+        {
+            vkDestroyFramebuffer(m_pDevice->GetDevice(), m_output.m_frameBuffer, NULL);
+            m_output.m_frameBuffer = {};
+        }
     }
 
     void Bloom::OnDestroy()

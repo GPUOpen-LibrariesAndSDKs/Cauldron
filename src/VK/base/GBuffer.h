@@ -39,6 +39,7 @@ namespace CAULDRON_VK
         GBUFFER_INVERTED_DEPTH = 64,
         GBUFFER_UPSCALEREACTIVE = 128,
         GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION = 256,
+        GBUFFER_FRAGMENT_SHADING_RATE = 512,
     } GBufferFlagBits;
 
     typedef uint32_t GBufferFlags;
@@ -49,6 +50,7 @@ namespace CAULDRON_VK
     {
     public:
         void OnCreate(GBuffer *pGBuffer, GBufferFlags flags, bool bClear, const std::string &name);
+        void OnCreate(GBuffer *pGBuffer, GBufferFlags flags, bool bClear, VkImageLayout previousDepth, VkImageLayout currentDepth, const std::string &name);
         void OnDestroy();
         void OnCreateWindowSizeDependentResources(uint32_t Width, uint32_t Height);
         void OnDestroyWindowSizeDependentResources();
@@ -74,11 +76,12 @@ namespace CAULDRON_VK
         void OnCreate(Device* pDevice, ResourceViewHeaps *pHeaps, const std::map<GBufferFlags, VkFormat> &m_formats, int sampleCount);
         void OnDestroy();
 
-        void OnCreateWindowSizeDependentResources(SwapChain *pSwapChain, uint32_t Width, uint32_t Height);
+        void OnCreateWindowSizeDependentResources(SwapChain* pSwapChain, uint32_t Width, uint32_t Height, VkImageUsageFlagBits depthUsageFlags = {});
         void OnDestroyWindowSizeDependentResources();
 
         void GetAttachmentList(GBufferFlags flags, std::vector<VkImageView> *pAttachments, std::vector<VkClearValue> *pClearValues);
         VkRenderPass CreateRenderPass(GBufferFlags flags, bool bClear);
+        VkRenderPass CreateRenderPass(GBufferFlags flags, bool bClear, VkImageLayout previousDepth, VkImageLayout currentDepth);
 
         void GetCompilerDefines(DefineList &defines);
         VkSampleCountFlagBits  GetSampleCount() { return m_sampleCount; }
@@ -116,6 +119,10 @@ namespace CAULDRON_VK
         // HDR
         Texture                         m_HDR;
         VkImageView                     m_HDRSRV;
+
+        // VRS
+        Texture                         m_VRS;
+        VkImageView                     m_VRSSRV;
 
     private:
         Device                         *m_pDevice;

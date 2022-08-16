@@ -67,6 +67,8 @@ namespace CAULDRON_VK
         bool IsRT11Supported() { return m_rt11Supported; }
         bool IsVRSTier1Supported() { return m_vrs1Supported; }
         bool IsVRSTier2Supported() { return m_vrs2Supported; }
+        inline VkExtent2D GetVRSTileSize(){ return m_vrsTileSize; }
+        inline VkExtent2D GetFragmentShadingRateAttachmentTexelSize(){ return m_fragmentShadingRateAttachmentTexelSize; }
 
         // pipeline cache
         VkPipelineCache m_pipelineCache;
@@ -102,6 +104,8 @@ namespace CAULDRON_VK
         bool m_rt11Supported = false;
         bool m_vrs1Supported = false;
         bool m_vrs2Supported = false;
+        VkExtent2D m_vrsTileSize  = {0, 0};
+        VkExtent2D m_fragmentShadingRateAttachmentTexelSize = {0, 0};
 #ifdef USE_VMA
         VmaAllocator m_hAllocator = NULL;
 #endif

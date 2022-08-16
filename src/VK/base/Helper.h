@@ -23,9 +23,13 @@
 namespace CAULDRON_VK
 {
     void AttachClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription *pAttachDesc);
+    void AttachClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription2 *pAttachDesc);
     void AttachNoClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription *pAttachDesc);
+    void AttachNoClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription2 *pAttachDesc);
     void AttachBlending(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription *pAttachDesc);
-    VkRenderPass CreateRenderPassOptimal(VkDevice device, uint32_t colorAttachments, VkAttachmentDescription *pColorAttachments, VkAttachmentDescription *pDepthAttachment);
+    void AttachBlending(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription2 *pAttachDesc);
+    VkRenderPass CreateRenderPassOptimal(VkDevice device, uint32_t colorAttachments, VkAttachmentDescription *pColorAttachments, VkAttachmentDescription *pDepthAttachment, VkImageLayout depthLayout, VkAttachmentDescription *pVRSAttachment = nullptr, VkExtent2D shadingRateAttachmentTexelSize = {0,0});
+    VkRenderPass CreateRenderPassOptimal(VkDevice device, uint32_t colorAttachments, VkAttachmentDescription2 *pColorAttachments, VkAttachmentDescription2 *pDepthAttachment, VkImageLayout depthLayout, VkAttachmentDescription2 *pVRSAttachment = nullptr, VkExtent2D shadingRateAttachmentTexelSize = {0,0});
 
     // Sets the viewport and the scissor to a fixed height and width
     //
@@ -41,6 +45,7 @@ namespace CAULDRON_VK
 
     // Sets the i-th Descriptor Set entry to use a given image view + sampler. The sampler can be null is a static one is being used.
     //
+    void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkImageLayout imageLayout, VkSampler *pSampler, VkDescriptorSet descriptorSet);
     void SetDescriptorSet(VkDevice device, uint32_t index, VkImageView imageView, VkSampler *pSampler, VkDescriptorSet descriptorSet);
     void SetDescriptorSet(VkDevice device, uint32_t index, uint32_t descriptorsCount, const std::vector<VkImageView>& imageViews, VkSampler* pSampler, VkDescriptorSet descriptorSet);
     void SetDescriptorSetForDepth(VkDevice device, uint32_t index, VkImageView imageView, VkSampler *pSampler, VkDescriptorSet descriptorSet);

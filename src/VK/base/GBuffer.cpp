@@ -34,6 +34,16 @@ namespace CAULDRON_VK
         SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_RENDER_PASS, (uint64_t)m_renderPass, name.c_str());
     }
 
+    void GBufferRenderPass::OnCreate(GBuffer *pGBuffer, GBufferFlags flags, bool bClear, VkImageLayout previousDepth, VkImageLayout currentDepth, const std::string &name)
+    {
+        m_flags = flags;
+        m_pGBuffer = pGBuffer;
+        m_pDevice = pGBuffer->GetDevice();
+
+        m_renderPass = pGBuffer->CreateRenderPass(flags, bClear, previousDepth, currentDepth);
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_RENDER_PASS, (uint64_t)m_renderPass, name.c_str());
+    }
+
     void GBufferRenderPass::OnDestroy()
     {
         vkDestroyRenderPass(m_pGBuffer->GetDevice()->GetDevice(), m_renderPass, nullptr);
@@ -48,7 +58,11 @@ namespace CAULDRON_VK
 
     void GBufferRenderPass::OnDestroyWindowSizeDependentResources()
     {
-        vkDestroyFramebuffer(m_pGBuffer->GetDevice()->GetDevice(), m_frameBuffer, nullptr);
+        if (m_frameBuffer != nullptr)
+        {
+            vkDestroyFramebuffer(m_pGBuffer->GetDevice()->GetDevice(), m_frameBuffer, nullptr);
+            m_frameBuffer = {};
+        }
     }
 
     void GBufferRenderPass::BeginPass(VkCommandBuffer commandList, VkRect2D renderArea)
@@ -149,67 +163,120 @@ namespace CAULDRON_VK
     }
 
     //
+    // Helper function for setting up correct description
+    //
+    template <typename T>
+    void addAttachment(bool bClear, VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, T* pAttachDesc)
+    {
+        if (bClear)
+        {
+            AttachClearBeforeUse(format, sampleCount, initialLayout, finalLayout, pAttachDesc);
+        }
+        else
+        {
+            AttachBlending(format, sampleCount, initialLayout, finalLayout, pAttachDesc);
+        }
+    }
+
+    //
     // create render pass based on usage flags
     //
     VkRenderPass GBuffer::CreateRenderPass(GBufferFlags flags, bool bClear)
     {
-        VkAttachmentDescription depthAttachment;
-        VkAttachmentDescription colorAttachments[10];
+        VkImageLayout previousDepth = bClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        return CreateRenderPass(flags, bClear, previousDepth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    }
+
+    VkRenderPass GBuffer::CreateRenderPass(GBufferFlags flags, bool bClear, VkImageLayout previousDepth, VkImageLayout currentDepth)
+    {
+        VkAttachmentDescription2 depthAttachment;
+        {
+            depthAttachment.pNext = nullptr;
+        }
+        VkAttachmentDescription2 vrsAttachment;
+        {
+            vrsAttachment.pNext = nullptr;
+        }
+        VkAttachmentDescription2 colorAttachments[10];
+        for (auto& ca : colorAttachments)
+        {
+            ca.pNext = nullptr;
+        }
         uint32_t colorAttanchmentCount = 0;
 
-        auto addAttachment = bClear ? AttachClearBeforeUse : AttachBlending;
         VkImageLayout previousColor = bClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        VkImageLayout previousDepth = bClear ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         if (flags & GBUFFER_FORWARD)
         {
-            addAttachment(m_formats[GBUFFER_FORWARD], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            addAttachment(bClear, m_formats[GBUFFER_FORWARD], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
             assert(m_GBufferFlags & GBUFFER_FORWARD); // asserts if there if the RT is not present in the GBuffer
         }
 
         if (flags & GBUFFER_MOTION_VECTORS)
         {
-            addAttachment(m_formats[GBUFFER_MOTION_VECTORS], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            addAttachment(bClear, m_formats[GBUFFER_MOTION_VECTORS], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
             assert(m_GBufferFlags & GBUFFER_MOTION_VECTORS); // asserts if there if the RT is not present in the GBuffer
         }
 
         if (flags & GBUFFER_NORMAL_BUFFER)
         {
-            addAttachment(m_formats[GBUFFER_NORMAL_BUFFER], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            addAttachment(bClear, m_formats[GBUFFER_NORMAL_BUFFER], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
             assert(m_GBufferFlags & GBUFFER_NORMAL_BUFFER); // asserts if there if the RT is not present in the GBuffer
         }
 
         if (flags & GBUFFER_DIFFUSE)
         {
-            addAttachment(m_formats[GBUFFER_DIFFUSE], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            addAttachment(bClear, m_formats[GBUFFER_DIFFUSE], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
             assert(m_GBufferFlags & GBUFFER_DIFFUSE); // asserts if there if the RT is not present in the GBuffer
         }
 
         if (flags & GBUFFER_SPECULAR_ROUGHNESS)
         {
-            addAttachment(m_formats[GBUFFER_SPECULAR_ROUGHNESS], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            addAttachment(bClear, m_formats[GBUFFER_SPECULAR_ROUGHNESS], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
             assert(m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS); // asserts if there if the RT is not present in the GBuffer
         }
 
         if (flags & GBUFFER_DEPTH)
         {
-            addAttachment(m_formats[GBUFFER_DEPTH], m_sampleCount, previousDepth, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, &depthAttachment);
+            // Clear when fragment shading rate is present to avid depth culling which affects transparent geometry rendering.
+            // Without clear we might end up in state where depth is already drawn by different pass then depth test might fail for
+            // color pass - which combined with alpha-tested pass can lead to read from uninitialized / clear value
+            addAttachment(bClear || (flags & GBUFFER_FRAGMENT_SHADING_RATE),
+                m_formats[GBUFFER_DEPTH],
+                m_sampleCount,
+                previousDepth,
+                currentDepth,
+                &depthAttachment);
             assert(m_GBufferFlags & GBUFFER_DEPTH); // asserts if there if the RT is not present in the GBuffer
         }
 
         if (flags & GBUFFER_UPSCALEREACTIVE)
         {
-            addAttachment(m_formats[GBUFFER_UPSCALEREACTIVE], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            addAttachment(bClear, m_formats[GBUFFER_UPSCALEREACTIVE], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
             assert(m_GBufferFlags & GBUFFER_UPSCALEREACTIVE); // asserts if there if the RT is not present in the GBuffer
         }
 
         if (flags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
         {
-            addAttachment(m_formats[GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
+            addAttachment(bClear, m_formats[GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION], m_sampleCount, previousColor, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &colorAttachments[colorAttanchmentCount++]);
             assert(m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION); // asserts if there if the RT is not present in the GBuffer
         }
 
-        return CreateRenderPassOptimal(m_pDevice->GetDevice(), colorAttanchmentCount, colorAttachments, &depthAttachment);
+        VkExtent2D tShadingRateAttachmentTexelSize = { 0,0 };
+        if (flags & GBUFFER_FRAGMENT_SHADING_RATE)
+        {
+            addAttachment(bClear, m_formats[GBUFFER_FRAGMENT_SHADING_RATE], m_sampleCount, VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR, VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR, &vrsAttachment);
+            assert(m_GBufferFlags & GBUFFER_FRAGMENT_SHADING_RATE);  // asserts if there if the RT is not present in the GBuffer
+            tShadingRateAttachmentTexelSize = m_pDevice->GetFragmentShadingRateAttachmentTexelSize();
+        }
+
+        return CreateRenderPassOptimal(m_pDevice->GetDevice(),
+            colorAttanchmentCount,
+            colorAttachments,
+            &depthAttachment,
+            currentDepth,
+            (flags & GBUFFER_FRAGMENT_SHADING_RATE ) ? &vrsAttachment : nullptr,
+            tShadingRateAttachmentTexelSize);
     }
 
     void GBuffer::GetAttachmentList(GBufferFlags flags, std::vector<VkImageView> *pAttachments, std::vector<VkClearValue> *pClearValues)
@@ -327,9 +394,21 @@ namespace CAULDRON_VK
                 pClearValues->push_back(cv);
             }
         }
+
+        if (flags & GBUFFER_FRAGMENT_SHADING_RATE)
+        {
+            pAttachments->push_back(m_VRSSRV);
+
+            if (pClearValues)
+            {
+                VkClearValue cv;
+                cv.color = {0.0f, 0.0f, 0.0f, 0.0f};
+                pClearValues->push_back(cv);
+            }
+        }
     }
 
-    void GBuffer::OnCreateWindowSizeDependentResources(SwapChain *pSwapChain, uint32_t Width, uint32_t Height)
+    void GBuffer::OnCreateWindowSizeDependentResources(SwapChain* pSwapChain, uint32_t Width, uint32_t Height, VkImageUsageFlagBits depthUsageFlags)
     {
         // Create Texture + RTV, to hold the resolved scene
         //
@@ -391,61 +470,121 @@ namespace CAULDRON_VK
         //
         if (m_GBufferFlags & GBUFFER_DEPTH)
         {
-            m_DepthBuffer.InitDepthStencil(m_pDevice, Width, Height, m_formats[GBUFFER_DEPTH], m_sampleCount, "DepthBuffer");
+            m_DepthBuffer.InitDepthStencil(m_pDevice, Width, Height, m_formats[GBUFFER_DEPTH], m_sampleCount, "DepthBuffer", depthUsageFlags);
             m_DepthBuffer.CreateDSV(&m_DepthBufferDSV);
             m_DepthBuffer.CreateRTV(&m_DepthBufferSRV);            
         }
+
+        // Create VRS buffer
+        //
+        if (m_GBufferFlags & GBUFFER_FRAGMENT_SHADING_RATE)
+        {
+            m_VRS.InitRenderTarget(
+                m_pDevice,
+                (Width + m_pDevice->GetFragmentShadingRateAttachmentTexelSize().width - 1) / m_pDevice->GetFragmentShadingRateAttachmentTexelSize().width,
+                (Height + m_pDevice->GetFragmentShadingRateAttachmentTexelSize().height - 1) / m_pDevice->GetFragmentShadingRateAttachmentTexelSize().height,
+                m_formats[GBUFFER_FRAGMENT_SHADING_RATE],
+                m_sampleCount,
+                (VkImageUsageFlags)(
+                    VK_IMAGE_USAGE_STORAGE_BIT
+                    | VK_IMAGE_USAGE_SAMPLED_BIT 
+                    | VK_IMAGE_USAGE_TRANSFER_DST_BIT 
+                    | VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR),
+                false,
+                "m_VRS");
+
+            m_VRS.CreateRTV(&m_VRSSRV);
+        }
+
     }
 
     void GBuffer::OnDestroyWindowSizeDependentResources()
     {
         if (m_GBufferFlags & GBUFFER_UPSCALE_TRANSPARENCY_AND_COMPOSITION)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_UpscaleTransparencyAndCompositionSRV, nullptr);
-            m_UpscaleTransparencyAndComposition.OnDestroy();
+            if (m_UpscaleTransparencyAndCompositionSRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_UpscaleTransparencyAndCompositionSRV, nullptr);
+                m_UpscaleTransparencyAndComposition.OnDestroy();
+                m_UpscaleTransparencyAndCompositionSRV = {};
+            }
         }
 
         if (m_GBufferFlags & GBUFFER_UPSCALEREACTIVE)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_UpscaleReactiveSRV, nullptr);
-            m_UpscaleReactive.OnDestroy();
+            if (m_UpscaleReactiveSRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_UpscaleReactiveSRV, nullptr);
+                m_UpscaleReactive.OnDestroy();
+                m_UpscaleReactiveSRV = {};
+            }
         }
 
         if (m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_SpecularRoughnessSRV, nullptr);
-            m_SpecularRoughness.OnDestroy();
+            if (m_SpecularRoughnessSRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_SpecularRoughnessSRV, nullptr);
+                m_SpecularRoughness.OnDestroy();
+                m_SpecularRoughnessSRV = {};
+            }
         }
 
         if (m_GBufferFlags & GBUFFER_DIFFUSE)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_DiffuseSRV, nullptr);
-            m_Diffuse.OnDestroy();
+            if (m_DiffuseSRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_DiffuseSRV, nullptr);
+                m_Diffuse.OnDestroy();
+                m_DiffuseSRV = {};
+            }
         }
 
         if (m_GBufferFlags & GBUFFER_NORMAL_BUFFER)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_NormalBufferSRV, nullptr);
-            m_NormalBuffer.OnDestroy();
+            if (m_NormalBufferSRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_NormalBufferSRV, nullptr);
+                m_NormalBuffer.OnDestroy();
+                m_NormalBufferSRV = {};
+            }
         }
 
         if (m_GBufferFlags & GBUFFER_MOTION_VECTORS)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_MotionVectorsSRV, nullptr);
-            m_MotionVectors.OnDestroy();
+            if (m_MotionVectorsSRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_MotionVectorsSRV, nullptr);
+                m_MotionVectors.OnDestroy();
+                m_MotionVectorsSRV = {};
+            }
         }
 
         if (m_GBufferFlags & GBUFFER_FORWARD)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_HDRSRV, nullptr);
-            m_HDR.OnDestroy();
+            if (m_HDRSRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_HDRSRV, nullptr);
+                m_HDR.OnDestroy();
+                m_HDRSRV = {};
+            }
         }
 
         if (m_GBufferFlags & GBUFFER_DEPTH)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_DepthBufferDSV, nullptr);
-            vkDestroyImageView(m_pDevice->GetDevice(), m_DepthBufferSRV, nullptr);
-            m_DepthBuffer.OnDestroy();
+            if (m_DepthBufferDSV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_DepthBufferDSV, nullptr);
+                vkDestroyImageView(m_pDevice->GetDevice(), m_DepthBufferSRV, nullptr);
+                m_DepthBuffer.OnDestroy();
+                m_DepthBufferDSV = {};
+            }
+        }
+
+        if (m_GBufferFlags & GBUFFER_FRAGMENT_SHADING_RATE)
+        {
+            vkDestroyImageView(m_pDevice->GetDevice(), m_VRSSRV, nullptr);
+            m_VRS.OnDestroy();
         }
     }
 }

@@ -1061,7 +1061,7 @@ FfxUInt32 AShrSU1(FfxUInt32 a, FfxUInt32 b)
 //==============================================================================================================================
 //                                                          HLSL HALF
 //==============================================================================================================================
-#if FFX_HALF
+#if defined(FFX_HALF)
 
 //==============================================================================================================================
 // Need to use manual unpack to get optimal execution (don't use packed types in buffers directly).
@@ -1506,7 +1506,7 @@ FfxUInt32x4 AWaveXorU1(FfxUInt32x4 v, FfxUInt32 x)
     return WaveReadLaneAt(v, WaveGetLaneIndex() ^ x);
 }
 
-#if FFX_HALF
+#if defined(FFX_HALF)
 FfxFloat16x2 ffxWaveXorFloat16x2(FfxFloat16x2 v, FfxUInt32 x)
 {
     return FFX_UINT32_TO_FLOAT16X2(WaveReadLaneAt(FFX_FLOAT16X2_TO_UINT32(v), WaveGetLaneIndex() ^ x));

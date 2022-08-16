@@ -85,7 +85,7 @@ namespace CAULDRON_VK
         app_info.applicationVersion = 1;
         app_info.pEngineName = pEngineName;
         app_info.engineVersion = 1;
-        app_info.apiVersion = VK_API_VERSION_1_1;
+        app_info.apiVersion = VK_API_VERSION_1_2;
         VkInstance instance = CreateInstance(app_info, pIp);
 
 		// Enumerate physical devices

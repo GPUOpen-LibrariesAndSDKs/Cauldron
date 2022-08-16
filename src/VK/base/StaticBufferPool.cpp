@@ -42,7 +42,7 @@ namespace CAULDRON_VK
             bufferInfo.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
         VmaAllocationCreateInfo allocInfo = {};
-        allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+        allocInfo.usage = m_bUseVidMem ? VMA_MEMORY_USAGE_CPU_ONLY : VMA_MEMORY_USAGE_CPU_TO_GPU; // For the upload buffer, use system memory.
         allocInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
         allocInfo.pUserData = (void*)name;
 
@@ -113,7 +113,7 @@ namespace CAULDRON_VK
 
             res = vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_bufferVid, &m_bufferAllocVid, nullptr);
             assert(res == VK_SUCCESS);
-            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_BUFFER, (uint64_t)m_buffer, "StaticBufferPool (vid mem)");
+            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_BUFFER, (uint64_t)m_bufferVid, "StaticBufferPool (vid mem)");
 #else
 
             // create the buffer, allocate it in VIDEO memory and bind it 
@@ -162,7 +162,11 @@ namespace CAULDRON_VK
         if (m_bUseVidMem)
         {
 #ifdef USE_VMA
-            vmaDestroyBuffer(m_pDevice->GetAllocator(), m_bufferVid, m_bufferAllocVid);
+            if (m_bufferVid != VK_NULL_HANDLE)
+            {
+                vmaDestroyBuffer(m_pDevice->GetAllocator(), m_bufferVid, m_bufferAllocVid);
+                m_bufferVid = VK_NULL_HANDLE;
+            }
 #else
             vkFreeMemory(m_pDevice->GetDevice(), m_deviceMemoryVid, NULL);
             vkDestroyBuffer(m_pDevice->GetDevice(), m_bufferVid, NULL);

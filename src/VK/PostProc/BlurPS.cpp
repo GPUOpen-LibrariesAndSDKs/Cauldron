@@ -213,13 +213,17 @@ namespace CAULDRON_VK
         //
         for (int i = 0; i < m_mipCount; i++)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_horizontalMip[i].m_SRV, NULL);
-            vkDestroyImageView(m_pDevice->GetDevice(), m_horizontalMip[i].m_RTV, NULL);
-            vkDestroyFramebuffer(m_pDevice->GetDevice(), m_horizontalMip[i].m_frameBuffer, NULL);
+            if (m_horizontalMip[i].m_SRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_horizontalMip[i].m_SRV, NULL);
+                vkDestroyImageView(m_pDevice->GetDevice(), m_horizontalMip[i].m_RTV, NULL);
+                vkDestroyFramebuffer(m_pDevice->GetDevice(), m_horizontalMip[i].m_frameBuffer, NULL);
 
-            vkDestroyImageView(m_pDevice->GetDevice(), m_verticalMip[i].m_SRV, NULL);
-            vkDestroyImageView(m_pDevice->GetDevice(), m_verticalMip[i].m_RTV, NULL);
-            vkDestroyFramebuffer(m_pDevice->GetDevice(), m_verticalMip[i].m_frameBuffer, NULL);
+                vkDestroyImageView(m_pDevice->GetDevice(), m_verticalMip[i].m_SRV, NULL);
+                vkDestroyImageView(m_pDevice->GetDevice(), m_verticalMip[i].m_RTV, NULL);
+                vkDestroyFramebuffer(m_pDevice->GetDevice(), m_verticalMip[i].m_frameBuffer, NULL);
+                m_horizontalMip[i].m_SRV = {};
+            }
         }
 
         // Destroy temporary render target used to hold the horizontal pass

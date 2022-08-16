@@ -271,7 +271,8 @@ namespace CAULDRON_VK
         SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, m_name.c_str());
     }
 
-    INT32 Texture::InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, const char *name)
+    INT32 Texture::InitDepthStencil(
+        Device* pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, const char* name, VkImageUsageFlagBits usageFlags)
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -288,7 +289,7 @@ namespace CAULDRON_VK
         image_info.queueFamilyIndexCount = 0;
         image_info.pQueueFamilyIndices = NULL;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT; //TODO    
+        image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | usageFlags; 
         image_info.flags = 0;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;   // VK_IMAGE_TILING_LINEAR should never be used and will never be faster
 
@@ -340,7 +341,10 @@ namespace CAULDRON_VK
             info.mipLevels = m_header.mipMapCount;
             info.arrayLayers = m_header.arraySize;
             if (m_header.arraySize == 6)
+            {
                 info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+                info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+            }
             info.samples = VK_SAMPLE_COUNT_1_BIT;
             info.tiling = VK_IMAGE_TILING_OPTIMAL;
             info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | usageFlags;

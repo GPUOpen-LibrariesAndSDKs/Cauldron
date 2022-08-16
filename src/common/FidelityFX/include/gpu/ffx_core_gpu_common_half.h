@@ -19,7 +19,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#if FFX_HALF
+#if defined(FFX_HALF)
 #if FFX_HLSL_6_2
 /// A define value for 16bit positive infinity.
 ///
