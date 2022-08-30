@@ -171,9 +171,7 @@ vec2 getDiffuseUV(VS2PS Input)
 vec4 getBaseColorTexture(VS2PS Input)
 {
 #ifdef ID_baseColorTexture
-    // Note: Workaround for shader compilation issue
-    // return texture(u_BaseColorSampler, getBaseColorUV(Input), myPerFrame.u_LodBias);
-    return texture(u_BaseColorSampler, getBaseColorUV(Input), 0);
+    return texture(u_BaseColorSampler, getBaseColorUV(Input), myPerFrame.u_LodBias);
 #else
     return vec4(1, 1, 1, 1); //OPAQUE
 #endif
