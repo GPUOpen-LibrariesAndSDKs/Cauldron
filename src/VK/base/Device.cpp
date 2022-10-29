@@ -245,7 +245,7 @@ namespace CAULDRON_VK
         VkDeviceCreateInfo device_info = {};
         device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         device_info.pNext = this->IsVRSTier1Supported() ? (void*) &physicalDeviceFragmentShadingRateFeaturesKHR : &physicalDeviceFeatures2;
-        device_info.queueCreateInfoCount = 2;
+        device_info.queueCreateInfoCount = (graphics_queue_family_index == compute_queue_family_index) ? 1 : 2;
         device_info.pQueueCreateInfos = queue_info;
         device_info.enabledExtensionCount = (uint32_t)extension_names.size();
         device_info.ppEnabledExtensionNames = device_info.enabledExtensionCount ? extension_names.data() : NULL;
