@@ -46,6 +46,7 @@ namespace CAULDRON_VK
         {
             VkCommandPool        m_commandPool;
             VkCommandBuffer      *m_pCommandBuffer;
+            VkFence              m_cmdBufExecutedFences;
             uint32_t m_UsedCls;
         } *m_pCommandBuffers, *m_pCurrentFrame;
 

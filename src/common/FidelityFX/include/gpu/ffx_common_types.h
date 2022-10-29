@@ -160,7 +160,7 @@ typedef int3        FfxInt32x3;
 typedef int4        FfxInt32x4;
 #endif // #if defined(FFX_HLSL_6_2)
 
-#if FFX_HALF
+#if defined(FFX_HALF)
 #if FFX_HLSL_6_2
 typedef float16_t   FfxFloat16;
 typedef float16_t2  FfxFloat16x2;
@@ -224,7 +224,7 @@ typedef min16int4   FfxInt16x4;
 #define FfxInt32x2   ivec2
 #define FfxInt32x3   ivec3
 #define FfxInt32x4   ivec4
-#if FFX_HALF
+#if defined(FFX_HALF)
 #define FfxFloat16   float16_t
 #define FfxFloat16x2 f16vec2
 #define FfxFloat16x3 f16vec3
@@ -244,7 +244,7 @@ typedef min16int4   FfxInt16x4;
 // #define FFX_HALF            (1)
 // #define FFX_HLSL_6_2        (1)
 
-#if FFX_HALF
+#if defined(FFX_HALF)
 
 #define FFX_MIN16_SCALAR( TypeName, BaseComponentType )           typedef min16##BaseComponentType TypeName;
 #define FFX_MIN16_VECTOR( TypeName, BaseComponentType, COL )      typedef vector<min16##BaseComponentType, COL> TypeName;
@@ -354,7 +354,7 @@ typedef FfxUInt32x4     Prefix##_U4;
 
 #if defined(FFX_GLSL)
 
-#if FFX_HALF
+#if defined(FFX_HALF)
 
 #define  FFX_MIN16_F  float16_t
 #define  FFX_MIN16_F2 f16vec2

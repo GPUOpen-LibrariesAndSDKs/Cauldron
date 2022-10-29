@@ -38,9 +38,37 @@ namespace CAULDRON_VK
         pAttachDesc->flags = 0;
     }
 
+    void AttachClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription2 *pAttachDesc)
+    {
+        pAttachDesc->sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+        pAttachDesc->format = format;
+        pAttachDesc->samples = sampleCount;
+        pAttachDesc->loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        pAttachDesc->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pAttachDesc->stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pAttachDesc->initialLayout = initialLayout;
+        pAttachDesc->finalLayout = finalLayout;
+        pAttachDesc->flags = 0;
+    }
+
     // No clear, attachment will keep data that was not written (if this is the first pass make sure you are filling the whole screen)
     void AttachNoClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription *pAttachDesc)
     {
+        pAttachDesc->format = format;
+        pAttachDesc->samples = sampleCount;
+        pAttachDesc->loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pAttachDesc->stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pAttachDesc->initialLayout = initialLayout;
+        pAttachDesc->finalLayout = finalLayout;
+        pAttachDesc->flags = 0;
+    }
+
+    void AttachNoClearBeforeUse(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription2 *pAttachDesc)
+    {
+        pAttachDesc->sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
         pAttachDesc->format = format;
         pAttachDesc->samples = sampleCount;
         pAttachDesc->loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -66,8 +94,28 @@ namespace CAULDRON_VK
         pAttachDesc->flags = 0;
     }
 
+    void AttachBlending(VkFormat format, VkSampleCountFlagBits sampleCount, VkImageLayout initialLayout, VkImageLayout finalLayout, VkAttachmentDescription2 *pAttachDesc)
+    {
+        pAttachDesc->sType = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+        pAttachDesc->format = format;
+        pAttachDesc->samples = sampleCount;
+        pAttachDesc->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+        pAttachDesc->storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pAttachDesc->stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pAttachDesc->stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pAttachDesc->initialLayout = initialLayout;
+        pAttachDesc->finalLayout = finalLayout;
+        pAttachDesc->flags = 0;
+    }
 
-    VkRenderPass CreateRenderPassOptimal(VkDevice device, uint32_t colorAttachments, VkAttachmentDescription *pColorAttachments, VkAttachmentDescription *pDepthAttachment)
+
+    VkRenderPass CreateRenderPassOptimal(VkDevice device,
+        uint32_t colorAttachments,
+        VkAttachmentDescription *pColorAttachments,
+        VkAttachmentDescription *pDepthAttachment,
+        VkImageLayout depthLayout,
+        VkAttachmentDescription *pVRSAttachment,
+        VkExtent2D shadingRateAttachmentTexelSize)
     {
         // we need to put all the color and the depth attachments in the same buffer
         //
@@ -84,7 +132,7 @@ namespace CAULDRON_VK
         for(uint32_t i=0;i< colorAttachments;i++)
             color_reference[i] = { i, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
-        VkAttachmentReference depth_reference = { colorAttachments, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL };
+        VkAttachmentReference depth_reference = { colorAttachments, depthLayout };
 
         // Create subpass
         //
@@ -131,6 +179,140 @@ namespace CAULDRON_VK
 
         VkRenderPass render_pass;
         VkResult res = vkCreateRenderPass(device, &rp_info, NULL, &render_pass);
+        assert(res == VK_SUCCESS);
+
+        SetResourceName(device, VK_OBJECT_TYPE_RENDER_PASS, (uint64_t)render_pass, "CreateRenderPassOptimal");
+
+        return render_pass;
+    }
+
+    VkRenderPass CreateRenderPassOptimal(VkDevice device,
+        uint32_t colorAttachments,
+        VkAttachmentDescription2 *pColorAttachments,
+        VkAttachmentDescription2 *pDepthAttachment,
+        VkImageLayout depthLayout,
+        VkAttachmentDescription2 *pVRSAttachment,
+        VkExtent2D shadingRateAttachmentTexelSize
+        )
+    {
+        // The passed pointer is valid, but it might point to uninitialized struct
+        //
+        const bool tDepthAttachmentPresent = pDepthAttachment && pDepthAttachment->sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+        const bool tVRSAttachmentPresent   = pVRSAttachment && pVRSAttachment->sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
+
+        // we need to put all the color and the depth attachments in the same buffer
+        //
+        VkAttachmentDescription2 attachments[10];
+        assert(colorAttachments < 10); // make sure we don't overflow the scratch buffer above
+
+        memcpy(attachments, pColorAttachments, sizeof(VkAttachmentDescription2) * colorAttachments);
+
+        // Covers the attachment offset change depending on the presence of depth
+        //
+        int tAttachmentsOffset = 0;
+        if (tDepthAttachmentPresent)
+        {
+            memcpy(&attachments[colorAttachments], pDepthAttachment, sizeof(VkAttachmentDescription2));
+            tAttachmentsOffset++;
+        }
+        if (tVRSAttachmentPresent)
+        {
+            memcpy(&attachments[colorAttachments + tAttachmentsOffset], pVRSAttachment, sizeof(VkAttachmentDescription2));
+        }
+
+        //create references for the attachments
+        //
+        VkAttachmentReference2 color_reference[10];
+        for (uint32_t i = 0; i < colorAttachments; i++)
+        {
+            color_reference[i].sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            color_reference[i].attachment = i;
+            color_reference[i].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            color_reference[i].pNext = nullptr;
+        }
+        VkAttachmentReference2 depth_reference = {};
+        {
+            depth_reference.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            depth_reference.attachment = colorAttachments;
+            depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depth_reference.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+            depth_reference.pNext = nullptr;
+        }
+
+        // Set up the attachment reference for the shading rate image attachment in slot 2
+        VkAttachmentReference2 fragment_shading_rate_reference = {};
+        {
+            fragment_shading_rate_reference.sType = VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2;
+            fragment_shading_rate_reference.attachment = colorAttachments + tAttachmentsOffset;
+            fragment_shading_rate_reference.layout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+        }
+
+        // Set up the attachment info for the shading rate image, which will be added to the sub pass via structure chaining (in pNext)
+        VkFragmentShadingRateAttachmentInfoKHR fragmentShadingRateAttachmentInfo = {};
+        {
+            fragmentShadingRateAttachmentInfo.sType = VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR;
+            fragmentShadingRateAttachmentInfo.pFragmentShadingRateAttachment = &fragment_shading_rate_reference;
+            fragmentShadingRateAttachmentInfo.shadingRateAttachmentTexelSize = shadingRateAttachmentTexelSize;
+        }
+
+        // Create subpass
+        //
+        VkSubpassDescription2 subpass = {};
+        {
+            
+            subpass.sType = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
+            subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+            subpass.flags = 0;
+            subpass.inputAttachmentCount = 0;
+            subpass.pInputAttachments = NULL;
+            subpass.colorAttachmentCount = colorAttachments;
+            subpass.pColorAttachments = colorAttachments ? color_reference : NULL;
+            subpass.pResolveAttachments = NULL;
+            subpass.pDepthStencilAttachment = (pDepthAttachment)? &depth_reference : NULL;
+            subpass.preserveAttachmentCount = 0;
+            subpass.pPreserveAttachments = NULL;
+            subpass.pNext = tVRSAttachmentPresent ? &fragmentShadingRateAttachmentInfo : NULL;
+        }
+
+        VkSubpassDependency2KHR dep = {};
+        dep.sType = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
+        dep.dependencyFlags = 0;
+        dep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT |
+            ((tVRSAttachmentPresent) ? VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : 0) |
+            ((colorAttachments) ? VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : 0) |
+            ((pDepthAttachment) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : 0);
+        dep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+            ((colorAttachments) ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) |
+            ((pDepthAttachment) ? VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : 0);
+        dep.dstSubpass = VK_SUBPASS_EXTERNAL;
+        dep.srcAccessMask = ((colorAttachments) ? VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT : 0) |
+            ((pDepthAttachment) ? VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : 0);
+        dep.srcStageMask = ((colorAttachments) ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) |
+            ((pDepthAttachment) ? VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT : 0);
+        dep.srcSubpass = 0;
+
+        // Create render pass
+        //
+        VkRenderPassCreateInfo2KHR rp_info = {};
+        rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2;
+        rp_info.pNext = NULL;
+        rp_info.attachmentCount = colorAttachments;
+        if (tDepthAttachmentPresent)
+        {
+            rp_info.attachmentCount++;
+        }
+        if (tVRSAttachmentPresent)
+        {
+            rp_info.attachmentCount++;
+        }
+        rp_info.pAttachments = attachments;
+        rp_info.subpassCount = 1;
+        rp_info.pSubpasses = &subpass;
+        rp_info.dependencyCount = 1;
+        rp_info.pDependencies = &dep;
+
+        VkRenderPass render_pass;
+        VkResult res = vkCreateRenderPass2(device, &rp_info, NULL, &render_pass);
         assert(res == VK_SUCCESS);
 
         SetResourceName(device, VK_OBJECT_TYPE_RENDER_PASS, (uint64_t)render_pass, "CreateRenderPassOptimal");

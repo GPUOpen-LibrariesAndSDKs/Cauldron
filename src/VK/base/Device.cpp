@@ -70,6 +70,7 @@ namespace CAULDRON_VK
     {
         pIp->AddInstanceExtensionName(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
         pIp->AddInstanceExtensionName(VK_KHR_SURFACE_EXTENSION_NAME);
+        pIp->AddInstanceExtensionName(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
         ExtCheckHDRInstanceExtensions(pIp);
         ExtDebugUtilsCheckInstanceExtensions(pIp);
         if (cpuValidationLayerEnabled)
@@ -82,7 +83,7 @@ namespace CAULDRON_VK
     {
         m_usingFp16 = ExtFp16CheckExtensions(pDp);
         ExtRTCheckExtensions(pDp, m_rt10Supported, m_rt11Supported);
-        ExtVRSCheckExtensions(pDp, m_vrs1Supported, m_vrs2Supported);
+        ExtVRSCheckExtensions(pDp, m_vrs1Supported, m_vrs2Supported, m_vrsTileSize, m_fragmentShadingRateAttachmentTexelSize);
         ExtCheckHDRDeviceExtensions(pDp);
         ExtCheckFSEDeviceExtensions(pDp);
         ExtCheckFreeSyncHDRDeviceExtensions(pDp);
@@ -234,9 +235,16 @@ namespace CAULDRON_VK
         physicalDeviceFeatures2.features = physicalDeviceFeatures;
         physicalDeviceFeatures2.pNext = &robustness2;
 
+        VkPhysicalDeviceFragmentShadingRateFeaturesKHR physicalDeviceFragmentShadingRateFeaturesKHR = {};
+        physicalDeviceFragmentShadingRateFeaturesKHR.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+        physicalDeviceFragmentShadingRateFeaturesKHR.attachmentFragmentShadingRate = VK_TRUE;
+        physicalDeviceFragmentShadingRateFeaturesKHR.pipelineFragmentShadingRate = VK_TRUE;
+        physicalDeviceFragmentShadingRateFeaturesKHR.primitiveFragmentShadingRate = VK_TRUE;
+        physicalDeviceFragmentShadingRateFeaturesKHR.pNext = &physicalDeviceFeatures2;
+
         VkDeviceCreateInfo device_info = {};
         device_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        device_info.pNext = &physicalDeviceFeatures2;
+        device_info.pNext = this->IsVRSTier1Supported() ? (void*) &physicalDeviceFragmentShadingRateFeaturesKHR : &physicalDeviceFeatures2;
         device_info.queueCreateInfoCount = (graphics_queue_family_index == compute_queue_family_index) ? 1 : 2;
         device_info.pQueueCreateInfos = queue_info;
         device_info.enabledExtensionCount = (uint32_t)extension_names.size();

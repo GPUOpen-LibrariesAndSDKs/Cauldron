@@ -182,9 +182,13 @@ namespace CAULDRON_VK
     {
         for (int i = 0; i < m_mipCount; i++)
         {
-            vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].m_SRV, NULL);
-            vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].RTV, NULL);
-            vkDestroyFramebuffer(m_pDevice->GetDevice(), m_mip[i].frameBuffer, NULL);
+            if (m_mip[i].m_SRV != nullptr)
+            {
+                vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].m_SRV, NULL);
+                vkDestroyImageView(m_pDevice->GetDevice(), m_mip[i].RTV, NULL);
+                vkDestroyFramebuffer(m_pDevice->GetDevice(), m_mip[i].frameBuffer, NULL);
+                m_mip[i].m_SRV = {};
+            }
         }
 
         m_result.OnDestroy();

@@ -51,7 +51,7 @@ namespace CAULDRON_VK
 		void HandleFullScreen();
 		void OnActivate(bool windowActive);
 		void OnWindowMove();
-		void UpdateDisplay(bool disableLocalDimming);
+		void UpdateDisplay(bool disableLocalDimming = 0);
 		void OnResize(uint32_t Width, uint32_t Height);
 		void OnLocalDimmingChanged();
 

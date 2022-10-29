@@ -258,7 +258,7 @@ float3 doPbrLighting(VS_OUTPUT_SCENE Input, in PerFrame perFrame, in float3 diff
 
     float3 emissive = float3(0, 0, 0);
 #ifdef ID_emissiveTexture
-    emissive = (emissiveTexture.Sample(samEmissive, getEmissiveUV(Input))).rgb * u_pbrParams.myPerObject_u_EmissiveFactor.rgb * perFrame.u_EmissiveFactor;
+    emissive = (emissiveTexture.SampleBias(samEmissive, getEmissiveUV(Input), myPerFrame.u_LodBias)).rgb * u_pbrParams.myPerObject_u_EmissiveFactor.rgb * perFrame.u_EmissiveFactor;
 #else        
     emissive = u_pbrParams.myPerObject_u_EmissiveFactor.rgb * perFrame.u_EmissiveFactor;
 #endif

@@ -23,6 +23,6 @@
 
 namespace CAULDRON_VK
 {
-    void ExtVRSCheckExtensions(DeviceProperties* pDP, bool& Tier1Supported, bool& Tier2Supported);
+    void ExtVRSCheckExtensions(DeviceProperties* pDP, bool& Tier1Supported, bool& Tier2Supported, VkExtent2D& FragmentShadingRateAttachmentTexelSize, VkExtent2D& MaxFragmentSize);
 }
 

@@ -38,6 +38,9 @@
 #extension GL_ARB_shading_language_420pack : enable
 // this makes the structures declared with a scalar layout match the c structures
 #extension GL_EXT_scalar_block_layout : enable
+#ifdef HAS_VRS_RT
+//#extension GL_EXT_fragment_shading_rate : require
+#endif
 
 precision highp float;
 

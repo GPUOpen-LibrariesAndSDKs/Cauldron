@@ -39,7 +39,13 @@ namespace CAULDRON_VK
         // load file into heap
         INT32 Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, const char* name = nullptr);
         INT32 InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, const char* name = nullptr, VkImageCreateFlagBits flags = (VkImageCreateFlagBits)0);
-        INT32 InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, const char* name = nullptr);
+        INT32 InitDepthStencil(Device*               pDevice,
+                               uint32_t              width,
+                               uint32_t              height,
+                               VkFormat              format,
+                               VkSampleCountFlagBits msaa,
+                               const char*           name       = nullptr,
+                               VkImageUsageFlagBits  usageFlags = {});
         bool InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char *szFilename, bool useSRGB = false, VkImageUsageFlags usageFlags = 0, float cutOff = 1.0f);
         bool InitFromData(Device* pDevice, UploadHeap& uploadHeap, const IMG_INFO& header, const void* data, const char* name = nullptr);
 

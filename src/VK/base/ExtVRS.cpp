@@ -27,13 +27,16 @@ namespace CAULDRON_VK
 {
     static VkPhysicalDeviceFragmentShadingRateFeaturesKHR VRSQueryFeatures = {};
 
-    void ExtVRSCheckExtensions(DeviceProperties* pDP, bool& Tier1Supported, bool& Tier2Supported)
+    void ExtVRSCheckExtensions(DeviceProperties* pDP, bool& Tier1Supported, bool& Tier2Supported, VkExtent2D& MaxFragmentSize, VkExtent2D& FragmentShadingRateAttachmentTexelSize)
     {
         if (pDP->AddDeviceExtensionName(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME))
         {
             pDP->AddDeviceExtensionName(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 
             VRSQueryFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR;
+            VRSQueryFeatures.attachmentFragmentShadingRate = VK_TRUE;
+            VRSQueryFeatures.pipelineFragmentShadingRate = VK_TRUE;
+            VRSQueryFeatures.primitiveFragmentShadingRate = VK_TRUE;
             VkPhysicalDeviceFeatures2 features = {};
             features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
             features.pNext = &VRSQueryFeatures;
@@ -41,6 +44,18 @@ namespace CAULDRON_VK
 
             Tier1Supported = VRSQueryFeatures.pipelineFragmentShadingRate;
             Tier2Supported = VRSQueryFeatures.attachmentFragmentShadingRate && VRSQueryFeatures.primitiveFragmentShadingRate;
+ 
+            VkPhysicalDeviceFragmentShadingRatePropertiesKHR physicalDeviceFragmentShadingRateProperties = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR};
+            {
+                VkPhysicalDeviceProperties2KHR deviceProperties = {};
+                {
+                    deviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+                    deviceProperties.pNext = &physicalDeviceFragmentShadingRateProperties;
+                }
+                vkGetPhysicalDeviceProperties2(pDP->GetPhysicalDevice(), &deviceProperties);
+            }
+            MaxFragmentSize = physicalDeviceFragmentShadingRateProperties.maxFragmentSize;
+            FragmentShadingRateAttachmentTexelSize = physicalDeviceFragmentShadingRateProperties.maxFragmentShadingRateAttachmentTexelSize;
         }
     }
 }

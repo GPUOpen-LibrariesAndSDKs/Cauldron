@@ -289,7 +289,7 @@ vec3 doPbrLighting(VS2PS Input, PerFrame perFrame, vec3 diffuseColor, vec3 specu
 
     vec3 emissive = vec3(0);
 #ifdef ID_emissiveTexture
-    emissive = (texture(u_EmissiveSampler, getEmissiveUV(Input))).rgb * u_pbrParams.myPerObject_u_EmissiveFactor.rgb * myPerFrame.u_EmissiveFactor;
+    emissive = (texture(u_EmissiveSampler, getEmissiveUV(Input), myPerFrame.u_LodBias)).rgb * u_pbrParams.myPerObject_u_EmissiveFactor.rgb * myPerFrame.u_EmissiveFactor;
 #else
     emissive = u_pbrParams.myPerObject_u_EmissiveFactor.rgb * perFrame.u_EmissiveFactor;
 #endif
