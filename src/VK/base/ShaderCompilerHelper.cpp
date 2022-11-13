@@ -25,6 +25,8 @@
 #include "Misc/AsyncCache.h"
 #include <codecvt>
 #include <locale>
+#include <comutil.h>
+#pragma comment(lib, "comsuppw.lib")
 
 namespace CAULDRON_VK
 {
@@ -268,7 +270,9 @@ namespace CAULDRON_VK
         CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron").c_str(), 0);
         CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheVK").c_str(), 0);
 
-        InitShaderCompilerCache("ShaderLibVK", std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sShaderCachePathW));
+        _bstr_t t = sShaderCachePathW.c_str();
+        std::string cachePathS = (char*)t;
+        InitShaderCompilerCache("ShaderLibVK", cachePathS);
     }
 
     //
