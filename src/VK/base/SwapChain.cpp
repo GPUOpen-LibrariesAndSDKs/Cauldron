@@ -289,7 +289,7 @@ namespace CAULDRON_VK
             VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
         };
 
-        for (uint32_t i = 0; i < sizeof(compositeAlphaFlags); i++)
+        for (uint32_t i = 0; i < _countof(compositeAlphaFlags); i++)
         {
             if (surfCapabilities.supportedCompositeAlpha & compositeAlphaFlags[i])
             {
