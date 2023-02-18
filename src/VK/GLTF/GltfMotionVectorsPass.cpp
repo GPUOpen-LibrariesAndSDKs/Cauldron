@@ -218,7 +218,7 @@ namespace CAULDRON_VK
                                 (semanticName.substr(0, 7) == "WEIGHTS") || // for skinning
                                 (semanticName.substr(0, 6) == "JOINTS") || // for skinning
                                 (DoesMaterialUseSemantic(pPrimitive->m_pMaterial->m_defines, semanticName) == true) ||
-                                ((normalBufferFormat != DXGI_FORMAT_UNKNOWN) && ((semanticName == "NORMAL") || (semanticName == "TANGENT"))) // for obvious reasons
+                                ((normalBufferFormat != VK_FORMAT_UNDEFINED) && ((semanticName == "NORMAL") || (semanticName == "TANGENT"))) // for obvious reasons
                                 )
                             {
                                 requiredAttributes.push_back(semanticName);
