@@ -395,7 +395,6 @@ namespace CAULDRON_DX12
             };
             if (i == upscaleReactiveRT || i == upscaleTransparencyAndCompositionRT)
             {
-                true,
                 blendState.RenderTarget[i].SrcBlend = defines.Has("DEF_alphaMode_BLEND") ? D3D12_BLEND_INV_DEST_COLOR : D3D12_BLEND_ONE;
                 blendState.RenderTarget[i].DestBlend = D3D12_BLEND_ONE;
                 blendState.RenderTarget[i].RenderTargetWriteMask = defines.Has("DEF_alphaMode_BLEND") ? D3D12_COLOR_WRITE_ENABLE_RED : D3D12_COLOR_WRITE_ENABLE_ALPHA;
