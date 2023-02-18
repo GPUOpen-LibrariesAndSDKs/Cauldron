@@ -58,7 +58,7 @@ namespace CAULDRON_VK
             assert(res == VK_SUCCESS);
 
             res = vkCreateSampler(pDevice->GetDevice(), &info, NULL, &m_samplers[3]);
-            (res == VK_SUCCESS);
+            assert(res == VK_SUCCESS);
 
             info.magFilter = VK_FILTER_LINEAR;
             info.minFilter = VK_FILTER_LINEAR;
