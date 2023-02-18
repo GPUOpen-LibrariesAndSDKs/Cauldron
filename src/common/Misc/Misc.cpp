@@ -457,7 +457,7 @@ void Log::Write(const char* LogString)
     pOverlapped->Offset = m_WriteOffset;
     m_WriteOffset += static_cast<uint32_t>(strlen(LogString));
     
-    m_CurrentIOBufferIndex = (++m_CurrentIOBufferIndex % MAX_INFLIGHT_WRITES);  // Wrap when we get to the end
+    m_CurrentIOBufferIndex = ((m_CurrentIOBufferIndex + 1) % MAX_INFLIGHT_WRITES);  // Wrap when we get to the end
 
     bool result = WriteFileEx(m_FileHandle, LogString, static_cast<DWORD>(strlen(LogString)), pOverlapped, OverlappedCompletionRoutine);
     assert(result);
