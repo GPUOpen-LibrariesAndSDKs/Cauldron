@@ -63,8 +63,6 @@ float3 getIBLContribution(MaterialInfo materialInfo, float3 n, float3 v)
 }
 #endif
 
-// Lambert lighting
-// see https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
 float3 diffuse(MaterialInfo materialInfo)
 {
     return materialInfo.diffuseColor / M_PI;

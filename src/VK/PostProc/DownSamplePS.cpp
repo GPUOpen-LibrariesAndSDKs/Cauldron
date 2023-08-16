@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/Texture.h"
 #include "Base/Imgui.h"
@@ -169,6 +169,11 @@ namespace CAULDRON_VK
                 fb_info.layers = 1;
                 VkResult res = vkCreateFramebuffer(m_pDevice->GetDevice(), &fb_info, NULL, &m_mip[i].frameBuffer);
                 assert(res == VK_SUCCESS);
+
+                std::string ResourceName = "DownsamplePS";
+                ResourceName += std::to_string(i);
+
+                SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_FRAMEBUFFER, (uint64_t)m_mip[i].frameBuffer, ResourceName.c_str());
             }
         }
     }

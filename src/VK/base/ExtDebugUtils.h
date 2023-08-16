@@ -26,5 +26,7 @@ namespace CAULDRON_VK
     // helpers functions to use debug markers
     void ExtDebugUtilsGetProcAddresses(VkDevice device);
     bool ExtDebugUtilsCheckInstanceExtensions(InstanceProperties *pDP);
-    void SetResourceName(VkDevice device, VkObjectType objectType, uint64_t handle, const char *pMsg);
+    void SetResourceName(VkDevice device, VkObjectType objectType, uint64_t handle, const char* name);
+    void SetPerfMarkerBegin(VkCommandBuffer cmd_buf, const char* name);
+    void SetPerfMarkerEnd(VkCommandBuffer cmd_buf);
 }

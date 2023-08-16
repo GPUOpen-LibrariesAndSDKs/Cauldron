@@ -19,6 +19,7 @@
 
 #pragma once
 #include "ThreadPool.h"
+#include <future>
 
 // This is a poor's man multithreaded lib. This is how it works:
 //
@@ -77,16 +78,16 @@ class Async
 {
     static int s_activeThreads;
     static int s_maxThreads;
-    static std::mutex s_mutex;
+    static std::mutex s_AsyncMutex;
     static std::condition_variable s_condition;
-    static bool s_bExiting;
 
     std::function<void()> m_job;
-    Sync *m_pSync;
-    std::thread *m_pThread;
+    const wchar_t* m_jobDescription = nullptr;
+    Sync *m_pSync = nullptr;
+    std::future<void> m_future;
 
 public:
-    Async(std::function<void()> job, Sync *pSync = NULL);
+    Async(std::function<void()> job, Sync *pSync, const wchar_t* jobDescription);
     ~Async();
     static void Wait(Sync *pSync);
 };
@@ -94,10 +95,12 @@ public:
 class AsyncPool
 {
     std::vector<Async *> m_pool;
+    std::mutex m_AsyncPoolMutex;
 public:
     ~AsyncPool();
     void Flush();
-    void AddAsyncTask(std::function<void()> job, Sync *pSync = NULL);
+    void AddAsyncTask(std::function<void()> job, Sync *pSync, const wchar_t* jobDescription);
 };
 
 void ExecAsyncIfThereIsAPool(AsyncPool *pAsyncPool, std::function<void()> job);
+void ExecAsyncIfThereIsAPool(AsyncPool *pAsyncPool, const wchar_t* jobDescription, std::function<void()> job);

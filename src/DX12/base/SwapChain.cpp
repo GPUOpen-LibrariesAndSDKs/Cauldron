@@ -55,11 +55,15 @@ namespace CAULDRON_DX12
         m_descSwapChain.BufferCount = m_BackBufferCount;
         m_descSwapChain.Width = 0;
         m_descSwapChain.Height = 0;
-        m_descSwapChain.Format = m_swapChainFormat; 
+        m_descSwapChain.Format = m_swapChainFormat;
         m_descSwapChain.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        m_descSwapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
+        m_descSwapChain.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // use most optmized mode
         m_descSwapChain.SampleDesc.Count = 1;
-        m_descSwapChain.Flags = 0;
+
+        ThrowIfFailed(m_pFactory->CheckFeatureSupport(
+            DXGI_FEATURE_PRESENT_ALLOW_TEARING, &m_bTearingSupport, sizeof(m_bTearingSupport)));
+
+        m_descSwapChain.Flags = m_bTearingSupport ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
 
         m_swapChainFence.OnCreate(pDevice, format("swapchain fence").c_str());
 
@@ -75,7 +79,7 @@ namespace CAULDRON_DX12
 
         ThrowIfFailed(m_pFactory->MakeWindowAssociation(m_hWnd, DXGI_MWA_NO_ALT_ENTER));
 
-        ThrowIfFailed(pSwapChain->QueryInterface(__uuidof(IDXGISwapChain3), (void**)&m_pSwapChain));
+        ThrowIfFailed(pSwapChain->QueryInterface(__uuidof(IDXGISwapChain4), (void**)&m_pSwapChain));
         pSwapChain->Release();
 
         // if SDR, convert add gamma for the swapchain format so blending is correct
@@ -110,6 +114,8 @@ namespace CAULDRON_DX12
 
         m_pSwapChain->Release();
         m_pFactory->Release();
+
+        fsHdrDestroy();
     }
 
     //--------------------------------------------------------------------------------------
@@ -117,14 +123,14 @@ namespace CAULDRON_DX12
     // EnumerateDisplayModes
     //
     //--------------------------------------------------------------------------------------
-    void SwapChain::EnumerateDisplayModes(std::vector<DisplayModes> *pModes, std::vector<const char *> *pNames)
+    void SwapChain::EnumerateDisplayModes(std::vector<DisplayMode> *pModes, std::vector<const char *> *pNames)
     {
         fsHdrEnumerateDisplayModes(pModes);
 
         if (pNames != NULL)
         {
             pNames->clear();
-            for (DisplayModes mode : *pModes)
+            for (DisplayMode mode : *pModes)
                 pNames->push_back(fsHdrGetDisplayModeString(mode));
         }
     }
@@ -134,9 +140,9 @@ namespace CAULDRON_DX12
     // EnumerateDisplayModes
     //
     //--------------------------------------------------------------------------------------
-    bool SwapChain::IsModeSupported(DisplayModes displayMode)
+    bool SwapChain::IsModeSupported(DisplayMode displayMode)
     {
-        std::vector<DisplayModes> displayModesAvailable;
+        std::vector<DisplayMode> displayModesAvailable;
         EnumerateDisplayModes(&displayModesAvailable);
         return  std::find(displayModesAvailable.begin(), displayModesAvailable.end(), displayMode) != displayModesAvailable.end();
     }
@@ -171,7 +177,8 @@ namespace CAULDRON_DX12
         }
         else
         {
-            ThrowIfFailed(m_pSwapChain->Present(0, 0));
+            UINT presentFlags = m_bTearingSupport && !m_bIsFullScreenExclusive ? DXGI_PRESENT_ALLOW_TEARING : 0;
+            ThrowIfFailed(m_pSwapChain->Present(0, presentFlags));
         }
 
         // issue a fence so we can tell when this frame ended
@@ -181,10 +188,17 @@ namespace CAULDRON_DX12
     void SwapChain::SetFullScreen(bool fullscreen)
     {
         // This sets app to Fullscreen Exclusive mode which is different from fullscreen borderless mode.
-        ThrowIfFailed(m_pSwapChain->SetFullscreenState(fullscreen, nullptr));
+        m_pSwapChain->SetFullscreenState(fullscreen, nullptr);
+        m_bIsFullScreenExclusive = fullscreen;
     }
 
-    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode, bool disableLocalDimming)
+    const bool SwapChain::GetFullScreen()
+    {
+        ThrowIfFailed(m_pSwapChain->GetFullscreenState(&m_bIsFullScreenExclusive, nullptr));
+        return m_bIsFullScreenExclusive;
+    }
+
+    void SwapChain::OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayMode displayMode, bool disableLocalDimming)
     {
         // check whether the requested mode is supported and fall back to SDR if not supported
         bool bIsModeSupported = IsModeSupported(displayMode);
@@ -194,17 +208,30 @@ namespace CAULDRON_DX12
             displayMode = DISPLAYMODE_SDR;
         }
 
+        // When going from dxgi hdr mode to ags hdr mode, invalidate dxgi hdr colourspace by falling back to sdr
+        // This needs to happen so that driver knows it needs to use AGS colourspace
+        if ((m_displayMode == DISPLAYMODE_HDR10_2084 ||
+             m_displayMode == DISPLAYMODE_HDR10_SCRGB)
+             &&
+            (displayMode == DISPLAYMODE_FSHDR_Gamma22 ||
+             displayMode == DISPLAYMODE_FSHDR_SCRGB))
+        {
+            // Set up the swap chain to allow back buffers to live on multiple GPU nodes.
+            ThrowIfFailed(
+                m_pSwapChain->ResizeBuffers(
+                    m_descSwapChain.BufferCount,
+                    dwWidth,
+                    dwHeight,
+                    DXGI_FORMAT_B8G8R8A8_UNORM,
+                    m_descSwapChain.Flags)
+            );
+
+            ThrowIfFailed(m_pSwapChain->SetColorSpace1(DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709));
+        }
+
         m_displayMode = displayMode;
         m_swapChainFormat = fsHdrGetFormat(displayMode);
         m_bVSyncOn = bVSyncOn;
-
-        // note that FS HDR modes require to be in fullscreen mode!
-        BOOL isFullScreen;
-        ThrowIfFailed(m_pSwapChain->GetFullscreenState(&isFullScreen, nullptr));
-        if (m_displayMode != DISPLAYMODE_SDR)
-        { 
-            assert(isFullScreen==TRUE);
-        }
 
         // Set up the swap chain to allow back buffers to live on multiple GPU nodes.
         ThrowIfFailed(
@@ -216,7 +243,7 @@ namespace CAULDRON_DX12
                 m_descSwapChain.Flags)
         );
 
-        fsHdrSetDisplayMode(displayMode, disableLocalDimming);
+        fsHdrSetDisplayMode(displayMode, disableLocalDimming, m_pSwapChain);
 
         // if SDR, convert add gamma for the swapchain format so blending is correct
         if (m_displayMode == DISPLAYMODE_SDR)
@@ -266,15 +293,8 @@ namespace CAULDRON_DX12
         return m_swapChainFormat;
     }
 
-    DisplayModes SwapChain::GetDisplayMode()
+    DisplayMode SwapChain::GetDisplayMode()
     {
         return m_displayMode;
-    }
-
-    bool SwapChain::IsFullScreen()
-    {
-        BOOL isFullScreen;
-        ThrowIfFailed(m_pSwapChain->GetFullscreenState(&isFullScreen, nullptr));
-        return (bool)isFullScreen;
     }
 }

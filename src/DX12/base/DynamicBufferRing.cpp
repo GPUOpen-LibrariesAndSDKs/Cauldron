@@ -28,7 +28,7 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void DynamicBufferRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize, ResourceViewHeaps *pHeaps)
+    void DynamicBufferRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize)
     {
         m_memTotalSize = AlignUp(memTotalSize, 256u);
 
@@ -36,7 +36,7 @@ namespace CAULDRON_DX12
 
         ThrowIfFailed(pDevice->GetDevice()->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-            D3D12_HEAP_FLAG_NONE,
+            D3D12_HEAP_FLAG_CREATE_NOT_ZEROED,
             &CD3DX12_RESOURCE_DESC::Buffer(memTotalSize),
             D3D12_RESOURCE_STATE_GENERIC_READ,
             nullptr,
@@ -80,7 +80,7 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    D3D12_GPU_VIRTUAL_ADDRESS DynamicBufferRing::AllocConstantBuffer(uint32_t size, void *pInitData)
+    D3D12_GPU_VIRTUAL_ADDRESS DynamicBufferRing::AllocConstantBuffer(uint32_t size, const void *pInitData)
     {
         void *pBuffer;
         D3D12_GPU_VIRTUAL_ADDRESS bufferViewDesc;

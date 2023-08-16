@@ -18,15 +18,15 @@
 // THE SOFTWARE.
 
 #ifdef ID_shadowMap
-layout(set = 1, binding = ID_shadowMap) uniform sampler2DShadow u_shadowMap;
+layout(set = 1, binding = ID_shadowMap) uniform sampler2DShadow u_shadowMap[MAX_SHADOW_INSTANCES];
 #endif
 
 // shadowmap filtering
-float FilterShadow(vec3 uv)
+float FilterShadow(int shadowIndex, vec3 uv)
 {
     float shadow = 0.0;
 #ifdef ID_shadowMap
-    ivec2 texDim = textureSize(u_shadowMap, 0);
+    ivec2 texDim = textureSize(u_shadowMap[shadowIndex], 0);
     float scale = 1.0;
     float dx = scale * 1.0 / float(texDim.x);
     float dy = scale * 1.0 / float(texDim.y);
@@ -38,7 +38,7 @@ float FilterShadow(vec3 uv)
     {
         for (int j = -kernelLevel; j <= kernelLevel; j++)
         {
-            shadow += texture(u_shadowMap, uv + vec3(dx*i, dy*j, 0)).r;
+            shadow += texture(u_shadowMap[shadowIndex], uv + vec3(dx*i, dy*j, 0)).r;
         }
     }
 
@@ -62,35 +62,35 @@ float DoSpotShadow(vec3 vPosition, Light light)
     vec4 shadowTexCoord = light.mLightViewProj * vec4(vPosition, 1.0);
     shadowTexCoord.xyz = shadowTexCoord.xyz / shadowTexCoord.w;
 
-    // remember we are splitting the shadow map in 4 quarters 
-    shadowTexCoord.x = (1.0 + shadowTexCoord.x) * 0.25;
-    shadowTexCoord.y = (1.0 - shadowTexCoord.y) * 0.25;
+    // Re-scale to 0-1
+    shadowTexCoord.x = (1.0 + shadowTexCoord.x) * 0.5;
+    shadowTexCoord.y = (1.0 - shadowTexCoord.y) * 0.5;
 
     if (light.type == LightType_Spot)
     {
-        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 0;
-        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 0;
+        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > 1)) return 0;
+        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > 1)) return 0;
         if (shadowTexCoord.z < 0.0f) return 0.0f;
         if (shadowTexCoord.z > 1.0f) return 1.0f;
     }
     else if (light.type == LightType_Directional)
     {
         // This is the sun, so outside of the volume we do have light
-        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > .5)) return 1.0f;
-        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > .5)) return 1.0f;
+        if ((shadowTexCoord.y < 0) || (shadowTexCoord.y > 1)) return 1.0f;
+        if ((shadowTexCoord.x < 0) || (shadowTexCoord.x > 1)) return 1.0f;
         if (shadowTexCoord.z < 0.0f) return 1.0f;
         if (shadowTexCoord.z > 1.0f) return 1.0f;
     }
 
     // offsets of the center of the shadow map atlas
-    float offsetsX[4] = { 0.0, 1.0, 0.0, 1.0 };
+    /*float offsetsX[4] = { 0.0, 1.0, 0.0, 1.0 };
     float offsetsY[4] = { 0.0, 0.0, 1.0, 1.0 };
     shadowTexCoord.x += offsetsX[light.shadowMapIndex] * .5;
-    shadowTexCoord.y += offsetsY[light.shadowMapIndex] * .5;
+    shadowTexCoord.y += offsetsY[light.shadowMapIndex] * .5;*/
 
     shadowTexCoord.z -= light.depthBias;
 
-    return FilterShadow(shadowTexCoord.xyz);
+    return FilterShadow(light.shadowMapIndex, shadowTexCoord.xyz);
 #else
     return 1.0f;
 #endif

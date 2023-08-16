@@ -32,8 +32,8 @@ public:
     int m_dimension;
     int m_type;
 
-    XMVECTOR m_min;
-    XMVECTOR m_max;
+    math::Vector4 m_min;
+    math::Vector4 m_max;
 
     const void *Get(int i) const
     {
@@ -67,8 +67,8 @@ public:
 
 struct tfPrimitives
 {
-    XMVECTOR m_center;
-    XMVECTOR m_radius;
+    math::Vector4 m_center;
+    math::Vector4 m_radius;
 };
 
 struct tfMesh
@@ -78,12 +78,20 @@ struct tfMesh
 
 struct Transform
 {
-    XMMATRIX    m_rotation = XMMatrixIdentity();
-    XMVECTOR m_translation = XMVectorSet(0, 0, 0, 0);
-    XMVECTOR       m_scale = XMVectorSet(1, 1, 1, 0);
+    math::Matrix4   m_rotation = math::Matrix4::identity();
+    math::Vector4   m_translation = math::Vector4(0, 0, 0, 0);
+    math::Vector4   m_scale = math::Vector4(1, 1, 1, 0);
 
-    void LookAt(XMVECTOR source, XMVECTOR target) { m_rotation = XMMatrixInverse(NULL, XMMatrixLookAtRH(source, target, XMVectorSet(0, 1, 0, 0))); m_translation = m_rotation.r[3];  m_rotation.r[3] = XMVectorSet(0, 0, 0, 1); }
-    XMMATRIX GetWorldMat() const { return XMMatrixScalingFromVector(m_scale)  * m_rotation  * XMMatrixTranslationFromVector(m_translation); }
+    void LookAt(math::Vector4 source, math::Vector4 target)
+    { 
+        m_rotation = math::inverse(math::Matrix4::lookAt(math::Point3(source.getXYZ()), math::Point3(target.getXYZ()), math::Vector3(0, 1, 0)));
+        m_translation = m_rotation.getCol(3);  m_rotation.setCol(3, math::Vector4(0, 0, 0, 1)); 
+    }
+
+    math::Matrix4 GetWorldMat() const 
+    { 
+        return math::Matrix4::translation(m_translation.getXYZ()) * m_rotation * math::Matrix4::scale(m_scale.getXYZ());
+    }
 };
 
 typedef int tfNodeIdx;
@@ -99,12 +107,12 @@ struct tfNode
 
     std::string m_name;
 
-    Transform m_tranform;
+    Transform m_transform;
 };
 
 struct NodeMatrixPostTransform
 {
-    tfNode *pN; XMMATRIX m;
+    tfNode *pN; math::Matrix4 m;
 };
 
 struct tfScene
@@ -179,11 +187,13 @@ struct tfLight
 
     //tfNodeIdx m_nodeIndex = -1;
 
-    XMVECTOR m_color;
-    float m_range;
-    float m_intensity = 0.0f;
-    float m_innerConeAngle = 0.0f;
-    float m_outerConeAngle = 0.0f;
+    math::Vector4 m_color;
+    float       m_range;
+    float       m_intensity = 0.0f;
+    float       m_innerConeAngle = 0.0f;
+    float       m_outerConeAngle = 0.0f;
+    uint32_t    m_shadowResolution = 1024;
+    float       m_bias = 70.0f / 100000.0f;
 };
 
 struct LightInstance

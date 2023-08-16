@@ -55,7 +55,7 @@ namespace CAULDRON_VK
             return true;
         }
 
-        Trace("Opps!! The device extension '%s' has not been found", deviceExtensionName);
+        Trace("The device extension '%s' has not been found", deviceExtensionName);
 
         return false;
     }

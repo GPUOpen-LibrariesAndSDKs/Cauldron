@@ -67,6 +67,9 @@ namespace CAULDRON_DX12
             {
                 ThrowIfFailed(m_pFence->SetEventOnCompletion(valueToWaitFor, m_hEvent));
                 WaitForSingleObject(m_hEvent, INFINITE);
+#if defined(USE_PIX)
+                PIXNotifyWakeFromFenceSignal(m_hEvent);
+#endif
             }
         }
     }

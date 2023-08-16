@@ -33,7 +33,7 @@ namespace CAULDRON_DX12
     class StaticBufferPool
     {
     public:
-        void OnCreate(Device *pDevice, uint32_t totalMemSize, bool bUseVidMem, const char* name);
+        void OnCreate(Device *pDevice, uint64_t totalMemSize, bool bUseVidMem, const char* name);
         void OnDestroy();
 
         bool AllocBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize);
@@ -60,9 +60,9 @@ namespace CAULDRON_DX12
         bool             m_bUseVidMem = true;
 
         char            *m_pData = nullptr;
-        uint32_t         m_memInit = 0;
-        uint32_t         m_memOffset = 0;
-        uint32_t         m_totalMemSize = 0;
+        uint64_t         m_memInit = 0;
+        uint64_t         m_memOffset = 0;
+        uint64_t         m_totalMemSize = 0;
 
         ID3D12Resource  *m_pMemBuffer = nullptr;
         ID3D12Resource  *m_pSysMemBuffer = nullptr;

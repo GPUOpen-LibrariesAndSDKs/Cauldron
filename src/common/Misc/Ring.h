@@ -18,10 +18,9 @@
 // THE SOFTWARE.
 
 #pragma once
-
+#include <cassert>
 // This is the typical ring buffer, it is used by resources that will be reused. 
-// For example the command Lists, the 'dynamic' constant buffers, etc..
-//
+// For example, commandlists and 'dynamic' constant buffers, etc..
 class Ring
 {
 public:
@@ -117,6 +116,7 @@ public:
 
             if (m_mem.Alloc(padding, NULL) == false) //alloc chunk to avoid crossover, ignore offset        
             {
+                assert(!"out of memory.");
                 return false;  //no mem, cannot allocate apdding
             }
         }
@@ -126,6 +126,8 @@ public:
             m_memAllocatedInFrame += size;
             return true;
         }
+
+        assert(!"out of memory.");
         return false;
     }
 

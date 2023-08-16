@@ -121,7 +121,11 @@ VS_OUTPUT_SCENE gltfVertexFactory(VS_INPUT_SCENE input)
 
 #ifdef HAS_TANGENT
     Output.Tangent = normalize(mul(transMatrix, float4(input.Tangent.xyz, 0)).xyz);
-    Output.Binormal = cross(Output.Normal, Output.Tangent) *input.Tangent.w;
+    Output.Binormal = cross(Output.Normal, Output.Tangent);
+    // Fix broken tangent space from the Blender glTF exporter
+    if (dot(cross(Output.Normal, Output.Tangent), Output.Binormal) < 0.0f) {
+        Output.Binormal = Output.Binormal * -1.0f;
+    }
 #endif
 
 #ifdef HAS_COLOR_0

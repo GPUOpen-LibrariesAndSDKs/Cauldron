@@ -22,29 +22,24 @@
 #include "InstanceProperties.h"
 #include <vulkan/vulkan_win32.h>
 
+#include "Misc/ColorConversion.h"
+
 namespace CAULDRON_VK
 {
-    enum DisplayModes
-    {
-        DISPLAYMODE_SDR,
-        DISPLAYMODE_FSHDR_Gamma22,
-        DISPLAYMODE_FSHDR_SCRGB,
-        DISPLAYMODE_HDR10_2084,
-        DISPLAYMODE_HDR10_SCRGB
-    };
-
     // only the swapchain should be using these functions
 
     bool fsHdrInit(VkDevice device, VkSurfaceKHR surface, VkPhysicalDevice physicalDevice, HWND hWnd);
-    bool fsHdrEnumerateDisplayModes(std::vector<DisplayModes> *pModes);
-    VkSurfaceFormatKHR fsHdrGetFormat(DisplayModes displayMode);
-    bool fsHdrSetDisplayMode(DisplayModes displayMode, VkSwapchainKHR swapChain);
-    const char *fsHdrGetDisplayModeString(DisplayModes displayMode);
+    bool fsHdrEnumerateDisplayModes(std::vector<DisplayMode> *pModes, bool includeFreesyncHDR, PresentationMode fullscreenMode = PRESENTATIONMODE_WINDOWED, bool enableLocalDimming = true);
+    VkSurfaceFormatKHR fsHdrGetFormat(DisplayMode displayMode);
+    bool fsHdrSetDisplayMode(DisplayMode displayMode, VkSwapchainKHR swapChain);
+    const char *fsHdrGetDisplayModeString(DisplayMode displayMode);
     const VkHdrMetadataEXT* fsHdrGetDisplayInfo();
 
     void fsHdrSetLocalDimmingMode(VkSwapchainKHR swapchain, VkBool32 localDimmingEnable);
     void fsHdrSetFullscreenState(bool fullscreen, VkSwapchainKHR swapchain);
 
     void fsHdrGetPhysicalDeviceSurfaceCapabilities2KHR(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR *pSurfCapabilities);
-    VkSurfaceFullScreenExclusiveInfoEXT* GetVkSurfaceFullScreenExclusiveInfoEXT();
+    VkSurfaceFullScreenExclusiveInfoEXT *GetVkSurfaceFullScreenExclusiveInfoEXT();
+
+    const bool CheckIfWindowModeHdrOn();
 }

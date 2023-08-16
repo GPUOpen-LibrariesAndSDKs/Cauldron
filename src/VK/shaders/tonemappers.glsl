@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 //--------------------------------------------------------------------------------------
-// Timothy Lottes tone mapper
+// AMD Tonemapper
 //--------------------------------------------------------------------------------------
 // General tonemapping operator, build 'b' term.
 float ColToneB(float hdrMax, float contrast, float shoulder, float midIn, float midOut) 
@@ -44,7 +44,7 @@ float ColTone(float x, vec4 p)
     return z / (pow(z, p.g)*p.b + p.a); 
 }
 
-vec3 TimothyTonemapper(vec3 color)
+vec3 AMDTonemapper(vec3 color)
 {
     const float hdrMax = 16.0; // How much HDR range before clipping. HDR modes likely need this pushed up to say 25.0.
     const float contrast = 2.0; // Use as a baseline to tune the amount of contrast the tonemapper has.

@@ -14,6 +14,8 @@
 #include <windows.h>
 #include <windowsx.h>
 #include <wrl.h>
+#include <KnownFolders.h>
+#include <shlobj.h>
 
 // C RunTime Header Files
 #include <malloc.h>
@@ -26,6 +28,7 @@
 using namespace DirectX;
 
 #include <string>
+#include <codecvt>
 #include <map>
 #include <iostream>
 #include <fstream>

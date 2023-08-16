@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "GltfPbrMaterial.h"
-#include "gltfHelpers.h"
+#include "GltfHelpers.h"
 
 //
 // Set some default parameters 
@@ -29,10 +29,10 @@ void SetDefaultMaterialParamters(PBRMaterialParameters *pPbrMaterialParameters)
     pPbrMaterialParameters->m_doubleSided = false;
     pPbrMaterialParameters->m_blending = false;
 
-    pPbrMaterialParameters->m_params.m_emissiveFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    pPbrMaterialParameters->m_params.m_baseColorFactor = XMVectorSet(1.0f, 0.0f, 0.0f, 1.0f);
-    pPbrMaterialParameters->m_params.m_metallicRoughnessValues = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    pPbrMaterialParameters->m_params.m_specularGlossinessFactor = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_emissiveFactor = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_baseColorFactor = math::Vector4(1.0f, 0.0f, 0.0f, 1.0f);
+    pPbrMaterialParameters->m_params.m_metallicRoughnessValues = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
+    pPbrMaterialParameters->m_params.m_specularGlossinessFactor = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 bool ProcessGetTextureIndexAndTextCoord(const json::object_t &material, const std::string &textureName, int *pIndex, int *pTexCoord)
@@ -56,7 +56,7 @@ bool ProcessGetTextureIndexAndTextCoord(const json::object_t &material, const st
     return true;
 }
 
-void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfmat, std::map<std::string, int> &textureIds)
+void ProcessMaterials(const json::object_t& material, PBRMaterialParameters* tfmat, std::map<std::string, int>& textureIds)
 {
     // Load material constants
     //
@@ -79,7 +79,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
         textureIds["normalTexture"] = index;
         tfmat->m_defines["ID_normalTexCoord"] = std::to_string(texCoord);
     }
-        
+
     if (ProcessGetTextureIndexAndTextCoord(material, "emissiveTexture", &index, &texCoord))
     {
         textureIds["emissiveTexture"] = index;
@@ -97,13 +97,13 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
     auto pbrMetallicRoughnessIt = material.find("pbrMetallicRoughness");
     if (pbrMetallicRoughnessIt != material.end())
     {
-        const json &pbrMetallicRoughness = pbrMetallicRoughnessIt->second;
+        const json& pbrMetallicRoughness = pbrMetallicRoughnessIt->second;
 
         tfmat->m_defines["MATERIAL_METALLICROUGHNESS"] = "1";
 
         float metallicFactor = GetElementFloat(pbrMetallicRoughness, "metallicFactor", 1.0);
         float roughnessFactor = GetElementFloat(pbrMetallicRoughness, "roughnessFactor", 1.0);
-        tfmat->m_params.m_metallicRoughnessValues = XMVectorSet(metallicFactor, roughnessFactor, 0, 0);
+        tfmat->m_params.m_metallicRoughnessValues = math::Vector4(metallicFactor, roughnessFactor, 0, 0);
         tfmat->m_params.m_baseColorFactor = GetVector(GetElementJsonArray(pbrMetallicRoughness, "baseColorFactor", ones));
 
         if (ProcessGetTextureIndexAndTextCoord(pbrMetallicRoughness, "baseColorTexture", &index, &texCoord))
@@ -116,7 +116,7 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
         {
             textureIds["metallicRoughnessTexture"] = index;
             tfmat->m_defines["ID_metallicRoughnessTexCoord"] = std::to_string(texCoord);
-        }        
+        }
     }
     else
     {
@@ -125,17 +125,17 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
         auto extensionsIt = material.find("extensions");
         if (extensionsIt != material.end())
         {
-            const json &extensions = extensionsIt->second;
+            const json& extensions = extensionsIt->second;
             auto KHR_materials_pbrSpecularGlossinessIt = extensions.find("KHR_materials_pbrSpecularGlossiness");
             if (KHR_materials_pbrSpecularGlossinessIt != extensions.end())
             {
-                const json &pbrSpecularGlossiness = KHR_materials_pbrSpecularGlossinessIt.value();
+                const json& pbrSpecularGlossiness = KHR_materials_pbrSpecularGlossinessIt.value();
 
                 tfmat->m_defines["MATERIAL_SPECULARGLOSSINESS"] = "1";
 
                 float glossiness = GetElementFloat(pbrSpecularGlossiness, "glossinessFactor", 1.0);
                 tfmat->m_params.m_DiffuseFactor = GetVector(GetElementJsonArray(pbrSpecularGlossiness, "diffuseFactor", ones));
-                tfmat->m_params.m_specularGlossinessFactor = XMVectorSetW(GetVector(GetElementJsonArray(pbrSpecularGlossiness, "specularFactor", ones)), glossiness);
+                tfmat->m_params.m_specularGlossinessFactor = math::Vector4(GetVector(GetElementJsonArray(pbrSpecularGlossiness, "specularFactor", ones)).getXYZ(), glossiness);
 
                 if (ProcessGetTextureIndexAndTextCoord(pbrSpecularGlossiness, "diffuseTexture", &index, &texCoord))
                 {
@@ -147,8 +147,19 @@ void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfm
                 {
                     textureIds["specularGlossinessTexture"] = index;
                     tfmat->m_defines["ID_specularGlossinessTexCoord"] = std::to_string(texCoord);
-                }                
+                }
             }
+        }
+    }
+
+    // check extensions again for unlit.
+    auto extensionsIt = material.find("extensions");
+    if (extensionsIt != material.end())
+    {
+        auto KHR_materials_unlit = extensionsIt->second.find("KHR_materials_unlit");
+        if (KHR_materials_unlit != extensionsIt->second.end())
+        {
+            tfmat->m_defines["MATERIAL_UNLIT"] = "1";
         }
     }
 }
@@ -186,16 +197,23 @@ bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName
 // 1) determine the color space if the texture and also the cut out level. Authoring software saves albedo and emissive images in SRGB mode, the rest are linear mode
 // 2) tell the cutOff value, to prevent thinning of alpha tested PNGs when lower mips are used. 
 //
-void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, bool *pSrgbOut, float *pCutoff)
+void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, std::unordered_map<int, int> const &textureToImage, bool *pSrgbOut, float *pCutoff)
 {
     *pSrgbOut = false;
     *pCutoff = 1.0f; // no cutoff
 
+    auto GetImageID = [&](int textureID) {
+      auto textureToImageIter = textureToImage.find(textureID);
+      if (textureToImageIter != textureToImage.end())
+        return textureToImageIter->second;
+      return -1;
+    };
+
     for (int m = 0; m < materials.size(); m++)
     {
-        const json &material = materials[m];
-
-        if (GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1) == imageIndex)
+        const json::object_t & material = materials[m];
+       
+        if (GetImageID(GetElementInt(material, "pbrMetallicRoughness/baseColorTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
 
@@ -204,19 +222,19 @@ void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, b
             return;
         }
 
-        if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/specularGlossinessTexture/index", -1) == imageIndex)
+        if (GetImageID(GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/specularGlossinessTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
             return;
         }
 
-        if (GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/diffuseTexture/index", -1) == imageIndex)
+        if (GetImageID(GetElementInt(material, "extensions/KHR_materials_pbrSpecularGlossiness/diffuseTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
             return;
         }
 
-        if (GetElementInt(material, "emissiveTexture/index", -1) == imageIndex)
+        if (GetImageID(GetElementInt(material, "emissiveTexture/index", -1)) == imageIndex)
         {
             *pSrgbOut = true;
             return;

@@ -19,7 +19,7 @@
 #pragma once
 
 #include <d3d12.h>
-#include <dxgi1_4.h>
+#include <dxgi1_6.h>
 #include "Fence.h"
 #include "Device.h"
 #include "FreeSyncHDR.h"
@@ -32,13 +32,14 @@ namespace CAULDRON_DX12
         void OnCreate(Device *pDevice, uint32_t numberBackBuffers, HWND hWnd);
         void OnDestroy();
 
-        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayModes displayMode = DISPLAYMODE_SDR, bool disableLocalDimming = false);
+        void OnCreateWindowSizeDependentResources(uint32_t dwWidth, uint32_t dwHeight, bool bVSyncOn, DisplayMode displayMode = DISPLAYMODE_SDR, bool disableLocalDimming = false);
         void OnDestroyWindowSizeDependentResources();
 
         void SetFullScreen(bool fullscreen);
+        const bool GetFullScreen();
 
-        bool IsModeSupported(DisplayModes displayMode);
-        void EnumerateDisplayModes(std::vector<DisplayModes> *pModes, std::vector<const char *> *pNames = NULL);
+        bool IsModeSupported(DisplayMode displayMode);
+        void EnumerateDisplayModes(std::vector<DisplayMode> *pModes, std::vector<const char *> *pNames = NULL);
 
         void Present();
         void WaitForSwapChain();
@@ -46,8 +47,8 @@ namespace CAULDRON_DX12
         ID3D12Resource *GetCurrentBackBufferResource();
         D3D12_CPU_DESCRIPTOR_HANDLE *GetCurrentBackBufferRTV();
         DXGI_FORMAT GetFormat();
-        DisplayModes GetDisplayMode();
-        bool IsFullScreen();
+        DisplayMode GetDisplayMode();
+        void SetVSync(bool on) { m_bVSyncOn = on; }
 
     private:
         void CreateRTV();
@@ -56,10 +57,10 @@ namespace CAULDRON_DX12
         uint32_t m_BackBufferCount = 0;
 
         ID3D12Device *m_pDevice = NULL;
-        IDXGIFactory4 *m_pFactory = NULL;
-        IDXGISwapChain3 *m_pSwapChain = NULL;
+        IDXGIFactory6 *m_pFactory = NULL;
+        IDXGISwapChain4 *m_pSwapChain = NULL;
 
-        DisplayModes m_displayMode = DISPLAYMODE_SDR;
+        DisplayMode m_displayMode = DISPLAYMODE_SDR;
         DXGI_FORMAT m_swapChainFormat = DXGI_FORMAT_UNKNOWN;
 
         Fence m_swapChainFence;
@@ -72,5 +73,8 @@ namespace CAULDRON_DX12
         DXGI_SWAP_CHAIN_DESC1 m_descSwapChain = {};
 
         bool m_bVSyncOn = false;
+
+        BOOL m_bTearingSupport = false;
+        BOOL m_bIsFullScreenExclusive = false;
     };
 }

@@ -22,28 +22,57 @@
 #include "stdafx.h"
 #include "UserMarkers.h"
 #include "../../libs/AGS/amd_ags.h"
-#include "pix.h"
+#include <pix3.h>
 
 namespace CAULDRON_DX12
 {
-     AGSContext* UserMarker::m_agsContext = nullptr;
+     AGSContext* UserMarker::s_agsContext = nullptr;
 
      UserMarker::UserMarker(ID3D12GraphicsCommandList* commandBuffer, const char* name) 
      {
          m_commandBuffer = commandBuffer;
 
-         if (m_agsContext)
-             agsDriverExtensionsDX12_PushMarker(m_agsContext, m_commandBuffer, name);
+#if TODO_AGS
+         if (s_agsContext)
+             commandBuffer->SetMarker(s_agsContext, m_commandBuffer, name);
+#endif // TODO_AGS
 
          PIXBeginEvent(m_commandBuffer, 0, name);
      }
 
+#if 0
+     UserMarker::UserMarker(ID3D12CommandQueue* queue, const char* name)
+     {
+         if (s_agsContext)
+         {
+             ID3D12Device* dev = nullptr;
+             if (FAILED(queue->GetDevice(IID_PPV_ARGS(&dev))))
+             {
+                 return;
+             }
+
+             auto queueDesc = queue->GetDesc();
+
+             ID3D12CommandAllocator* cmdAlloc = nullptr;
+             dev->CreateCommandAllocator(queueDesc.Type, IID_PPV_ARGS(&cmdAlloc));
+
+             ID3D12CommandList* cmdList = nullptr;
+             dev->CreateCommandList(queueDesc.NodeMask, queueDesc.Type, 0, 0, IID_PPV_ARGS(cmdList));
+
+             cmdAlloc->Reset();
+             cmdList->
+         }
+     }
+#endif
+
+
      UserMarker::~UserMarker()
      {
-         if (m_agsContext)
-             agsDriverExtensionsDX12_PopMarker(m_agsContext, m_commandBuffer);
+#if TODO_AGS
+         if (s_agsContext)
+             agsDriverExtensionsDX12_PopMarker(s_agsContext, m_commandBuffer);
+#endif // TODO_AGS
 
          PIXEndEvent(m_commandBuffer);
      }
-
 }

@@ -18,9 +18,10 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
+#include "Base/FreesyncHDR.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/Texture.h"
 #include "Base/Helper.h"
@@ -75,6 +76,18 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
+
+        const LPMOutputParams lpmOutputParams = GetLPMParameters();
+
+        pToneMapping->lpmConsts.shoulder            = lpmOutputParams.shoulder;
+        pToneMapping->lpmConsts.con                 = lpmOutputParams.lpmConfig.con;
+        pToneMapping->lpmConsts.soft                = lpmOutputParams.lpmConfig.soft;
+        pToneMapping->lpmConsts.con2                = lpmOutputParams.lpmConfig.con2;
+        pToneMapping->lpmConsts.clip                = lpmOutputParams.lpmConfig.clip;
+        pToneMapping->lpmConsts.scaleOnly           = lpmOutputParams.lpmConfig.scaleOnly;
+        pToneMapping->lpmConsts.displayMode         = lpmOutputParams.displayMode;
+        pToneMapping->lpmConsts.inputToOutputMatrix = lpmOutputParams.inputToOutputMatrix;
+        memcpy(pToneMapping->lpmConsts.ctl, lpmOutputParams.ctl, sizeof(lpmOutputParams.ctl));
 
         // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we 
         // need to do some basic buffering. Just to keep it safe and simple we'll have 10 buffers.

@@ -1,3 +1,4 @@
+// Dependencies on Khronosgroup - glTF - Sample - Viewer v - u(Apache 2.0)
 // Portions Copyright 2019 Advanced Micro Devices, Inc.All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,20 +15,13 @@
  
 // This shader code was ported from https://github.com/KhronosGroup/glTF-WebGL-PBR
 // All credits should go to his original author.
- 
 //
 // This fragment shader defines a reference implementation for Physically Based Shading of
 // a microfacet surface material defined by a glTF model.
 //
 // References:
-// [1] Real Shading in Unreal Engine 4
-//     http://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
-// [2] Physically Based Shading at Disney
-//     http://blog.selfshadow.com/publications/s2012-shading-course/burley/s2012_pbs_disney_brdf_notes_v3.pdf
-// [3] README.md - Environment Maps
+// [1] README.md - Environment Maps
 //     https://github.com/KhronosGroup/glTF-WebGL-PBR/#environment-maps
-// [4] "An Inexpensive BRDF Model for Physically based Rendering" by Christophe Schlick
-//     https://www.cs.virginia.edu/~jdl/bib/appearance/analytic%20models/schlick94b.pdf
 //
 #include "common.h"
 
@@ -138,7 +132,7 @@ struct Output
 #endif
 };
 
-Output mainPS(VS_OUTPUT_SCENE Input)
+Output mainPS(VS_OUTPUT_SCENE Input, bool bIsFontFacing : SV_IsFrontFace)
 {
     discardPixelIfAlphaCutOff(Input);
 
@@ -169,10 +163,11 @@ Output mainPS(VS_OUTPUT_SCENE Input)
 
 #ifdef HAS_FORWARD_RT
     output.finalColor = float4(doPbrLighting(Input, myPerFrame, diffuseColor, specularColor, perceptualRoughness), alpha);
+    output.finalColor = lerp(output.finalColor, float4(myPerFrame.u_WireframeOptions.rgb, 1.0), myPerFrame.u_WireframeOptions.w);
 #endif            
 
 #ifdef HAS_NORMALS_RT
-    output.normals = float4((getPixelNormal(Input) + 1) / 2, 0);
+    output.normals = float4(getPixelNormal(Input, bIsFontFacing) / 2 + 0.5f, 0);
 #endif
     
     return output;

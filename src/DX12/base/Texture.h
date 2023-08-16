@@ -33,7 +33,7 @@ namespace CAULDRON_DX12
         virtual void            OnDestroy();
 
         // different ways to init a texture
-        virtual bool InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, const char *szFilename, bool useSRGB = false, float cutOff = 1.0f, D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE);
+        virtual bool InitFromFile(Device *pDevice, UploadHeap *pUploadHeap, ID3D12Heap *pTextureHeap, const char *szFilename, uint64_t workloadId, bool useSRGB = false, float cutOff = 1.0f, D3D12_RESOURCE_FLAGS resourceFlags = D3D12_RESOURCE_FLAG_NONE);
         INT32 Init(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE *pClearValue);
         INT32 InitRenderTarget(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET, const FLOAT *clearColor = nullptr);
         INT32 InitDepthStencil(Device *pDevice, const char *pDebugName, const CD3DX12_RESOURCE_DESC *pDesc);
@@ -42,17 +42,18 @@ namespace CAULDRON_DX12
         bool InitFromData(Device *pDevice, const char *pDebugName, UploadHeap& uploadHeap, const IMG_INFO& header, const void *data);
 
         // explicit functions for creating RTVs, SRVs and UAVs
-        void CreateRTV(uint32_t index, RTV *pRV, D3D12_RENDER_TARGET_VIEW_DESC *pRtvDesc);
-        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, D3D12_SHADER_RESOURCE_VIEW_DESC *pSrvDesc);
-        void CreateUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC *pUavDesc);
-
+        void CreateRTV(uint32_t index, RTV* pRV, D3D12_RENDER_TARGET_VIEW_DESC* pRtvDesc) const;
+        void CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, D3D12_SHADER_RESOURCE_VIEW_DESC* pSrvDesc) const;
+        void CreateUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC* pUavDesc) const;
+        void CreateRawBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV);
+        
         // less explicit functions of the above ones
-        void CreateDSV(uint32_t index, DSV *pRV, int arraySlice = 1);
-        void CreateUAV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1);
-        void CreateBufferUAV(uint32_t index, Texture *pCounterTex, CBV_SRV_UAV *pRV);
-        void CreateRTV(uint32_t index, RTV *pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1);
-        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1);
-        void CreateCubeSRV(uint32_t index, CBV_SRV_UAV *pRV);
+        void CreateDSV(uint32_t index, DSV* pRV, int arraySlice = -1, int arraySize = 1) const;
+        void CreateUAV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel = -1) const;
+        void CreateBufferUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV) const;
+        void CreateRTV(uint32_t index, RTV* pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1, DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN) const;
+        void CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel = -1, int arraySize = -1, int firstArraySlice = -1) const;
+        void CreateCubeSRV(uint32_t index, CBV_SRV_UAV* pRV) const;
 
         // accessors
         uint32_t GetWidth() const { return m_header.width; }

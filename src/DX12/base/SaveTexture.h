@@ -25,7 +25,7 @@ namespace CAULDRON_DX12
     class SaveTexture
     {
         UINT64 UplHeapSize = 0;
-        D3D12_RESOURCE_DESC bufferFromDesc = { 0 };
+        D3D12_RESOURCE_DESC bufferFromDesc = { };
         ID3D12Resource* pResourceReadBack = nullptr;
     public:
         //

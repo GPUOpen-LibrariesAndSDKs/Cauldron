@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Device.h"
 #include "CommandListRing.h"
-#include "Base/ExtDebugMarkers.h"
+#include "ExtDebugUtils.h"
 #include "Misc/Misc.h"
 
 namespace CAULDRON_VK
@@ -94,7 +94,7 @@ namespace CAULDRON_VK
         for (uint32_t a = 0; a < m_numberOfAllocators; a++)
         {
             vkFreeCommandBuffers(m_pDevice->GetDevice(), m_pCommandBuffers[a].m_commandPool, m_commandListsPerBackBuffer, m_pCommandBuffers[a].m_pCommandBuffer);
-
+            delete[] m_pCommandBuffers[a].m_pCommandBuffer;
             vkDestroyCommandPool(m_pDevice->GetDevice(), m_pCommandBuffers[a].m_commandPool, NULL);
         }
 

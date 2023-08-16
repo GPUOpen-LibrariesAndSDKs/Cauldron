@@ -52,8 +52,6 @@ namespace CAULDRON_DX12
         ResourceViewHeaps           *m_pHeaps;
         Device                      *m_pDevice;
 
-        D3D12_VERTEX_BUFFER_VIEW     m_verticesView;
-
         ResourceViewHeaps           *m_pResourceViewHeaps;
 
         ID3D12RootSignature         *m_pRootSignature;

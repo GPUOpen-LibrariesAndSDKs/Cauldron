@@ -29,8 +29,8 @@ namespace CAULDRON_DX12
     {
         m_pDynamicBufferRing = pDynamicBufferRing;
         
-        m_CubeDiffuseTexture.InitFromFile(pDevice, pUploadHeap, pDiffuseCubemap, true);
-        m_CubeSpecularTexture.InitFromFile(pDevice, pUploadHeap, pSpecularCubemap, true);
+        m_CubeDiffuseTexture.InitFromFile(pDevice, pUploadHeap, nullptr, pDiffuseCubemap, 0, true);
+        m_CubeSpecularTexture.InitFromFile(pDevice, pUploadHeap, nullptr, pSpecularCubemap, 0, true);
         
         pUploadHeap->FlushAndFinish();
 
@@ -39,12 +39,11 @@ namespace CAULDRON_DX12
         SetDescriptorSpec(0, &m_CubeSpecularTextureSRV, 0, &SamplerDesc);
 
         D3D12_DEPTH_STENCIL_DESC DepthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-        DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+        DepthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
         DepthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 
         D3D12_BLEND_DESC blendDesc = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-        D3D12_DEPTH_STENCIL_DESC depthStencilDesc = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-        m_skydome.OnCreate(pDevice, "SkyDome.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, outFormat, sampleDescCount, &blendDesc, &depthStencilDesc);
+        m_skydome.OnCreate(pDevice, "SkyDome.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, outFormat, sampleDescCount, &blendDesc, &DepthStencilDesc);
     }
 
     void SkyDome::OnDestroy()
@@ -55,7 +54,7 @@ namespace CAULDRON_DX12
         m_CubeSpecularTexture.OnDestroy();        
     }
 
-    void SkyDome::SetDescriptorDiff(uint32_t textureIndex, CBV_SRV_UAV *pTextureTable, uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc)
+    void SkyDome::SetDescriptorDiff(uint32_t textureIndex, CBV_SRV_UAV *pTextureTable, uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc) const
     {
         m_CubeDiffuseTexture.CreateCubeSRV(textureIndex, pTextureTable);
 
@@ -76,7 +75,7 @@ namespace CAULDRON_DX12
         pSamplerDesc->ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     }
 
-    void SkyDome::SetDescriptorSpec(uint32_t textureIndex, CBV_SRV_UAV *pTextureTable, uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc)
+    void SkyDome::SetDescriptorSpec(uint32_t textureIndex, CBV_SRV_UAV *pTextureTable, uint32_t samplerIndex, D3D12_STATIC_SAMPLER_DESC *pSamplerDesc) const
     {
         m_CubeSpecularTexture.CreateCubeSRV(textureIndex, pTextureTable);
 
@@ -97,11 +96,11 @@ namespace CAULDRON_DX12
         pSamplerDesc->ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
     }
 
-    void SkyDome::Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX& invViewProj)
+    void SkyDome::Draw(ID3D12GraphicsCommandList* pCommandList, const math::Matrix4& invViewProj)
     {
         UserMarker marker(pCommandList, "Skydome");
 
-        D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(XMMATRIX), &invViewProj);
+        D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pDynamicBufferRing->AllocConstantBuffer(sizeof(math::Matrix4), &invViewProj);
 
         m_skydome.Draw(pCommandList, 1, &m_CubeSpecularTextureSRV, constantBuffer);
     }

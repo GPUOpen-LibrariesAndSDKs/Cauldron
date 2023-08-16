@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/Texture.h"
 #include "Base/Helper.h"
@@ -28,8 +28,9 @@
 
 namespace CAULDRON_VK
 {
-    void TAA::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing)
+    void TAA::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing, bool sharpening)
     {
+        m_bSharpening = sharpening;
         m_pDevice = pDevice;
         m_pResourceViewHeaps = pResourceViewHeaps;
         VkResult res;
@@ -97,6 +98,7 @@ namespace CAULDRON_VK
             m_pResourceViewHeaps->AllocDescriptor(m_TaaDescriptorSetLayout, &m_TaaDescriptorSet);
 
             m_TAA.OnCreate(m_pDevice, "TAA.hlsl", "main", "-T cs_6_0", m_TaaDescriptorSetLayout, 16, 16, 1, NULL);
+            m_TAAFirst.OnCreate(m_pDevice, "TAA.hlsl", "first", "-T cs_6_0", m_TaaDescriptorSetLayout, 16, 16, 1, NULL);
         }
 
         // Sharpener
@@ -125,15 +127,18 @@ namespace CAULDRON_VK
             m_pResourceViewHeaps->AllocDescriptor(m_SharpenDescriptorSetLayout, &m_SharpenDescriptorSet);
 
             m_Sharpen.OnCreate(m_pDevice, "TAASharpenerCS.hlsl", "mainCS", "-T cs_6_0", m_SharpenDescriptorSetLayout, 8, 8, 1, NULL);            
+            m_Post.OnCreate(m_pDevice, "TAASharpenerCS.hlsl", "postCS", "-T cs_6_0", m_SharpenDescriptorSetLayout, 8, 8, 1, NULL);
         }
     }
 
     void TAA::OnDestroy()
     {
         m_TAA.OnDestroy();
+        m_TAAFirst.OnDestroy();
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_TaaDescriptorSetLayout, NULL);
 
         m_Sharpen.OnDestroy();
+        m_Post.OnDestroy();
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_SharpenDescriptorSetLayout, NULL);
 
         for (int i = 0; i < 4; i++)
@@ -199,6 +204,8 @@ namespace CAULDRON_VK
         SetDescriptorSet(m_pDevice->GetDevice(), 0, m_TAABufferSRV, NULL, m_SharpenDescriptorSet);
         SetDescriptorSet(m_pDevice->GetDevice(), 1, m_pGBuffer->m_HDRSRV, m_SharpenDescriptorSet);
         SetDescriptorSet(m_pDevice->GetDevice(), 2, m_HistoryBufferSRV, m_SharpenDescriptorSet);
+
+        m_bFirst = true;
     }
 
     //--------------------------------------------------------------------------------------
@@ -227,9 +234,10 @@ namespace CAULDRON_VK
                 barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
                 barrier.pNext = NULL;
                 barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barrier.subresourceRange.baseMipLevel = 0;
                 barrier.subresourceRange.levelCount = 1;
                 barrier.subresourceRange.baseArrayLayer = 0;
@@ -237,36 +245,43 @@ namespace CAULDRON_VK
 
                 VkImageMemoryBarrier barriers[2];
                 barriers[0] = barrier;
+                barriers[0].dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
                 barriers[0].oldLayout = m_TexturesInUndefinedLayout ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 barriers[0].newLayout = VK_IMAGE_LAYOUT_GENERAL;
-                barriers[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barriers[0].image = m_TAABuffer.Resource();
 
                 barriers[1] = barrier;
                 barriers[1].oldLayout = m_TexturesInUndefinedLayout ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 barriers[1].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barriers[1].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barriers[1].image = m_HistoryBuffer.Resource();
 
                 m_TexturesInUndefinedLayout = false;
 
-                vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 2, barriers);
+                vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 2, barriers);
             }
-
-            m_TAA.Draw(cmd_buf, NULL, m_TaaDescriptorSet, (m_Width + 15) / 16, (m_Height + 15) / 16, 1);
+            if (m_bFirst)
+            {
+                m_bFirst = false;
+                m_TAAFirst.Draw(cmd_buf, NULL, m_TaaDescriptorSet, (m_Width + 15) / 16, (m_Height + 15) / 16, 1);
+            } else
+                m_TAA.Draw(cmd_buf, NULL, m_TaaDescriptorSet, (m_Width + 15) / 16, (m_Height + 15) / 16, 1);
         }
 
         {
             SetPerfMarkerBegin(cmd_buf, "TAASharpener");
 
             {
+                // default is color texture from SRV to UAV
                 VkImageMemoryBarrier barrier = {};
                 barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
                 barrier.pNext = NULL;
-                barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barrier.subresourceRange.baseMipLevel = 0;
                 barrier.subresourceRange.levelCount = 1;
                 barrier.subresourceRange.baseArrayLayer = 0;
@@ -274,28 +289,24 @@ namespace CAULDRON_VK
 
                 VkImageMemoryBarrier barriers[3];
                 barriers[0] = barrier;
+                barriers[0].srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+                barriers[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
                 barriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
                 barriers[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barriers[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barriers[0].image = m_TAABuffer.Resource();
 
                 barriers[1] = barrier;
-                barriers[1].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barriers[1].newLayout = VK_IMAGE_LAYOUT_GENERAL;
-                barriers[1].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barriers[1].image = m_HistoryBuffer.Resource();
 
                 barriers[2] = barrier;
-                barriers[2].oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                barriers[2].newLayout = VK_IMAGE_LAYOUT_GENERAL;
-                barriers[2].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
                 barriers[2].image = m_pGBuffer->m_HDR.Resource();
 
                 vkCmdPipelineBarrier(cmd_buf, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, NULL, 0, NULL, 3, barriers);
             }
-
-            m_Sharpen.Draw(cmd_buf, NULL, m_SharpenDescriptorSet, (m_Width + 7) / 8, (m_Height + 7) / 8, 1);
-
+            if( m_bSharpening )
+                m_Sharpen.Draw(cmd_buf, NULL, m_SharpenDescriptorSet, (m_Width + 7) / 8, (m_Height + 7) / 8, 1);
+            else
+                m_Post.Draw(cmd_buf, NULL, m_SharpenDescriptorSet, (m_Width + 7) / 8, (m_Height + 7) / 8, 1);
             {
                 VkImageMemoryBarrier barrier = {};
                 barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;

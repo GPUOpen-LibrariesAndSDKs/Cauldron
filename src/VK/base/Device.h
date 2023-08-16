@@ -63,6 +63,10 @@ namespace CAULDRON_VK
         VkPhysicalDeviceSubgroupProperties GetPhysicalDeviceSubgroupProperties() { return m_subgroupProperties; }
 
         bool IsFp16Supported() { return m_usingFp16; };
+        bool IsRT10Supported() { return m_rt10Supported; }
+        bool IsRT11Supported() { return m_rt11Supported; }
+        bool IsVRSTier1Supported() { return m_vrs1Supported; }
+        bool IsVRSTier2Supported() { return m_vrs2Supported; }
 
         // pipeline cache
         VkPipelineCache m_pipelineCache;
@@ -94,6 +98,10 @@ namespace CAULDRON_VK
 
         bool m_usingValidationLayer = false;
         bool m_usingFp16 = false;
+        bool m_rt10Supported = false;
+        bool m_rt11Supported = false;
+        bool m_vrs1Supported = false;
+        bool m_vrs2Supported = false;
 #ifdef USE_VMA
         VmaAllocator m_hAllocator = NULL;
 #endif

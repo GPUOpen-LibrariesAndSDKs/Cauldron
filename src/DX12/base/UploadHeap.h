@@ -43,6 +43,7 @@ namespace CAULDRON_DX12
             ID3D12Resource *pBufferDst; 
             UINT64 offset;
             int size;
+            D3D12_RESOURCE_STATES state;
         };
         std::vector<BufferCopy> m_bufferCopies;
 
@@ -60,7 +61,7 @@ namespace CAULDRON_DX12
         ID3D12Resource* GetResource() { return m_pUploadHeap; }
         ID3D12GraphicsCommandList* GetCommandList() { return m_pCommandList; }
         ID3D12CommandQueue* GetCommandQueue() { return m_pCommandQueue; }
-        void AddBufferCopy(const void *pData, int size, ID3D12Resource *m_pBufferDst);
+        void AddBufferCopy(const void *pData, int size, ID3D12Resource *m_pBufferDst, D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
         void AddCopy(CD3DX12_TEXTURE_COPY_LOCATION Src, CD3DX12_TEXTURE_COPY_LOCATION Dst);
 
         void AddBarrier(ID3D12Resource *pRes);

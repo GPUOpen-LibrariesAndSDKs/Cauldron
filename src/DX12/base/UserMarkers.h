@@ -20,6 +20,7 @@
 // THE SOFTWARE.
 //
 #pragma once
+#define USE_PIX 1
 
 #include <d3d12.h>
 #include "../../libs/AGS/amd_ags.h"
@@ -34,12 +35,12 @@ namespace CAULDRON_DX12
         UserMarker(ID3D12GraphicsCommandList* commandBuffer, const char* name);
         ~UserMarker();
         static void SetAgsContext(AGSContext* agsContext) {
-            m_agsContext = agsContext;
+            s_agsContext = agsContext;
         }
 
     private:
 
-        static AGSContext*          m_agsContext;
+        static AGSContext*          s_agsContext;
         ID3D12GraphicsCommandList*  m_commandBuffer = nullptr;
     };
 }

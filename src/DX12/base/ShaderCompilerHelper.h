@@ -22,7 +22,6 @@
 #include "Device.h"
 #include "Base/DXCHelper.h"
 #include "Base/ShaderCompiler.h"
-
 #include <vector>
 
 namespace CAULDRON_DX12

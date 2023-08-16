@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/FreesyncHDR.h"
 #include "Base/Texture.h"
@@ -86,7 +86,7 @@ namespace CAULDRON_VK
         vkDestroyDescriptorSetLayout(m_pDevice->GetDevice(), m_descriptorSetLayout, NULL);
     }
 
-    void ColorConversionPS::UpdatePipelines(VkRenderPass renderPass, DisplayModes displayMode)
+    void ColorConversionPS::UpdatePipelines(VkRenderPass renderPass, DisplayMode displayMode)
     {
         m_ColorConversion.UpdatePipeline(renderPass, NULL, VK_SAMPLE_COUNT_1_BIT);
 
@@ -113,14 +113,15 @@ namespace CAULDRON_VK
         }
     }
 
-    void ColorConversionPS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV)
+    void ColorConversionPS::Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, uint32_t isLPMToneMapperSelected)
     {
         SetPerfMarkerBegin(cmd_buf, "ColorConversion");
 
-        VkDescriptorBufferInfo cbTonemappingHandle;
+        VkDescriptorBufferInfo cbColorConversionHandle;
         ColorConversionConsts *pColorConversionConsts;
-        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ColorConversionConsts), (void **)&pColorConversionConsts, &cbTonemappingHandle);
+        m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ColorConversionConsts), (void **)&pColorConversionConsts, &cbColorConversionHandle);
         *pColorConversionConsts = m_colorConversionConsts;
+        pColorConversionConsts->m_isLPMToneMapperSelected = isLPMToneMapperSelected;
 
         // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we 
         // need to do some basic buffering. Just to keep it safe and simple we'll have 10 buffers.
@@ -132,7 +133,7 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing->SetDescriptorSet(0, sizeof(ColorConversionConsts), descriptorSet);
 
         // Draw!
-        m_ColorConversion.Draw(cmd_buf, &cbTonemappingHandle, descriptorSet);
+        m_ColorConversion.Draw(cmd_buf, &cbColorConversionHandle, descriptorSet);
 
         SetPerfMarkerEnd(cmd_buf);
     }

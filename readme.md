@@ -12,6 +12,10 @@ Cauldron is compiled as a static library. To see it in action check projects bel
 - [FidelityFX-SSSR](https://github.com/GPUOpen-Effects/FidelityFX-SSSR) Stochastic Screen Space Reflections (SSSR)
 - [FidelityFX-LPM](https://github.com/GPUOpen-Effects/FidelityFX-LPM) Luma Preserving Mapper (LPM)
 - [FidelityFX-CACAO](https://github.com/GPUOpen-Effects/FidelityFX-CACAO) Combined Adaptive Compute Ambient Occlusion (CACAO)
+- [FidelityFX-VariableShading](https://github.com/GPUOpen-Effects/FidelityFX-VariableShading) Variable Rate Shading (VRS)
+- [FidelityFX-ParallelSort](https://github.com/GPUOpen-Effects/FidelityFX-ParallelSort) GPU-based optimised sorting
+- [FidelityFX-CAS](https://github.com/GPUOpen-Effects/FidelityFX-CAS/) Contrast Adaptive Sharpenening (CAS)
+- [FidelityFX-FSR](https://github.com/GPUOpen-Effects/FidelityFX-FSR) Super Resolution (FSR)
 - [TressFX](https://github.com/GPUOpen-Effects/TressFX), a library that simulates and renders realistic hair and fur
 - [GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample), a simple demo app to show off Cauldron's features
   ![GLTFSample](https://github.com/GPUOpen-LibrariesAndSDKs/gltfsample/raw/master/screenshot.png)
@@ -99,7 +103,7 @@ Note: more info on the rendering backends can be found in the Readme of their re
 ## How-to-Build
 
 - Run the `GenerateSolutions.bat` file in the `build` directory.
-- `build/VK` and `build/DX12` folders will contain the `Framework_*.sln` files
+- `build/VK` and `build/DX12` folders will contain the `Cauldron_*.sln` files
 - Simply build the solution file for the desired API
 - `build/DX12/src/DX12/` directory will contain the compiled static library `Framework_DX12.lib` for DX12 (similar for VK) under the selected configuration (Debug/Release) folder.
 
@@ -149,7 +153,7 @@ Cauldron should be very easy to extend, should you want to contribute to Cauldro
 
 # 3rd-Party Open Source Projects Used
 
-- [ImGUI](https://github.com/ocornut/imgui)
+- [Dear ImGui](https://github.com/ocornut/imgui)
 - [JSON for Modern C++](https://github.com/nlohmann/json)
 - [AMD GPU Services (AGS) SDK](https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK)
 - [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)

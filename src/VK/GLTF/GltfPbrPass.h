@@ -43,12 +43,13 @@ namespace CAULDRON_VK
         PBRMaterial *m_pMaterial = NULL;
 
         VkPipeline m_pipeline = VK_NULL_HANDLE;
+        VkPipeline m_pipelineWireframe = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
 
         VkDescriptorSet m_uniformsDescriptorSet = VK_NULL_HANDLE;
         VkDescriptorSetLayout m_uniformsDescriptorSetLayout = VK_NULL_HANDLE;
 
-        void DrawPrimitive(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo perSceneDesc, VkDescriptorBufferInfo perObjectDesc, VkDescriptorBufferInfo *pPerSkeleton);
+        void DrawPrimitive(VkCommandBuffer cmd_buf, VkDescriptorBufferInfo perSceneDesc, VkDescriptorBufferInfo perObjectDesc, VkDescriptorBufferInfo *pPerSkeleton, bool bWireframe);
     };
 
     struct PBRMesh
@@ -61,8 +62,8 @@ namespace CAULDRON_VK
     public:
         struct per_object
         {
-            XMMATRIX mCurrentWorld;
-            XMMATRIX mPreviousWorld;
+            math::Matrix4 mCurrentWorld;
+            math::Matrix4 mPreviousWorld;
 
             PBRMaterialParametersConstantBuffer m_pbrParams;
         };
@@ -86,14 +87,14 @@ namespace CAULDRON_VK
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
             bool bUseSSAOMask,
-            VkImageView ShadowMapView,
+            std::vector<VkImageView>& ShadowMapViewPool,
             GBufferRenderPass *pRenderPass,
             AsyncPool *pAsyncPool = NULL
         );
 
         void OnDestroy();
-        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
-        void DrawBatchList(VkCommandBuffer commandBuffer, std::vector<BatchList> *pBatchList);
+        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent, bool bWireframe=false);
+        void DrawBatchList(VkCommandBuffer commandBuffer, std::vector<BatchList> *pBatchList, bool bWireframe=false);
         void OnUpdateWindowSizeDependentResources(VkImageView SSAO);
     private:
         GLTFTexturesAndBuffers *m_pGLTFTexturesAndBuffers;
@@ -118,7 +119,7 @@ namespace CAULDRON_VK
         VkImageView m_brdfLutView = VK_NULL_HANDLE;
         VkSampler m_brdfLutSampler = VK_NULL_HANDLE;
 
-        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, VkImageView ShadowMapView, bool bUseSSAOMask);
+        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, VkImageView> &texturesBase, SkyDome *pSkyDome, std::vector<VkImageView>& ShadowMapViewPool, bool bUseSSAOMask);
         void CreateDescriptors(int inverseMatrixBufferSize, DefineList *pAttributeDefines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);
         void CreatePipeline(std::vector<VkVertexInputAttributeDescription> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };

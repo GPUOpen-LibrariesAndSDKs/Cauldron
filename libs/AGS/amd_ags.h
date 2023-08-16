@@ -37,13 +37,13 @@
 /// What's new in AGS 6.0 since version 5.4.2
 /// ---------------------------------------
 /// AGS 6.0 includes the following updates:
-/// * DX12 ray tracing hit token for RDNA 2 hardware.
+/// * DX12 ray tracing hit token for RDNA2 hardware.
 /// * Shader intrinsic that exposes ReadLaneAt in DX12.
 /// * Shader intrinsics that expose explicit float conversions in DX12.
 /// * Refactored and revised API to minimize user error.
 /// * Added agsGetVersionNumber.
 /// * Detection for external GPUs.
-/// * Detection of RDNA 2 architecture.
+/// * Detection of RDNA2 architecture.
 /// * Grouped the more established intrinsics together into per year support.
 /// * Function pointer typedefs for the API
 ///
@@ -106,7 +106,7 @@
 
 #define AMD_AGS_VERSION_MAJOR 6             ///< AGS major version
 #define AMD_AGS_VERSION_MINOR 0             ///< AGS minor version
-#define AMD_AGS_VERSION_PATCH 0             ///< AGS patch version
+#define AMD_AGS_VERSION_PATCH 1             ///< AGS patch version
 
 #ifdef __cplusplus
 extern "C" {
@@ -468,8 +468,8 @@ typedef struct AGSDX12ReturnedParams
         unsigned int        baseInstance : 1;                   ///< Supported in Radeon Software Version 20.2.1 onwards.
         unsigned int        getWaveSize : 1;                    ///< Supported in Radeon Software Version 20.5.1 onwards.
         unsigned int        floatConversion : 1;                ///< Supported in Radeon Software Version 20.5.1 onwards.
-        unsigned int        readLaneAt : 1;                     ///< Supported in Radeon Software Version 20.11.1 onwards.
-        unsigned int        rayHitToken : 1;                    ///< Supported in Radeon Software Version 20.11.1 onwards.
+        unsigned int        readLaneAt : 1;                     ///< Supported in Radeon Software Version 20.11.2 onwards.
+        unsigned int        rayHitToken : 1;                    ///< Supported in Radeon Software Version 20.11.2 onwards.
         unsigned int        padding : 20;                       ///< Reserved
     } ExtensionsSupported;
     ExtensionsSupported     extensionsSupported;                ///< List of supported extensions
@@ -1109,7 +1109,7 @@ AMD_AGS_API AGSReturnCode agsDriverExtensionsDX11_SetMaxAsyncCompileThreadCount(
 
 ///
 /// This method can be used to determine the total number of asynchronous shader compile jobs that are either
-/// queued for waiting for compilation or being compiled by the driver’s asynchronous compilation threads.
+/// queued for waiting for compilation or being compiled by the driver's asynchronous compilation threads.
 /// This method can be called at any during the lifetime of the driver.
 ///
 /// \param [in] context                             Pointer to a context.

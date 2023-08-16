@@ -18,6 +18,7 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
+#include "Base/FreesyncHDR.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
 #include "Base/UploadHeap.h"
@@ -25,7 +26,7 @@
 
 namespace CAULDRON_DX12
 {
-    void ToneMapping::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat)
+    void ToneMapping::OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, DynamicBufferRing *pDynamicBufferRing, StaticBufferPool  *pStaticBufferPool, DXGI_FORMAT outFormat, uint32_t srvTableSize, const char *shaderSource)
     {
         m_pDynamicBufferRing = pDynamicBufferRing;
 
@@ -44,7 +45,7 @@ namespace CAULDRON_DX12
         SamplerDesc.RegisterSpace = 0;
         SamplerDesc.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
-        m_toneMapping.OnCreate(pDevice, "Tonemapping.hlsl", pResourceViewHeaps, pStaticBufferPool, 1, 1, &SamplerDesc, outFormat);
+        m_toneMapping.OnCreate(pDevice, shaderSource, pResourceViewHeaps, pStaticBufferPool, srvTableSize, 1, &SamplerDesc, outFormat);
     }
 
     void ToneMapping::OnDestroy()
@@ -57,7 +58,7 @@ namespace CAULDRON_DX12
         m_toneMapping.UpdatePipeline(outFormat);
     }
 
-    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper)
+    void ToneMapping::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV *pHDRSRV, float exposure, int toneMapper, bool gamma2)
     {
         UserMarker marker(pCommandList, "Tonemapping");
 
@@ -66,6 +67,19 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
+        pToneMapping->gamma2 = (gamma2 ? 1 : 0);
+
+        const LPMOutputParams lpmOutputParams = GetLPMParameters();
+
+        pToneMapping->lpmConsts.shoulder            = lpmOutputParams.shoulder;
+        pToneMapping->lpmConsts.con                 = lpmOutputParams.lpmConfig.con;
+        pToneMapping->lpmConsts.soft                = lpmOutputParams.lpmConfig.soft;
+        pToneMapping->lpmConsts.con2                = lpmOutputParams.lpmConfig.con2;
+        pToneMapping->lpmConsts.clip                = lpmOutputParams.lpmConfig.clip;
+        pToneMapping->lpmConsts.scaleOnly           = lpmOutputParams.lpmConfig.scaleOnly;
+        pToneMapping->lpmConsts.displayMode         = lpmOutputParams.displayMode;
+        pToneMapping->lpmConsts.inputToOutputMatrix = lpmOutputParams.inputToOutputMatrix;
+        memcpy(pToneMapping->lpmConsts.ctl, lpmOutputParams.ctl, sizeof(lpmOutputParams.ctl));
 
         m_toneMapping.Draw(pCommandList, 1, pHDRSRV, cbTonemappingHandle);
     }

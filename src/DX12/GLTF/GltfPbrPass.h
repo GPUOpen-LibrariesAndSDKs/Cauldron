@@ -25,6 +25,13 @@
 
 namespace CAULDRON_DX12
 {
+    enum ShadowReceivingState: uint8_t
+    {
+        ShadowReceivingState_None,
+        ShadowReceivingState_Mask,
+        ShadowReceivingState_Buffer,
+    };
+
     struct PBRMaterial
     {
         int m_textureCount = 0;
@@ -43,8 +50,9 @@ namespace CAULDRON_DX12
 
         ID3D12RootSignature	*m_RootSignature;
         ID3D12PipelineState	*m_PipelineRender;
+        ID3D12PipelineState *m_PipelineWireframeRender;
 
-        void DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perSceneDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton);
+        void DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perSceneDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton, bool bWireframe);
     };
 
     struct PBRMesh
@@ -57,8 +65,8 @@ namespace CAULDRON_DX12
     public:
         struct per_object
         {
-            XMMATRIX mCurrentWorld;
-            XMMATRIX mPreviousWorld;
+            math::Matrix4 mCurrentWorld;
+            math::Matrix4 mPreviousWorld;
 
             PBRMaterialParametersConstantBuffer m_pbrParams;
         };
@@ -80,15 +88,16 @@ namespace CAULDRON_DX12
             DynamicBufferRing *pDynamicBufferRing,
             GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
             SkyDome *pSkyDome,
+            Texture *pBRDFLUT,
             bool bUseSSAOMask,
-            bool bUseShadowMask,
+            ShadowReceivingState shadowReceivingState,
             GBufferRenderPass *pGBufferRenderPass,
             AsyncPool *pAsyncPool = NULL);
 
         void OnDestroy();
         void OnUpdateWindowSizeDependentResources(Texture *pSSAO);
-        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent);
-        void DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList);
+        void BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent, bool bWireframe = false);
+        void DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList, bool bWireframe = false);
     private:
         Device                  *m_pDevice;
         GBufferRenderPass       *m_pGBufferRenderPass;
@@ -105,15 +114,16 @@ namespace CAULDRON_DX12
 
         PBRMaterial              m_defaultMaterial;
 
-        Texture                  m_BrdfLut;
+        Texture                  *m_pBrdfLut;
 
+        ShadowReceivingState     m_shadowReceivingState;
         bool                     m_doLighting;
 
         DXGI_FORMAT              m_depthFormat;
         std::vector<DXGI_FORMAT> m_outFormats;
         uint32_t                 m_sampleCount;
 
-        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, bool bUseShadowMask, bool bUseSSAOMask);
+        void CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, std::map<std::string, D3D12_STATIC_SAMPLER_DESC>& samplerBase, SkyDome *pSkyDome,  bool bUseSSAOMask);
         void CreateRootSignature(bool bUsingSkinning, DefineList &defines, PBRPrimitives *pPrimitive, bool bUseSSAOMask);
         void CreatePipeline(std::vector<D3D12_INPUT_ELEMENT_DESC> layout, const DefineList &defines, PBRPrimitives *pPrimitive);
     };

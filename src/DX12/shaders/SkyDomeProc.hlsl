@@ -16,10 +16,6 @@
 // IN THE SOFTWARE.
 // 
 
-// Based on "A Practical Analytic Model for Daylight"
-// aka The Preetham Model, the de facto standard analytic skydome model
-// http://www.cs.utah.edu/~shirley/papers/sunsky/sunsky.pdf
-
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer

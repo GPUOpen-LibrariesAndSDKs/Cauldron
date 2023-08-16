@@ -56,6 +56,7 @@ namespace CAULDRON_VK
         uint32_t                   m_Height;
         int                        m_mipCount;
 
+        Texture*                   m_inputTexture;
         Texture                    m_tempBlur;
 
         struct Pass

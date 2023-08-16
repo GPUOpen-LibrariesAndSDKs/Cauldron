@@ -222,8 +222,10 @@ namespace CAULDRON_DX12
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
                 MotionVectorPrimitives *pPrimitive = &pMesh->m_pPrimitives[p];
-                pPrimitive->m_PipelineRender->Release();
-                pPrimitive->m_RootSignature->Release();
+                if (pPrimitive->m_PipelineRender)
+                    pPrimitive->m_PipelineRender->Release();
+                if (pPrimitive->m_RootSignature)
+                    pPrimitive->m_RootSignature->Release();
             }
         }
     }

@@ -24,7 +24,7 @@
 
 namespace CAULDRON_DX12
 {
-    void StaticBufferPool::OnCreate(Device *pDevice, uint32_t totalMemSize, bool bUseVidMem, const char* name)
+    void StaticBufferPool::OnCreate(Device *pDevice, uint64_t totalMemSize, bool bUseVidMem, const char* name)
     {
         m_pDevice = pDevice;
         m_totalMemSize = totalMemSize;
@@ -33,14 +33,24 @@ namespace CAULDRON_DX12
         m_pData = nullptr;
         m_bUseVidMem = bUseVidMem;
 
+        D3D12_FEATURE_DATA_ARCHITECTURE archData = {};
+        if (SUCCEEDED(pDevice->GetDevice()->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &archData, sizeof(archData))))
+        {
+            if (archData.UMA)
+            {
+                bUseVidMem = false;
+                m_bUseVidMem = false;
+            }
+        }
+
         if (bUseVidMem)
         {
             ThrowIfFailed(
                 m_pDevice->GetDevice()->CreateCommittedResource(
                     &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-                    D3D12_HEAP_FLAG_NONE,
-                    &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
-                    D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
+                    D3D12_HEAP_FLAG_CREATE_NOT_ZEROED,
+                    &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS),
+                    D3D12_RESOURCE_STATE_COPY_DEST,
                     nullptr,
                     IID_PPV_ARGS(&m_pVidMemBuffer))
             );
@@ -50,7 +60,7 @@ namespace CAULDRON_DX12
         ThrowIfFailed(
             m_pDevice->GetDevice()->CreateCommittedResource(
                 &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-                D3D12_HEAP_FLAG_NONE,
+                D3D12_HEAP_FLAG_CREATE_NOT_ZEROED,
                 &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
@@ -83,17 +93,22 @@ namespace CAULDRON_DX12
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        uint32_t size = AlignUp(numbeOfElements* strideInBytes, 256u);
-        assert(m_memOffset + size < m_totalMemSize);
+        uint32_t size = AlignUp(numbeOfElements * strideInBytes, 256u);
+        assert(m_memOffset + size <= m_totalMemSize);
 
-        *pData = (void *)(m_pData + m_memOffset);
+        if (m_memOffset + size <= m_totalMemSize)
+        {
+            *pData = (void*)(m_pData + m_memOffset);
 
-        *pBufferLocation = m_memOffset + ((m_bUseVidMem) ? m_pVidMemBuffer->GetGPUVirtualAddress() : m_pSysMemBuffer->GetGPUVirtualAddress());
-        *pSize = size;
+            *pBufferLocation = m_memOffset + ((m_bUseVidMem) ? m_pVidMemBuffer->GetGPUVirtualAddress() : m_pSysMemBuffer->GetGPUVirtualAddress());
+            *pSize = size;
 
-        m_memOffset += size;
+            m_memOffset += size;
 
-        return true;
+            return true;
+        }
+
+        return false;
     }
 
     bool StaticBufferPool::AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void *pInitData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize)
@@ -109,10 +124,14 @@ namespace CAULDRON_DX12
 
     bool StaticBufferPool::AllocVertexBuffer(uint32_t numberOfVertices, uint32_t strideInBytes, void **pData, D3D12_VERTEX_BUFFER_VIEW *pView)
     {
-        AllocBuffer(numberOfVertices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes);
-        pView->StrideInBytes = strideInBytes;
+        if (AllocBuffer(numberOfVertices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes))
+        {
+            pView->StrideInBytes = strideInBytes;
 
-        return true;
+            return true;
+        }
+
+        return false;
     }
 
     bool StaticBufferPool::AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, const void *pInitData, D3D12_VERTEX_BUFFER_VIEW *pOut)
@@ -128,10 +147,14 @@ namespace CAULDRON_DX12
 
     bool StaticBufferPool::AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, D3D12_INDEX_BUFFER_VIEW *pView)
     {
-        AllocBuffer(numbeOfIndices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes);
-        pView->Format = (strideInBytes == 4) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+        if (AllocBuffer(numbeOfIndices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes))
+        {
+            pView->Format = (strideInBytes == 4) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
-        return true;
+            return true;
+        }
+
+        return false;
     }
 
     bool StaticBufferPool::AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, const void *pInitData, D3D12_INDEX_BUFFER_VIEW *pOut)
@@ -145,11 +168,12 @@ namespace CAULDRON_DX12
         return false;
     }
 
-    bool StaticBufferPool::AllocConstantBuffer(uint32_t size, void **pData, D3D12_CONSTANT_BUFFER_VIEW_DESC  *pViewDesc)
+    bool StaticBufferPool::AllocConstantBuffer(uint32_t size, void** pData, D3D12_CONSTANT_BUFFER_VIEW_DESC* pViewDesc)
     {
-        AllocBuffer(size, 1, pData, &pViewDesc->BufferLocation, &pViewDesc->SizeInBytes);
+        if (AllocBuffer(size, 1, pData, &pViewDesc->BufferLocation, &pViewDesc->SizeInBytes))
+            return true;
 
-        return true;
+        return false;
     }
 
     bool StaticBufferPool::AllocConstantBuffer(uint32_t size, void *pInitData, D3D12_CONSTANT_BUFFER_VIEW_DESC *pOut)
@@ -167,7 +191,7 @@ namespace CAULDRON_DX12
     {
         if (m_bUseVidMem)
         {
-            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_COPY_DEST));
+            //pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER| D3D12_RESOURCE_STATE_INDEX_BUFFER, D3D12_RESOURCE_STATE_COPY_DEST));
 
             pCmdList->CopyBufferRegion(m_pVidMemBuffer, m_memInit, m_pSysMemBuffer, m_memInit, m_memOffset - m_memInit);
 
@@ -181,7 +205,7 @@ namespace CAULDRON_DX12
             // same resource with the Vertex or Constant buffers. Hence is why we need separate classes.
             // For Index and Vertex buffers we *could* use the same resource, but index buffers need their own resource.
             // Please note that in the interest of clarity vertex buffers and constant buffers have been split into two different classes though
-            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+            //pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER| D3D12_RESOURCE_STATE_INDEX_BUFFER));
 
             m_memInit = m_memOffset;
         }

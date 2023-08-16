@@ -21,11 +21,14 @@
 #include "ShaderCompilerHelper.h"
 #include "base/ShaderCompilerCache.h"
 #include "Misc/AsyncCache.h"
+#include <codecvt>
+#include <locale>
+
+extern std::map<std::string, std::string> s_shaderSourceCache;
 
 namespace CAULDRON_DX12
 {
 #define USE_MULTITHREADED_CACHE 
-
     Cache<D3D12_SHADER_BYTECODE> s_shaderCache;
 
     void DestroyShadersInTheCache()
@@ -38,9 +41,55 @@ namespace CAULDRON_DX12
 
     void CreateShaderCache()
     {
-        InitShaderCompilerCache("ShaderLibDX", "ShaderLibDX\\ShaderCacheDX");
-        CreateDirectoryA(GetShaderCompilerLibDir().c_str(), 0);
-        CreateDirectoryA(GetShaderCompilerCacheDir().c_str(), 0);
+        PWSTR path = NULL;
+        SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path);
+        std::wstring sShaderCachePathW = std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheDX";
+        CreateDirectoryW((std::wstring(path) + L"\\AMD").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheDX").c_str(), 0);
+
+        InitShaderCompilerCache("ShaderLibDX", std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sShaderCachePathW));
+
+        // Read in all the shader source files.
+        std::string compilerlibDir = GetShaderCompilerLibDir()+"\\";
+
+        std::vector<std::wstring> fileNames;
+
+        const char* supportedFileTypes[] =
+        {
+            "*.hlsl"
+            ,"*.h"
+            ,"*.inl"
+        };
+
+        std::vector<std::string> shaderSourceFiles;
+        for (auto& fileType : supportedFileTypes)
+        {
+            WIN32_FIND_DATAA findData;
+            HANDLE searchHandle = FindFirstFileExA((compilerlibDir + fileType).c_str(), FindExInfoBasic, &findData, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+            if (searchHandle != INVALID_HANDLE_VALUE)
+            {
+                do
+                {
+                    if (!(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+                    {
+                        shaderSourceFiles.push_back(compilerlibDir + findData.cFileName);
+                    }
+                } while (FindNextFileA(searchHandle, &findData));
+            }
+            FindClose(searchHandle);
+        }
+
+        for (const auto& shaderSourceFile : shaderSourceFiles)
+        {
+
+            char* sourceText = nullptr;
+            size_t sourceTextSize = 0;
+            if (ReadFile(shaderSourceFile.c_str(), &sourceText, &sourceTextSize, false))
+            {
+                s_shaderSourceCache[shaderSourceFile] = sourceText;
+            }
+        }
     }
 
     void DestroyShaderCache(Device *pDevice)
@@ -115,14 +164,25 @@ namespace CAULDRON_DX12
         char fullpath[1024];
         sprintf_s(fullpath, "%s\\%s", GetShaderCompilerLibDir().c_str(), pFilename);
 
-        if (ReadFile(fullpath, &pShaderCode, &size, false))
+        bool result = false;
+        auto shaderSourceCacheResult = s_shaderSourceCache.find(fullpath);
+        if (shaderSourceCacheResult != s_shaderSourceCache.end())
         {
-            return CompileShaderFromString(pShaderCode, pDefines, pEntryPoint, pParams, pOutBytecode);
+            pShaderCode = const_cast<char*>(shaderSourceCacheResult->second.c_str()); // I probably swear not to change the memory.
+            result = CompileShaderFromString(pShaderCode, pDefines, pEntryPoint, pParams, pOutBytecode);
+        }
+        else
+        {
+            if (ReadFile(fullpath, &pShaderCode, &size, false))
+            {
+                result = CompileShaderFromString(pShaderCode, pDefines, pEntryPoint, pParams, pOutBytecode);
+                free(pShaderCode);
+            }
         }
 
-        assert(!"Some of the shaders have not been copied to the bin folder, try rebuilding the solution.");
+        assert(result && "Some of the shaders have not been copied to the bin folder, try rebuilding the solution.");
 
-        return false;
+        return result;
     }
 
 }

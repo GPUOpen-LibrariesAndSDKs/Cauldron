@@ -18,9 +18,10 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
+#include "Base/FreesyncHDR.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/StaticBufferPool.h"
-#include "Base/ExtDebugMarkers.h"
+#include "Base/ExtDebugUtils.h"
 #include "Base/UploadHeap.h"
 #include "Base/Texture.h"
 #include "Base/Helper.h"
@@ -28,7 +29,7 @@
 
 namespace CAULDRON_VK
 {
-    void ToneMapping::OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing)
+    void ToneMapping::OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing, uint32_t srvTableSize, const char* shaderSource)
     {
         m_pDevice = pDevice;
         m_pDynamicBufferRing = pDynamicBufferRing;
@@ -59,13 +60,13 @@ namespace CAULDRON_VK
 
         layoutBindings[1].binding = 1;
         layoutBindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        layoutBindings[1].descriptorCount = 1;
+        layoutBindings[1].descriptorCount = srvTableSize;
         layoutBindings[1].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
         layoutBindings[1].pImmutableSamplers = NULL;
 
         m_pResourceViewHeaps->CreateDescriptorSetLayout(&layoutBindings, &m_descriptorSetLayout);
 
-        m_toneMapping.OnCreate(m_pDevice, renderPass, "Tonemapping.glsl", "main", "", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
+        m_toneMapping.OnCreate(m_pDevice, renderPass, shaderSource, "main", "", pStaticBufferPool, pDynamicBufferRing, m_descriptorSetLayout, NULL, VK_SAMPLE_COUNT_1_BIT);
 
         m_descriptorIndex = 0;
         for (int i = 0; i < s_descriptorBuffers; i++)
@@ -98,6 +99,18 @@ namespace CAULDRON_VK
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
+
+        const LPMOutputParams lpmOutputParams = GetLPMParameters();
+
+        pToneMapping->lpmConsts.shoulder            = lpmOutputParams.shoulder;
+        pToneMapping->lpmConsts.con                 = lpmOutputParams.lpmConfig.con;
+        pToneMapping->lpmConsts.soft                = lpmOutputParams.lpmConfig.soft;
+        pToneMapping->lpmConsts.con2                = lpmOutputParams.lpmConfig.con2;
+        pToneMapping->lpmConsts.clip                = lpmOutputParams.lpmConfig.clip;
+        pToneMapping->lpmConsts.scaleOnly           = lpmOutputParams.lpmConfig.scaleOnly;
+        pToneMapping->lpmConsts.displayMode         = lpmOutputParams.displayMode;
+        pToneMapping->lpmConsts.inputToOutputMatrix = lpmOutputParams.inputToOutputMatrix;
+        memcpy(pToneMapping->lpmConsts.ctl, lpmOutputParams.ctl, sizeof(lpmOutputParams.ctl));
 
         // We'll be modifying the descriptor set(DS), to prevent writing on a DS that is in use we 
         // need to do some basic buffering. Just to keep it safe and simple we'll have 10 buffers.

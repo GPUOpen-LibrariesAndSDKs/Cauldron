@@ -23,15 +23,15 @@
 
 struct PBRMaterialParametersConstantBuffer
 {
-    XMVECTOR m_emissiveFactor;
+    math::Vector4 m_emissiveFactor;
 
     // pbrMetallicRoughness
-    XMVECTOR m_baseColorFactor;
-    XMVECTOR m_metallicRoughnessValues;
+    math::Vector4 m_baseColorFactor;
+    math::Vector4 m_metallicRoughnessValues;
 
     // KHR_materials_pbrSpecularGlossiness
-    XMVECTOR m_DiffuseFactor;
-    XMVECTOR m_specularGlossinessFactor;
+    math::Vector4 m_DiffuseFactor;
+    math::Vector4 m_specularGlossinessFactor;
 };
 
 
@@ -52,4 +52,4 @@ void SetDefaultMaterialParamters(PBRMaterialParameters *pPbrMaterialParameters);
 void ProcessMaterials(const json::object_t &material, PBRMaterialParameters *tfmat, std::map<std::string, int> &textureIds);
 bool DoesMaterialUseSemantic(DefineList &defines, const std::string semanticName);
 bool ProcessGetTextureIndexAndTextCoord(const json::object_t &material, const std::string &textureName, int *pIndex, int *pTexCoord);
-void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, bool *pSrgbOut, float *pCutoff);
+void GetSrgbAndCutOffOfImageGivenItsUse(int imageIndex, const json &materials, std::unordered_map<int, int> const &textureToImage, bool *pSrgbOut, float *pCutoff);

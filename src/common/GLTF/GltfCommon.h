@@ -18,7 +18,7 @@
 // THE SOFTWARE.
 
 #pragma once
-#include "../json/json.h"
+#include "json.h"
 #include "../Misc/Camera.h"
 #include "GltfStructures.h"
 
@@ -37,14 +37,18 @@
 
 using json = nlohmann::json;
 
+// Define a maximum number of shadows supported in a scene (note, these are only for spots and directional)
+static const uint32_t MaxLightInstances = 80;
+static const uint32_t MaxShadowInstances = 32;
+
 class Matrix2
 {
-    XMMATRIX m_current;
-    XMMATRIX m_previous;
+    math::Matrix4 m_current;
+    math::Matrix4 m_previous;
 public:
-    void Set(XMMATRIX m) { m_previous = m_current; m_current = m; }
-    XMMATRIX GetCurrent() const { return m_current; }
-    XMMATRIX GetPrevious() const { return m_previous; }
+    void Set(const math::Matrix4& m) { m_previous = m_current; m_current = m; }
+    math::Matrix4 GetCurrent() const { return m_current; }
+    math::Matrix4 GetPrevious() const { return m_previous; }
 };
 
 //
@@ -52,7 +56,8 @@ public:
 //
 struct Light
 {
-    XMMATRIX      mLightViewProj;
+    math::Matrix4   mLightViewProj;
+    math::Matrix4   mLightView;
 
     float         direction[3];
     float         range;
@@ -66,7 +71,7 @@ struct Light
     float         outerConeCos;
     uint32_t      type;
     float         depthBias;
-    uint32_t      shadowMapIndex = -1;
+    int32_t       shadowMapIndex = -1;
 };
 
 
@@ -76,18 +81,19 @@ const uint32_t LightType_Spot = 2;
 
 struct per_frame
 {
-    XMMATRIX mCameraCurrViewProj;
-    XMMATRIX mCameraPrevViewProj;
-
-    XMMATRIX  mInverseCameraCurrViewProj;
-    XMVECTOR  cameraPos;
+    math::Matrix4 mCameraCurrViewProj;
+    math::Matrix4 mCameraPrevViewProj;
+    math::Matrix4  mInverseCameraCurrViewProj;
+    math::Vector4  cameraPos;
     float     iblFactor;
     float     emmisiveFactor;
     float     invScreenResolution[2];
 
-    uint32_t  padding[3];
+    math::Vector4 wireframeOptions;
+    float     lodBias = 0.0f;
+    uint32_t  padding[2];
     uint32_t  lightCount;
-    Light     lights[80];
+    Light     lights[MaxLightInstances];
 };
 
 //
@@ -114,7 +120,7 @@ public:
     const json *m_pAccessors;
     const json *m_pBufferViews;
 
-    std::vector<XMMATRIX> m_animatedMats;       // object space matrices of each node after being animated
+    std::vector<math::Matrix4> m_animatedMats;       // object space matrices of each node after being animated
 
     std::vector<Matrix2> m_worldSpaceMats;     // world space matrices of each node after processing the hierarchy
     std::map<int, std::vector<Matrix2>> m_worldSpaceSkeletonMats; // skinning matrices, following the m_jointsNodeIdx order
@@ -132,12 +138,14 @@ public:
 
     // transformation and animation functions
     void SetAnimationTime(uint32_t animationIndex, float time);
-    void TransformScene(int sceneIndex, XMMATRIX world);
-    per_frame *SetPerFrameData(const Camera &cam);
+    void TransformScene(int sceneIndex, const math::Matrix4& world);
+    per_frame *SetPerFrameData(const Camera& cam);
     bool GetCamera(uint32_t cameraIdx, Camera *pCam) const;
     tfNodeIdx AddNode(const tfNode& node);
     int AddLight(const tfNode& node, const tfLight& light);
+
 private:
     void InitTransformedData(); //this is called after loading the data from the GLTF
-    void TransformNodes(XMMATRIX world, const std::vector<tfNodeIdx> *pNodes);
+    void TransformNodes(const math::Matrix4& world, const std::vector<tfNodeIdx> *pNodes);
+    math::Matrix4 ComputeDirectionalLightOrthographicMatrix(const math::Matrix4& mLightView);
 };

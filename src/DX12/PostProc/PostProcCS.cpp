@@ -62,9 +62,9 @@ namespace CAULDRON_DX12
         params.dwWidth  = dwWidth;
         params.dwHeight = dwHeight;
         params.dwDepth  = dwDepth;
-        params.userDefines = 0;
-        params.numStaticSamplers = 0;
-        params.pStaticSamplers = 0;
+        params.userDefines = userDefines;
+        params.numStaticSamplers = numStaticSamplers;
+        params.pStaticSamplers = pStaticSamplers;
         params.strShaderCompilerParams = DEFAULT_SHADER_COMPILE_FLAGS;
         this->OnCreate(params);
     }

@@ -32,17 +32,20 @@ namespace CAULDRON_DX12
     //
     //--------------------------------------------------------------------------------------
     void GltfPbrPass::OnCreate(
-        Device *pDevice,
+        Device* pDevice,
         UploadHeap* pUploadHeap,
-        ResourceViewHeaps *pHeaps,
-        DynamicBufferRing *pDynamicBufferRing,
-        GLTFTexturesAndBuffers *pGLTFTexturesAndBuffers,
-        SkyDome *pSkyDome,
+        ResourceViewHeaps* pHeaps,
+        DynamicBufferRing* pDynamicBufferRing,
+        GLTFTexturesAndBuffers* pGLTFTexturesAndBuffers,
+        SkyDome* pSkyDome,
+        Texture* pBRDFLUT,
         bool bUseSSAOMask,
-        bool bUseShadowMask,
+        ShadowReceivingState shadowReceivingState,
         GBufferRenderPass *pGBufferRenderPass,
         AsyncPool *pAsyncPool)
     {
+        CPUUserMarker depthPassOnCreateMarker("GltfPbrPass::OnCreate");
+
         m_pDevice = pDevice;
         m_pGBufferRenderPass = pGBufferRenderPass;
         m_sampleCount = 1;
@@ -51,13 +54,15 @@ namespace CAULDRON_DX12
         m_pGLTFTexturesAndBuffers = pGLTFTexturesAndBuffers;
 
         m_doLighting = true;
+        m_shadowReceivingState = shadowReceivingState;
 
         DefineList rtDefines;
         m_pGBufferRenderPass->GetCompilerDefinesAndGBufferFormats(rtDefines, m_outFormats, m_depthFormat);
 
         // Load BRDF look up table for the PBR shader
         //
-        m_BrdfLut.InitFromFile(pDevice, pUploadHeap, "BrdfLut.dds", false); // LUT images are stored as linear
+        assert(pBRDFLUT);
+        m_pBrdfLut = pBRDFLUT;
 
         // Create default material, this material will be used if none is assigned
         //
@@ -65,7 +70,8 @@ namespace CAULDRON_DX12
             SetDefaultMaterialParamters(&m_defaultMaterial.m_pbrMaterialParameters);
             
             std::map<std::string, Texture *> texturesBase;
-            CreateDescriptorTableForMaterialTextures(&m_defaultMaterial, texturesBase, pSkyDome, bUseShadowMask, bUseSSAOMask);
+            std::map<std::string, D3D12_STATIC_SAMPLER_DESC> samplerBase;
+            CreateDescriptorTableForMaterialTextures(&m_defaultMaterial, texturesBase, samplerBase, pSkyDome, bUseSSAOMask);
         }
 
         const json &j3 = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->j3;
@@ -89,7 +95,12 @@ namespace CAULDRON_DX12
             for (auto const& value : textureIds)
                 texturesBase[value.first] = m_pGLTFTexturesAndBuffers->GetTextureViewByID(value.second);
 
-            CreateDescriptorTableForMaterialTextures(tfmat, texturesBase, pSkyDome, bUseShadowMask, bUseSSAOMask);
+            std::map<std::string, D3D12_STATIC_SAMPLER_DESC> samplerBase;
+            for (auto const& value : textureIds)
+                samplerBase[value.first] = m_pGLTFTexturesAndBuffers->GetSamplerDescByTextureId(value.second);
+
+            CreateDescriptorTableForMaterialTextures(tfmat, texturesBase, samplerBase, pSkyDome, bUseSSAOMask);
+
         }
 
         // Load Meshes
@@ -155,7 +166,7 @@ namespace CAULDRON_DX12
     // CreateDescriptorTableForMaterialTextures
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, SkyDome *pSkyDome, bool bUseShadowMask, bool bUseSSAOMask)
+    void GltfPbrPass::CreateDescriptorTableForMaterialTextures(PBRMaterial *tfmat, std::map<std::string, Texture *> &texturesBase, std::map<std::string, D3D12_STATIC_SAMPLER_DESC>& samplerBase, SkyDome *pSkyDome, bool bUseSSAOMask)
     {
         uint32_t cnt = 0;
 
@@ -181,11 +192,22 @@ namespace CAULDRON_DX12
 
             // Create SRV for the PBR materials
             //
-            for (auto const &it : texturesBase)
+            //for (auto const &it : texturesBase)
+            //{
+            //    tfmat->m_pbrMaterialParameters.m_defines[std::string("ID_") + it.first] = std::to_string(cnt);
+            //    it.second->CreateSRV(cnt, &tfmat->m_texturesTable);
+            //    CreateSamplerForPBR(cnt, &tfmat->m_samplers[cnt]);
+            //    cnt++;
+            //}
+
+            auto texIt = texturesBase.begin();
+            auto sampIt = samplerBase.begin();
+            for (; texIt != texturesBase.end() && sampIt != samplerBase.end(); texIt++, sampIt++)
             {
-                tfmat->m_pbrMaterialParameters.m_defines[std::string("ID_") + it.first] = std::to_string(cnt);
-                it.second->CreateSRV(cnt, &tfmat->m_texturesTable);
-                CreateSamplerForPBR(cnt, &tfmat->m_samplers[cnt]);
+                tfmat->m_pbrMaterialParameters.m_defines[std::string("ID_") + texIt->first] = std::to_string(cnt);
+                texIt->second->CreateSRV(cnt, &tfmat->m_texturesTable);
+                tfmat->m_samplers[cnt] = sampIt->second;
+                tfmat->m_samplers[cnt].ShaderRegister = cnt;
                 cnt++;
             }
 
@@ -197,7 +219,7 @@ namespace CAULDRON_DX12
                 {
                     tfmat->m_pbrMaterialParameters.m_defines["ID_brdfTexture"] = std::to_string(cnt);
                     CreateSamplerForBrdfLut(cnt, &tfmat->m_samplers[cnt]);
-                    m_BrdfLut.CreateSRV(cnt, &tfmat->m_texturesTable);
+                    m_pBrdfLut->CreateSRV(cnt, &tfmat->m_texturesTable);
                     cnt++;
 
                     tfmat->m_pbrMaterialParameters.m_defines["ID_diffuseCube"] = std::to_string(cnt);
@@ -225,18 +247,25 @@ namespace CAULDRON_DX12
             
         // the SRVs for the shadows is provided externally, here we just create the #defines for the shader bindings
         //
-        if (bUseShadowMask)
+        assert(cnt <= 9);   // 10th slot is reserved for shadow buffer
+        switch(m_shadowReceivingState)
         {
-            assert(cnt <= 9);   // 10th slot is reserved for shadow buffer
-            tfmat->m_pbrMaterialParameters.m_defines["ID_shadowBuffer"] = std::to_string(9);
-            CreateSamplerForShadowBuffer(9, &tfmat->m_samplers[cnt]);
-        }
-        else
-        {
-            assert(cnt <= 9);   // 10th slot is reserved for shadow buffer
+        case ShadowReceivingState_Buffer:
             tfmat->m_pbrMaterialParameters.m_defines["ID_shadowMap"] = std::to_string(9);
             CreateSamplerForShadowMap(9, &tfmat->m_samplers[cnt]);
-        }        
+            cnt++;
+            break;
+        case ShadowReceivingState_Mask:
+            tfmat->m_pbrMaterialParameters.m_defines["ID_shadowBuffer"] = std::to_string(9);
+            CreateSamplerForShadowBuffer(9, &tfmat->m_samplers[cnt]);
+            cnt++;
+            break;
+        case ShadowReceivingState_None:
+            break;
+        default:
+            assert(!"Unsupported shadow receiving state for material.");
+
+        }     
     }
 
     //--------------------------------------------------------------------------------------
@@ -274,12 +303,24 @@ namespace CAULDRON_DX12
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
                 PBRPrimitives *pPrimitive = &pMesh->m_pPrimitives[p];
-                pPrimitive->m_PipelineRender->Release();
-                pPrimitive->m_RootSignature->Release();
+                if (pPrimitive->m_PipelineRender)
+                {
+                    pPrimitive->m_PipelineRender->Release();
+                    pPrimitive->m_PipelineRender = nullptr;
+                }
+                if (pPrimitive->m_PipelineWireframeRender)
+                {
+                    pPrimitive->m_PipelineWireframeRender->Release();
+                    pPrimitive->m_PipelineWireframeRender = nullptr;
+                }
+                if (pPrimitive->m_RootSignature)
+                {
+                    pPrimitive->m_RootSignature->Release();
+                    pPrimitive->m_RootSignature = nullptr;
+                }
+
             }
         }
-
-        m_BrdfLut.OnDestroy();
     }
 
     //--------------------------------------------------------------------------------------
@@ -309,10 +350,13 @@ namespace CAULDRON_DX12
             rootParamCnt++;
         }
 
+        bool shadowStaticSampler = false;
         // shadow buffer (only if we are doing lighting, for example in the forward pass)
-        if (m_doLighting)
+        if (m_doLighting && m_shadowReceivingState != ShadowReceivingState_None)
         {
-            descRange[desccRangeCnt].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 9);                                       // shadow buffer
+            shadowStaticSampler = true;
+            // i bet this is broken.
+            descRange[desccRangeCnt].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, MaxShadowInstances, 9);                    // shadow buffer
             rootParameter[rootParamCnt].InitAsDescriptorTable(1, &descRange[desccRangeCnt], D3D12_SHADER_VISIBILITY_PIXEL);
             desccRangeCnt++;
             rootParamCnt++;
@@ -338,7 +382,7 @@ namespace CAULDRON_DX12
         descRootSignature.NumParameters = rootParamCnt;
         descRootSignature.pStaticSamplers = pPrimitive->m_pMaterial->m_samplers;
         descRootSignature.NumStaticSamplers = pPrimitive->m_pMaterial->m_textureCount;
-        descRootSignature.NumStaticSamplers += 1;   // account for shadow sampler
+        descRootSignature.NumStaticSamplers += shadowStaticSampler ? 1 : 0;   // account for shadow sampler maybe this...
 
         // deny uneccessary access to certain pipeline stages
         descRootSignature.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE
@@ -350,6 +394,7 @@ namespace CAULDRON_DX12
         ID3DBlob *pOutBlob, *pErrorBlob = NULL;
         ThrowIfFailed(D3D12SerializeRootSignature(&descRootSignature, D3D_ROOT_SIGNATURE_VERSION_1, &pOutBlob, &pErrorBlob));
         ThrowIfFailed(m_pDevice->GetDevice()->CreateRootSignature(0, pOutBlob->GetBufferPointer(), pOutBlob->GetBufferSize(), IID_PPV_ARGS(&pPrimitive->m_RootSignature)));
+        assert(pPrimitive->m_RootSignature != nullptr);
         SetName(pPrimitive->m_RootSignature, "GltfPbr::m_RootSignature");
 
         pOutBlob->Release();
@@ -367,8 +412,8 @@ namespace CAULDRON_DX12
         // Compile and create shaders
         //
         D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
-        CompileShaderFromFile("GLTFPbrPass-VS.hlsl", &defines, "mainVS", "-T vs_6_0", &shaderVert);
-        CompileShaderFromFile("GLTFPbrPass-PS.hlsl", &defines, "mainPS", "-T ps_6_0", &shaderPixel);
+        CompileShaderFromFile("GLTFPbrPass-VS.hlsl", &defines, "mainVS", "-T vs_6_0 -Zi -Od", &shaderVert);
+        CompileShaderFromFile("GLTFPbrPass-PS.hlsl", &defines, "mainPS", "-T ps_6_0 -Zi -Od", &shaderPixel);
 
         // Set blending
         //
@@ -410,6 +455,14 @@ namespace CAULDRON_DX12
             m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_PipelineRender))
         );
         SetName(pPrimitive->m_PipelineRender, "GltfPbrPass::m_PipelineRender");
+
+        // create wireframe pipeline
+        descPso.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+        descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+        ThrowIfFailed(
+            m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&pPrimitive->m_PipelineWireframeRender))
+        );
+        SetName(pPrimitive->m_PipelineWireframeRender, "GltfPbrPass::m_PipelineWireframeRender");
     }
 
     //--------------------------------------------------------------------------------------
@@ -417,7 +470,7 @@ namespace CAULDRON_DX12
     // BuildLists
     //
     //--------------------------------------------------------------------------------------
-    void GltfPbrPass::BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent)
+    void GltfPbrPass::BuildBatchLists(std::vector<BatchList> *pSolid, std::vector<BatchList> *pTransparent, bool bWireframe/*=false*/)
     {
         // loop through nodes
         //
@@ -433,7 +486,7 @@ namespace CAULDRON_DX12
             // skinning matrices constant buffer
             D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton = m_pGLTFTexturesAndBuffers->GetSkinningMatricesBuffer(pNode->skinIndex);
 
-            XMMATRIX mModelViewProj = pNodesMatrices[i].GetCurrent() * m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraCurrViewProj;
+            math::Matrix4 mModelViewProj = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_perFrameData.mCameraCurrViewProj * pNodesMatrices[i].GetCurrent();
 
             // loop through primitives
             //
@@ -442,10 +495,11 @@ namespace CAULDRON_DX12
             {
                 PBRPrimitives *pPrimitive = &pMesh->m_pPrimitives[p];
 
-                if (pPrimitive->m_PipelineRender == NULL)
+                if ((bWireframe && pPrimitive->m_PipelineWireframeRender == NULL)
+                    ||(!bWireframe && pPrimitive->m_PipelineRender == NULL))
                     continue;
 
-                // do frustrum culling
+                // do frustum culling
                 //
                 tfPrimitives boundingBox = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p];
                 if (CameraFrustumToBoxCollision(mModelViewProj, boundingBox.m_center, boundingBox.m_radius))
@@ -463,8 +517,8 @@ namespace CAULDRON_DX12
 
                 // compute depth for sorting
                 //                
-                XMVECTOR v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
-                float depth = XMVectorGetW(XMVector4Transform(v, mModelViewProj));
+                math::Vector4 v = m_pGLTFTexturesAndBuffers->m_pGLTFCommon->m_meshes[pNode->meshIndex].m_pPrimitives[p].m_center;
+                float depth = (mModelViewProj * v).getW();
 
                 BatchList t;
                 t.m_depth = depth;
@@ -487,7 +541,7 @@ namespace CAULDRON_DX12
         }
     }
 
-    void GltfPbrPass::DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList)
+    void GltfPbrPass::DrawBatchList(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, std::vector<BatchList> *pBatchList, bool bWireframe/*=false*/)
     {
         UserMarker marker(pCommandList, "GltfPbrPass::DrawBatchList");
 
@@ -498,11 +552,11 @@ namespace CAULDRON_DX12
 
         for (auto &t : *pBatchList)
         {
-            t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton);
+            t.m_pPrimitive->DrawPrimitive(pCommandList, pShadowBufferSRV, t.m_perFrameDesc, t.m_perObjectDesc, t.m_pPerSkeleton, bWireframe);
         }
     }
 
-    void PBRPrimitives::DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perFrameDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton)
+    void PBRPrimitives::DrawPrimitive(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pShadowBufferSRV, D3D12_GPU_VIRTUAL_ADDRESS perFrameDesc, D3D12_GPU_VIRTUAL_ADDRESS perObjectDesc, D3D12_GPU_VIRTUAL_ADDRESS pPerSkeleton, bool bWireframe)
     {
         // Bind indices and vertices using the right offsets into the buffer
         //
@@ -538,7 +592,10 @@ namespace CAULDRON_DX12
 
         // Bind Pipeline
         //
-        pCommandList->SetPipelineState(m_PipelineRender);
+        if (bWireframe)
+            pCommandList->SetPipelineState(m_PipelineWireframeRender);
+        else
+            pCommandList->SetPipelineState(m_PipelineRender);
 
         // Draw
         //

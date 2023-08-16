@@ -23,20 +23,20 @@
 std::string s_shaderLibDir;
 std::string s_shaderCacheDir;
 
-bool InitShaderCompilerCache(const std::string shaderLibDir, std::string shaderCacheDir)
+bool InitShaderCompilerCache(std::string shaderLibDir, std::string shaderCacheDir)
 {
-    s_shaderLibDir = shaderLibDir;
-    s_shaderCacheDir = shaderCacheDir;
+    s_shaderLibDir = std::move(shaderLibDir);
+    s_shaderCacheDir = std::move(shaderCacheDir);
     
     return true;
 }
 
-std::string GetShaderCompilerLibDir()
+const std::string& GetShaderCompilerLibDir()
 {
     return s_shaderLibDir;
 }
 
-std::string GetShaderCompilerCacheDir()
+const std::string& GetShaderCompilerCacheDir()
 {
     return s_shaderCacheDir;
 }

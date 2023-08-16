@@ -27,7 +27,7 @@ namespace CAULDRON_VK
     class TAA
     {
     public:
-        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
+        void OnCreate(Device* pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing, bool sharpening = true);
         void OnDestroy();
 
         void OnCreateWindowSizeDependentResources(uint32_t Width, uint32_t Height, GBuffer *pGBuffer);
@@ -58,10 +58,14 @@ namespace CAULDRON_VK
         VkDescriptorSet       m_TaaDescriptorSet;
         VkDescriptorSetLayout m_TaaDescriptorSetLayout;
         PostProcCS            m_TAA;
+        PostProcCS            m_TAAFirst;
 
         //
         VkDescriptorSet       m_SharpenDescriptorSet;
         VkDescriptorSetLayout m_SharpenDescriptorSetLayout;
         PostProcCS            m_Sharpen;
+        PostProcCS            m_Post;
+        bool                  m_bSharpening = true;
+        bool                  m_bFirst = true;
     };
 }

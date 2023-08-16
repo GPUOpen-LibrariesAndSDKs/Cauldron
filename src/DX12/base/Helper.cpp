@@ -45,11 +45,14 @@ namespace CAULDRON_DX12
     {
         assert(pObj != NULL);
 
-        size_t size = name.size() + 1;
-        wchar_t *uniName = (wchar_t*)malloc(size * sizeof(wchar_t));
-        swprintf(uniName, size, L"%S", name.c_str());
-        pObj->SetName(uniName);
-        //Trace(format("Create: %p %S\n", pObj, uniName));
-       free(uniName);
+        wchar_t NameBuffer[128];
+
+        // Truncate the string if it's too big (keep the tail as it likely has the most useful information - some name have full paths)
+        if (name.size() >= 128)
+            swprintf(NameBuffer, 128, L"%S", name.substr(name.size() - 127, name.size()).c_str());
+        else
+            swprintf(NameBuffer, name.size()+1, L"%S", name.c_str());
+
+        pObj->SetName(NameBuffer);
     }
 }

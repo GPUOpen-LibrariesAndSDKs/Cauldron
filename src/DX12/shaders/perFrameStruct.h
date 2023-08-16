@@ -20,9 +20,13 @@
 // KHR_lights_punctual extension.
 // see https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_lights_punctual
 
+#define MAX_LIGHT_INSTANCES  80
+#define MAX_SHADOW_INSTANCES 32
+
 struct Light
 {
     matrix        mLightViewProj;
+    matrix        mLightView;
 
     float3        direction;
     float         range;
@@ -62,8 +66,11 @@ struct PerFrame
     float         u_EmissiveFactor;
     float2        u_invScreenResolution;
 
-    int3          u_padding;
+    float4        u_WireframeOptions;
+
+    float         u_LodBias;
+    int2          u_padding;
 
     int           u_lightCount;
-    Light         u_lights[80];
+    Light         u_lights[MAX_LIGHT_INSTANCES];
 };

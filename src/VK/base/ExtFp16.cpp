@@ -28,10 +28,9 @@ namespace CAULDRON_VK
     static VkPhysicalDeviceFloat16Int8FeaturesKHR FP16Features = {};
     static VkPhysicalDevice16BitStorageFeatures Storage16BitFeatures = {};
 
-
     bool ExtFp16CheckExtensions(DeviceProperties *pDP)
     {
-        std::vector<const char *> required_extension_names = { VK_KHR_16BIT_STORAGE_EXTENSION_NAME, VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME };
+        std::vector<const char *> required_extension_names = { VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME };
 
         bool bFp16Enabled = true;
         for (auto& ext : required_extension_names)

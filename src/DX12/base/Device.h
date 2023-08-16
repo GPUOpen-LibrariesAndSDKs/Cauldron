@@ -19,8 +19,8 @@
 #pragma once
 
 #include <d3d12.h>
-#include "d3dx12.h"
-#include "../AGS\amd_ags.h"
+#include "../../libs/d3d12x/d3dx12.h"
+#include "../AGS/amd_ags.h"
 
 namespace CAULDRON_DX12
 {
@@ -31,7 +31,7 @@ namespace CAULDRON_DX12
     class Device
     {
     public:
-        void OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, bool bGpuValidationEnabled, HWND hWnd);
+        void OnCreate(const char *pAppName, const char *pEngine, bool bValidationEnabled, bool bGpuValidationEnabled, HWND hWnd, bool bInitializeWithAGS);
         void OnDestroy();
 
         ID3D12Device *GetDevice() { return m_pDevice; }
@@ -44,21 +44,28 @@ namespace CAULDRON_DX12
         AGSGPUInfo *GetAGSGPUInfo() { return &m_agsGPUInfo; }
 
         bool IsFp16Supported() { return m_fp16Supported; }
-
-        void CreatePipelineCache();
-        void DestroyPipelineCache();
+        bool IsRT10Supported() { return m_rt10Supported; }
+        bool IsRT11Supported() { return m_rt11Supported; }
+        bool IsVRSTier1Supported() { return m_vrs1Supported; }
+        bool IsVRSTier2Supported() { return m_vrs2Supported; }
+        bool IsBarycentricsSupported() { return m_barycentricsSupported; }
 
         void GPUFlush(D3D12_COMMAND_LIST_TYPE queueType);
         void GPUFlush();  // flushes all queues
 
     private:
-        ID3D12Device         *m_pDevice;
-        IDXGIAdapter         *m_pAdapter;
-        ID3D12CommandQueue   *m_pDirectQueue;
-        ID3D12CommandQueue   *m_pComputeQueue;
+        ID3D12Device         *m_pDevice = nullptr;
+        IDXGIAdapter         *m_pAdapter = nullptr;
+        ID3D12CommandQueue   *m_pDirectQueue = nullptr;
+        ID3D12CommandQueue   *m_pComputeQueue = nullptr;
 
         AGSContext           *m_agsContext = nullptr;
         AGSGPUInfo            m_agsGPUInfo = {};
         bool                  m_fp16Supported = false;
+        bool                  m_rt10Supported = false;
+        bool                  m_rt11Supported = false;
+        bool                  m_vrs1Supported = false;
+        bool                  m_vrs2Supported = false;
+        bool                  m_barycentricsSupported = false;
     };
 }

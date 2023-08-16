@@ -20,20 +20,21 @@
 
 #include "PostProcPS.h"
 #include "Base/ResourceViewHeaps.h"
+#include "Misc/ColorConversion.h"
 
 namespace CAULDRON_VK
 {
     class ToneMapping
     {
     public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
+        void OnCreate(Device* pDevice, VkRenderPass renderPass, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool  *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing, uint32_t srvTableSize = 1, const char* shaderSource = "Tonemapping.glsl");
         void OnDestroy();
 
         void UpdatePipelines(VkRenderPass renderPass);
 
         void Draw(VkCommandBuffer cmd_buf, VkImageView HDRSRV, float exposure, int toneMapper);
 
-    private:
+    protected:
         Device* m_pDevice;
         ResourceViewHeaps *m_pResourceViewHeaps;
 
@@ -48,6 +49,9 @@ namespace CAULDRON_VK
         VkDescriptorSet       m_descriptorSet[s_descriptorBuffers];
         VkDescriptorSetLayout m_descriptorSetLayout;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; };
+        struct ToneMappingConsts {
+            float exposure; int toneMapper; float pad0; float pad1;
+            LPMConsts lpmConsts;
+        };
     };
 }

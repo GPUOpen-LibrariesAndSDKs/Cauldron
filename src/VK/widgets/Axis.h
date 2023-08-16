@@ -38,7 +38,7 @@ namespace CAULDRON_VK
             VkSampleCountFlagBits sampleDescCount);
 
         void OnDestroy();
-        void Draw(VkCommandBuffer cmd_buf, XMMATRIX worldMatrix, XMMATRIX axisMatrix);
+        void Draw(VkCommandBuffer cmd_buf, const math::Matrix4& worldMatrix, const math::Matrix4& axisMatrix);
     private:
 
         Device* m_pDevice;
@@ -61,7 +61,7 @@ namespace CAULDRON_VK
 
         struct per_object
         {
-            XMMATRIX m_mWorldViewProj;
+            math::Matrix4 m_mWorldViewProj;
         };
     };
 }

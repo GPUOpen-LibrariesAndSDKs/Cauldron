@@ -17,15 +17,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "transferFunction.h"
+
 //--------------------------------------------------------------------------------------
 // Constant Buffer
 //--------------------------------------------------------------------------------------
 cbuffer cbPerFrame : register(b0)
 {
     matrix u_contentToMonitorRecMatrix;
-    int u_displayMode;
+    DisplayMode u_displayMode;
     float u_displayMinLuminancePerNits; // display min luminanace in units of 80 nits
     float u_displayMaxLuminancePerNits; // display max luminanace in units of 80 nits
+    uint u_isLPMToneMapperSelected;
 }
 
 //--------------------------------------------------------------------------------------
@@ -49,31 +52,44 @@ float4 mainPS(VERTEX Input) : SV_Target
 {
     float4 color = sceneTexture.Sample(samLinearWrap, Input.vTexcoord);
 
+    if (u_isLPMToneMapperSelected)
+    {
+        switch (u_displayMode)
+        {
+            case DisplayMode::FS2_Gamma22:
+                // Apply gamma
+                color.xyz = ApplyGamma(color.xyz);
+                break;
+
+            case DisplayMode::HDR10_PQ:
+                // Apply ST2084 curve
+                color.xyz = ApplyPQ(color.xyz);
+                break;
+        }
+
+        return color;
+    }
+
     switch (u_displayMode)
     {
-        case 0:
-            // SDR
+        case DisplayMode::SDR:
             // this shader should never get called for SDR
             break;
 
-        case 1:
-            // FSHDR_DisplayNative
+        case DisplayMode::FS2_Gamma22:
             // Convert to display native colour space ie the value queried from AGS
             color.xyz = mul(u_contentToMonitorRecMatrix, color).xyz;
             // Apply gamma
-            color.xyz = pow(color.xyz, 1.0f / 2.2f);
+            color.xyz = ApplyGamma(color.xyz);
             break;
 
-        case 2:
-            // FSHDR_scRGB
+        case DisplayMode::FS2_SCRGB:
             // Scale to maxdisplayLuminanace / 80
             // In this case luminanace value queried from AGS
-            color.xyz = (color.xyz * (u_displayMaxLuminancePerNits - u_displayMinLuminancePerNits)) + float3(u_displayMinLuminancePerNits, u_displayMinLuminancePerNits, u_displayMinLuminancePerNits);
+            color.xyz = ApplyscRGBScale(color.xyz, u_displayMinLuminancePerNits, u_displayMaxLuminancePerNits);
             break;
 
-        case 3:
-        {
-            // HDR10_ST2084
+        case DisplayMode::HDR10_PQ:
             // Convert to rec2020 colour space
             color.xyz = mul(u_contentToMonitorRecMatrix, color).xyz;
 
@@ -88,20 +104,13 @@ float4 mainPS(VERTEX Input) : SV_Target
             color.xyz *= (u_displayMaxLuminancePerNits * (80.0f / 10000.0f));
 
             // Apply ST2084 curve
-            float m1 = 2610.0 / 4096.0 / 4;
-            float m2 = 2523.0 / 4096.0 * 128;
-            float c1 = 3424.0 / 4096.0;
-            float c2 = 2413.0 / 4096.0 * 32;
-            float c3 = 2392.0 / 4096.0 * 32;
-            float3 cp = pow(abs(color.xyz), m1);
-            color.xyz = pow((c1 + c2 * cp) / (1 + c3 * cp), m2);
+            color.xyz = ApplyPQ(color.xyz);
             break;
-        }
-        case 4:
-            // HDR10_scRGB
-            color.xyz = (color.xyz * (u_displayMaxLuminancePerNits - u_displayMinLuminancePerNits)) + float3(u_displayMinLuminancePerNits, u_displayMinLuminancePerNits, u_displayMinLuminancePerNits);
+
+        case DisplayMode::HDR10_SCRGB:
+            color.xyz = ApplyscRGBScale(color.xyz, u_displayMinLuminancePerNits, u_displayMaxLuminancePerNits);
             break;
     }
 
-    return float4(color.xyz, color.a);
+    return color;
 }

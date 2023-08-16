@@ -18,6 +18,8 @@
 // THE SOFTWARE.
 
 #include "stdafx.h"
+#include "Misc/ColorConversion.h"
+#include "Base/FreesyncHDR.h"
 #include "Base/DynamicBufferRing.h"
 #include "Base/ShaderCompiler.h"
 #include "Base/UploadHeap.h"
@@ -45,6 +47,18 @@ namespace CAULDRON_DX12
         m_pDynamicBufferRing->AllocConstantBuffer(sizeof(ToneMappingConsts), (void **)&pToneMapping, &cbTonemappingHandle);
         pToneMapping->exposure = exposure;
         pToneMapping->toneMapper = toneMapper;
+
+        const LPMOutputParams lpmOutputParams = GetLPMParameters();
+
+        pToneMapping->lpmConsts.shoulder = lpmOutputParams.shoulder;
+        pToneMapping->lpmConsts.con      = lpmOutputParams.lpmConfig.con;
+        pToneMapping->lpmConsts.soft     = lpmOutputParams.lpmConfig.soft;
+        pToneMapping->lpmConsts.con2     = lpmOutputParams.lpmConfig.con2;
+        pToneMapping->lpmConsts.clip     = lpmOutputParams.lpmConfig.clip;
+        pToneMapping->lpmConsts.scaleOnly = lpmOutputParams.lpmConfig.scaleOnly;
+        pToneMapping->lpmConsts.displayMode = lpmOutputParams.displayMode;
+        pToneMapping->lpmConsts.inputToOutputMatrix = lpmOutputParams.inputToOutputMatrix;
+        memcpy(pToneMapping->lpmConsts.ctl, lpmOutputParams.ctl, sizeof(lpmOutputParams.ctl));
 
         m_toneMapping.Draw(pCommandList, cbTonemappingHandle, pHDRSRV, NULL, (width + 7) / 8, (height + 7) / 8, 1);
     }

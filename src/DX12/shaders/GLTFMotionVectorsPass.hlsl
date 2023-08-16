@@ -22,11 +22,15 @@
 //--------------------------------------------------------------------------------------
 // Constant Buffer
 //--------------------------------------------------------------------------------------
+#include "perFrameStruct.h"
+
+//--------------------------------------------------------------------------------------
+// Constant Buffer
+//--------------------------------------------------------------------------------------
 
 cbuffer cbPerFrame : register(b0)
 {
-    matrix        u_mCurrViewProj;//          :    packoffset(c0);
-    matrix        u_mPrevViewProj;//          :    packoffset(c4);
+    PerFrame myPerFrame;
 };
 
 cbuffer cbPerObject : register(b1)
@@ -40,6 +44,7 @@ cbuffer cbPerObject : register(b1)
 //--------------------------------------------------------------------------------------
 
 #include "GLTFPbrPass-IO.h"
+#include "GLTFNormals.hlsl"
 
 //--------------------------------------------------------------------------------------
 // Vertex Shader
@@ -52,7 +57,7 @@ matrix GetWorldMatrix()
 
 matrix GetCameraViewProj()
 {
-    return u_mCurrViewProj;
+    return myPerFrame.u_mCameraCurrViewProj;
 }
 
 matrix GetPrevWorldMatrix()
@@ -62,7 +67,7 @@ matrix GetPrevWorldMatrix()
 
 matrix GetPrevCameraViewProj()
 {
-    return u_mPrevViewProj;
+    return myPerFrame.u_mCameraPrevViewProj;
 }
 
 #include "GLTFVertexFactory.hlsl"
@@ -92,7 +97,7 @@ struct Output
 
 };
 
-Output mainPS(VS_OUTPUT_SCENE Input)
+Output mainPS(VS_OUTPUT_SCENE Input, bool bIsFontFacing : SV_IsFrontFace)
 {
     Output output;
     discardPixelIfAlphaCutOff(Input);
@@ -103,7 +108,7 @@ Output mainPS(VS_OUTPUT_SCENE Input)
 #endif
 
 #ifdef HAS_NORMALS
-    output.normals = float4((getPixelNormal(Input) + 1) / 2, 0);
+    output.normals = float4(getPixelNormal(Input, bIsFontFacing) / 2 + 0.5f, 0);
 #endif
 
     return output;

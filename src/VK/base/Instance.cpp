@@ -25,11 +25,57 @@
 #include "ExtValidation.h"
 #include "ExtFreeSyncHDR.h"
 #include "ExtDebugUtils.h"
-#include "ExtGPUValidation.h"
 
 
 namespace CAULDRON_VK
 {
+	uint32_t GetScore(VkPhysicalDevice physicalDevice)
+	{
+		uint32_t score = 0;
+
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+		// Use the features for a more precise way to select the GPU
+		//VkPhysicalDeviceFeatures deviceFeatures;
+		//vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+		switch (deviceProperties.deviceType)
+		{
+		case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+			score += 1000;
+			break;
+		case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+			score += 10000;
+			break;
+		case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+			score += 100;
+			break;
+		case VK_PHYSICAL_DEVICE_TYPE_CPU:
+			score += 10;
+			break;
+		default:
+			break;
+		}
+
+		// TODO: add other constraints
+
+		return score;
+	}
+
+	// Select the best physical device.
+	// For now, the code just gets the first discrete GPU.
+	// If none is found, it default to an integrated then virtual then cpu one
+	VkPhysicalDevice SelectPhysicalDevice(std::vector<VkPhysicalDevice>& physicalDevices)
+	{
+		assert(physicalDevices.size() > 0 && "No GPU found");
+
+		std::multimap<uint32_t, VkPhysicalDevice> ratings;
+
+		for (auto it = physicalDevices.begin(); it != physicalDevices.end(); ++it)
+			ratings.insert(std::make_pair(GetScore(*it), *it));
+
+		return ratings.rbegin()->second;
+	}
+
     bool CreateInstance(const char *pAppName, const char *pEngineName, VkInstance *pVulkanInstance, VkPhysicalDevice *pPhysicalDevice, InstanceProperties *pIp)
     {
         VkApplicationInfo app_info = {};
@@ -42,21 +88,20 @@ namespace CAULDRON_VK
         app_info.apiVersion = VK_API_VERSION_1_1;
         VkInstance instance = CreateInstance(app_info, pIp);
 
-        // Enumerate physical devices
-        //
-        uint32_t gpu_count = 1;
-        uint32_t const req_count = gpu_count;
-        VkResult res = vkEnumeratePhysicalDevices(instance, &gpu_count, NULL);
-        assert(gpu_count);
+		// Enumerate physical devices
+		uint32_t physicalDeviceCount = 1;
+		uint32_t const req_count = physicalDeviceCount;
+		VkResult res = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+		assert(physicalDeviceCount > 0 && "No GPU found");
 
-        std::vector<VkPhysicalDevice> gpus;
-        gpus.resize(gpu_count);
+		std::vector<VkPhysicalDevice> physicalDevices;
+		physicalDevices.resize(physicalDeviceCount);
+		res = vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
+		assert(res == VK_SUCCESS && physicalDeviceCount >= req_count && "Unable to enumerate physical devices");
 
-        res = vkEnumeratePhysicalDevices(instance, &gpu_count, gpus.data());
-        assert(!res && gpu_count >= req_count);
-
+		// get the best available gpu
+        *pPhysicalDevice = SelectPhysicalDevice(physicalDevices);
         *pVulkanInstance = instance;
-        *pPhysicalDevice = gpus[0];
 
         return true;
     }

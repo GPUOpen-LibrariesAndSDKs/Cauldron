@@ -20,20 +20,23 @@
 #include "stdafx.h"
 #include "AsyncCache.h"
 #include "Misc.h"
+#include <future>
+#include "CPUUserMarkers.h"
 
 //
 //
 //
 
-Async::Async(std::function<void()> job, Sync *pSync) :
+Async::Async(std::function<void()> job, Sync *pSync, const wchar_t* jobDescription) :
     m_job{job},
-    m_pSync{pSync}
+    m_pSync{pSync},
+    m_jobDescription{jobDescription}
 {
     if (m_pSync)
         m_pSync->Inc();
 
     {
-        std::unique_lock<std::mutex> lock(s_mutex);
+        std::unique_lock<std::mutex> lock(s_AsyncMutex);
 
         while (s_activeThreads >= s_maxThreads)
         {
@@ -43,26 +46,31 @@ Async::Async(std::function<void()> job, Sync *pSync) :
         s_activeThreads++;
     }
 
-    m_pThread = new std::thread([this]()
+    m_future = std::async([this,jobDescription]()
     {
-        m_job();
+        // Obtain previous thread name and store it.
 
         {
-            std::lock_guard<std::mutex> lock(s_mutex);
+            CPUUserMarker marker(jobDescription);
+            m_job();
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(s_AsyncMutex);
             s_activeThreads--;
         }        
 
-        s_condition.notify_one();
+        s_condition.notify_all();
 
         if (m_pSync)
             m_pSync->Dec();
+
     });
 }
 
 Async::~Async()
 {
-    m_pThread->join();
-    delete m_pThread;
+    m_future.wait();
 }
 
 void Async::Wait(Sync *pSync)
@@ -71,20 +79,20 @@ void Async::Wait(Sync *pSync)
         return;     
 
     {
-        std::lock_guard <std::mutex> lock(s_mutex);
+        std::lock_guard <std::mutex> lock(s_AsyncMutex);
         s_activeThreads--;
     }
 
-    s_condition.notify_one();
+    s_condition.notify_all();
 
     pSync->Wait();
 
     {
-        std::unique_lock<std::mutex> lock(s_mutex);
+        std::unique_lock<std::mutex> lock(s_AsyncMutex);
 
         s_condition.wait(lock, []
         {
-            return s_bExiting || (s_activeThreads<s_maxThreads);
+            return s_activeThreads<s_maxThreads;
         });
 
         s_activeThreads++;
@@ -102,26 +110,42 @@ AsyncPool::~AsyncPool()
 
 void AsyncPool::Flush()
 {
+    std::lock_guard <std::mutex> lock(m_AsyncPoolMutex);
     for (int i = 0; i < m_pool.size(); i++)
         delete m_pool[i];
     m_pool.clear();
 }
 
-void AsyncPool::AddAsyncTask(std::function<void()> job, Sync *pSync)
+void AsyncPool::AddAsyncTask(std::function<void()> job, Sync *pSync, const wchar_t* jobDescription)
 {
-    m_pool.push_back( new Async(job, pSync) );
+    std::lock_guard <std::mutex> lock(m_AsyncPoolMutex);
+    m_pool.push_back( new Async(job, pSync, jobDescription) );
+}
+
+
+//
+// ExecAsyncIfThereIsAPool, will use async if there is a pool, otherwise will run the task synchronously
+void ExecAsyncIfThereIsAPool(AsyncPool* pAsyncPool, const wchar_t* jobDescription, std::function<void()> job)
+{
+    // use MT if there is a pool
+    if (pAsyncPool != NULL)
+    {
+        pAsyncPool->AddAsyncTask(job, nullptr, jobDescription);
+    }
+    else
+    {
+        job();
+    }
 }
 
 //
-// ExecAsyncIfThereIsAPool, will use async if there is a pool, otherswise will run the taks synchronously
-//
-
+// ExecAsyncIfThereIsAPool, will use async if there is a pool, otherwise will run the task synchronously
 void ExecAsyncIfThereIsAPool(AsyncPool *pAsyncPool, std::function<void()> job)
 {
     // use MT if there is a pool
     if (pAsyncPool != NULL)
     {
-        pAsyncPool->AddAsyncTask(job);
+        pAsyncPool->AddAsyncTask(job, nullptr, nullptr);
     }
     else
     {
@@ -133,7 +157,6 @@ void ExecAsyncIfThereIsAPool(AsyncPool *pAsyncPool, std::function<void()> job)
 // Some static functions
 //
 int Async::s_activeThreads = 0;
-std::mutex Async::s_mutex;
+std::mutex Async::s_AsyncMutex;
 std::condition_variable Async::s_condition;
-bool Async::s_bExiting = false;
 int Async::s_maxThreads = std::thread::hardware_concurrency();

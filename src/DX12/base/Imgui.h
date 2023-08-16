@@ -31,7 +31,7 @@ namespace CAULDRON_DX12
     class ImGUI
     {
     public:
-        void OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat);
+        void OnCreate(Device *pDevice, UploadHeap *pUploadHeap, ResourceViewHeaps *pHeaps, DynamicBufferRing *pConstantBufferRing, DXGI_FORMAT outFormat, float fontSize = 13.f);   // Initializer to not break the API
         void OnDestroy();
         void UpdatePipeline(DXGI_FORMAT outFormat);
         void Draw(ID3D12GraphicsCommandList *pCmdLst);

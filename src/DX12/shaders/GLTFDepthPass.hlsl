@@ -22,10 +22,11 @@
 //--------------------------------------------------------------------------------------
 // Constant Buffer
 //--------------------------------------------------------------------------------------
+#include "perFrameStruct.h"
 
 cbuffer cbPerFrame : register(b0)
 {
-    matrix        u_mViewProj          :    packoffset(c0);
+	PerFrame myPerFrame;
 };
 
 cbuffer cbPerObject : register(b1)
@@ -56,7 +57,7 @@ matrix GetWorldMatrix()
 
 matrix GetCameraViewProj()
 {
-    return u_mViewProj;
+    return myPerFrame.u_mCameraCurrViewProj;
 }
 
 #include "GLTFVertexFactory.hlsl"

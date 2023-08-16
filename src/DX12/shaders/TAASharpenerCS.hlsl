@@ -59,7 +59,7 @@ float3 ApplySharpening(in float3 center, in float3 top, in float3 left, in float
 
 float3 ReinhardInverse(in float3 sdr)
 {
-    return sdr / max(1.0f - sdr, 1e-5f);
+    return sdr / max(1.0f - sdr, 1e-2f);
 }
 
 //--------------------------------------------------------------------------------------
@@ -77,5 +77,14 @@ void mainCS(uint3 globalID : SV_DispatchThreadID, uint3 localID : SV_GroupThread
     const float3 color = ApplySharpening(center, top, left, right, bottom);
 
     HDR[globalID.xy] = float4(ReinhardInverse(color), 1.0f);
+    History[globalID.xy] = float4(center, 1.0f);
+}
+
+[numthreads(8, 8, 1)]
+void postCS(uint3 globalID : SV_DispatchThreadID, uint3 localID : SV_GroupThreadID, uint localIndex : SV_GroupIndex, uint3 groupID : SV_GroupID)
+{
+    const float3 center = TAABuffer[globalID.xy].xyz;
+
+    HDR[globalID.xy] = float4(ReinhardInverse(center), 1.0f);
     History[globalID.xy] = float4(center, 1.0f);
 }

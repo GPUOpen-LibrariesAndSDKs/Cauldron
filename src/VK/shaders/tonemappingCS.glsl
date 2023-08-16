@@ -26,13 +26,26 @@
 layout (std140, binding = 0) uniform perBatch 
 {
     float u_exposure; 
-    int u_toneMapper; 
+    int u_toneMapper;
+    float u_pad0;
+    float u_pad1;
+    bool u_shoulder;
+    bool u_con;
+    bool u_soft;
+    bool u_con2;
+    bool u_clip;
+    bool u_scaleOnly;
+    uint u_displayMode;
+    uint u_pad;
+    mat4 u_inputToOutputMatrix;
+    ivec4 u_ctl[24];
 } myPerScene;
 
 layout (local_size_x = 8, local_size_y = 8) in;
 layout (binding = 1, rgba16f) uniform image2D HDR;
 
 #include "tonemappers.glsl"
+#include "LPMTonemapperHelper.glsl"
 
 vec3 Tonemap(vec3 color, float exposure, int tonemapper)
 {
@@ -40,12 +53,13 @@ vec3 Tonemap(vec3 color, float exposure, int tonemapper)
 
     switch (tonemapper)
     {
-        case 0: return TimothyTonemapper(color);
+        case 0: return AMDTonemapper(color);
         case 1: return DX11DSK(color);
         case 2: return Reinhard(color);
         case 3: return Uncharted2Tonemap(color);
         case 4: return tonemapACES( color );
         case 5: return color;
+        case 6: return LPMTonemapper(color, myPerScene.u_shoulder, myPerScene.u_con, myPerScene.u_soft, myPerScene.u_con2, myPerScene.u_clip, myPerScene.u_scaleOnly, myPerScene.u_inputToOutputMatrix);
         default: return vec3(1, 1, 1);
     } 
 }

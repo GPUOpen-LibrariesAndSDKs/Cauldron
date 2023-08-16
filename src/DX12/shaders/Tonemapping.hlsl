@@ -17,15 +17,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "tonemappers.hlsl"
+#include "Tonemappers.hlsl"
 
 //--------------------------------------------------------------------------------------
 // Constant Buffer
 //--------------------------------------------------------------------------------------
 cbuffer cbPerFrame : register(b0)
 {
-    float u_exposure : packoffset(c0.x);
-    int   u_toneMapper : packoffset(c0.y);
+    float u_exposure;
+    int u_toneMapper;
+    int u_gamma2;
+    float u_pad1;
+    uint u_shoulder;
+    uint u_con;
+    uint u_soft;
+    uint u_con2;
+    uint u_clip;
+    uint u_scaleOnly;
+    uint u_displayMode;
+    uint u_pad;
+    matrix u_inputToOutputMatrix;
+    uint4 u_ctl[24];
 }
 
 //--------------------------------------------------------------------------------------
@@ -61,18 +73,21 @@ float3 ApplyGamma(float3 color)
     return pow(abs(color.rgb), 1.0f / 2.2f);
 }
 
+#include "LPMTonemapperHelper.hlsl"
+
 float3 Tonemap(float3 color, float exposure, int tonemapper)
 {
     color *= exposure;
 
     switch (tonemapper)
     {
-    case 0: return TimothyTonemapper(color);
+    case 0: return AMDTonemapper(color);
     case 1: return DX11DSK(color);
     case 2: return Reinhard(color);
     case 3: return Uncharted2Tonemap(color);
     case 4: return ACESFilm(color);
     case 5: return color;
+    case 6: return LPMTonemapper(color, u_shoulder, u_con, u_soft, u_con2, u_clip, u_scaleOnly, u_inputToOutputMatrix);
     default: return float3(1, 1, 1);
     }
 }
@@ -91,6 +106,7 @@ float4 mainPS(VERTEX Input) : SV_Target
     float4 texColor = HDR.Sample(samLinearWrap, Input.vTexcoord);
 
     float3 color = Tonemap(texColor.rgb, u_exposure, u_toneMapper);
-
+    if (u_gamma2 == 1)
+        color = sqrt(color);
     return float4(color, 1);
 }

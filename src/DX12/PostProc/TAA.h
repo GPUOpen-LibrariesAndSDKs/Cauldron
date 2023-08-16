@@ -26,7 +26,7 @@ namespace CAULDRON_DX12
     class TAA
     {
     public:
-        void OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool);
+        void OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool, bool sharpening = true);
         void OnDestroy();
         void OnCreateWindowSizeDependentResources(uint32_t Width, uint32_t Height, GBuffer *pGBuffer);
         void OnDestroyWindowSizeDependentResources();
@@ -50,11 +50,13 @@ namespace CAULDRON_DX12
 
         ID3D12RootSignature            *m_pTaaRootSignature;
         ID3D12PipelineState            *m_pTaaPipelineState;
-
+        ID3D12PipelineState            *m_pFirstPipelineState;
         
         ID3D12RootSignature            *m_pSharpenerRootSignature;
         ID3D12PipelineState            *m_pSharpenerPipelineState;
-
+        ID3D12PipelineState            *m_pPostPipelineState;
+        bool                           m_bSharpening = true;
+        bool                           m_bFirst = true;
     };
 }
 

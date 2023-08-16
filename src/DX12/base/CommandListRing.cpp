@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "Device.h"
-#include "../..\common\Misc/Misc.h"
+#include "../../common/Misc/Misc.h"
 #include "Helper.h"
 #include "CommandListRing.h"
 

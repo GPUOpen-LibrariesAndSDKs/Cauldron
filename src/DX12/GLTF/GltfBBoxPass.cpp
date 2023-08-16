@@ -59,7 +59,7 @@ namespace CAULDRON_DX12
     // Draw
     //
     //--------------------------------------------------------------------------------------
-    void GltfBBoxPass::Draw(ID3D12GraphicsCommandList* pCommandList, XMMATRIX cameraViewProjMatrix)
+    void GltfBBoxPass::Draw(ID3D12GraphicsCommandList* pCommandList, math::Matrix4 cameraViewProjMatrix)
     {
         UserMarker marker(pCommandList, "bounding boxes");
 
@@ -71,12 +71,12 @@ namespace CAULDRON_DX12
             if (pNode->meshIndex < 0)
                 continue;
 
-            XMMATRIX mWorldViewProj = pC->m_worldSpaceMats[i].GetCurrent() * cameraViewProjMatrix;
+            math::Matrix4 mWorldViewProj = cameraViewProjMatrix * pC->m_worldSpaceMats[i].GetCurrent();
 
             tfMesh *pMesh = &pC->m_meshes[pNode->meshIndex];
             for (uint32_t p = 0; p < pMesh->m_pPrimitives.size(); p++)
             {
-                m_wireframeBox.Draw(pCommandList, m_pWireframe, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, XMVectorSet(1.0f, 1.0f, 1.0f, 1.0f));
+                m_wireframeBox.Draw(pCommandList, m_pWireframe, mWorldViewProj, pMesh->m_pPrimitives[p].m_center, pMesh->m_pPrimitives[p].m_radius, math::Vector4(1.0f, 1.0f, 1.0f, 1.0f));
             }
         }
     }

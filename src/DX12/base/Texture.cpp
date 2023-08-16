@@ -66,7 +66,7 @@ namespace CAULDRON_DX12
     {
         HRESULT hr = pDevice->GetDevice()->CreateCommittedResource(
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
-            D3D12_HEAP_FLAG_NONE,
+            D3D12_HEAP_FLAG_CREATE_NOT_ZEROED,
             pDesc,
             initialState,
             pClearValue,
@@ -162,7 +162,7 @@ namespace CAULDRON_DX12
         return InitBuffer(pDevice, pDebugName, pCounterDesc, counterSize, state);
     }
 
-    void Texture::CreateRTV(uint32_t index, RTV* pRV, D3D12_RENDER_TARGET_VIEW_DESC* pRtvDesc)
+    void Texture::CreateRTV(uint32_t index, RTV* pRV, D3D12_RENDER_TARGET_VIEW_DESC* pRtvDesc) const
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
@@ -172,7 +172,7 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, D3D12_SHADER_RESOURCE_VIEW_DESC* pSrvDesc)
+    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, D3D12_SHADER_RESOURCE_VIEW_DESC* pSrvDesc) const
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
@@ -182,7 +182,7 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    void Texture::CreateUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC* pUavDesc)
+    void Texture::CreateUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV, D3D12_UNORDERED_ACCESS_VIEW_DESC* pUavDesc) const
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
@@ -192,11 +192,14 @@ namespace CAULDRON_DX12
         pDevice->Release();
     }
 
-    void Texture::CreateRTV(uint32_t index, RTV* pRV, int mipLevel, int arraySize, int firstArraySlice)
+    void Texture::CreateRTV(uint32_t index, RTV* pRV, int mipLevel, int arraySize, int firstArraySlice, DXGI_FORMAT format) const
     {
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
         D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
-        rtvDesc.Format = texDesc.Format;
+		if( format == DXGI_FORMAT_UNKNOWN )
+			rtvDesc.Format = texDesc.Format;
+		else
+			rtvDesc.Format = format;
         if (texDesc.DepthOrArraySize == 1)
         {
             assert(arraySize == -1);
@@ -256,7 +259,7 @@ namespace CAULDRON_DX12
         //
         for (uint32_t y = 0; y < num_rows; y++)
         {
-            memcpy(pixels + y * placedTex2D.Footprint.RowPitch, (UINT8*)data + y * placedTex2D.Footprint.RowPitch, row_sizes_in_bytes);
+            memcpy(pixels + y * placedTex2D.Footprint.RowPitch, (UINT8*)data + y * row_sizes_in_bytes, row_sizes_in_bytes);
         }
 
         CD3DX12_TEXTURE_COPY_LOCATION Dst(m_pResource, 0);
@@ -269,18 +272,22 @@ namespace CAULDRON_DX12
         return true;
     }
 
-    void Texture::CreateUAV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel)
+    void Texture::CreateUAV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel) const
     {
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
 
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
         
-        // TODO: add view overrides and use defaults below if there's none
         switch (texDesc.Format)
         {
         // Override TYPELESS resources to prevent device removed. 
-        case DXGI_FORMAT_R32_TYPELESS: uavDesc.Format = DXGI_FORMAT_R32_UINT; break;
-        case DXGI_FORMAT_R16_TYPELESS: uavDesc.Format = DXGI_FORMAT_R16_UINT; break;
+        case DXGI_FORMAT_D32_FLOAT:
+        case DXGI_FORMAT_R32_TYPELESS: uavDesc.Format = DXGI_FORMAT_R32_UINT; 
+            break;
+        case DXGI_FORMAT_R16_TYPELESS: uavDesc.Format = DXGI_FORMAT_R16_UINT; 
+            break;
+        case DXGI_FORMAT_D16_UNORM: uavDesc.Format = DXGI_FORMAT_R16_UINT;
+            break;
         default:
             uavDesc.Format = texDesc.Format;
             break;
@@ -291,10 +298,8 @@ namespace CAULDRON_DX12
         CreateUAV(index, NULL, pRV, &uavDesc);
     }
 
-    void Texture::CreateBufferUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV)
+    void Texture::CreateBufferUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV) const
     {
-        D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
-
         D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
         uavDesc.Format = m_header.format;
         uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
@@ -307,9 +312,9 @@ namespace CAULDRON_DX12
         CreateUAV(index, pCounterTex, pRV, &uavDesc);
     }
 
-    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel, int arraySize, int firstArraySlice)
+    void Texture::CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, int mipLevel, int arraySize, int firstArraySlice) const
     {
-        D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
+        const D3D12_RESOURCE_DESC resourceDesc = m_pResource->GetDesc();
 
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 
@@ -324,14 +329,18 @@ namespace CAULDRON_DX12
         }
         else
         {
-            // TODO: add view overrides and use defaults below if there's none
             switch (resourceDesc.Format)
             {
             // Override TYPELESS resources to prevent device removed.
-            case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
-            case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_FLOAT; break;
+            case DXGI_FORMAT_D32_FLOAT:
+            case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; 
+                break;
+            case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_FLOAT; 
+                break;
+            case DXGI_FORMAT_D16_UNORM: srvDesc.Format = DXGI_FORMAT_R16_UNORM;
+                break;
             default:
-                srvDesc.Format = m_pResource->GetDesc().Format;
+                srvDesc.Format = resourceDesc.Format;
                 break;
             }
 
@@ -381,9 +390,8 @@ namespace CAULDRON_DX12
         CreateSRV(index, pRV, &srvDesc);
     }
 
-    void Texture::CreateCubeSRV(uint32_t index, CBV_SRV_UAV* pRV)
+    void Texture::CreateCubeSRV(uint32_t index, CBV_SRV_UAV* pRV) const
     {
-        D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
         D3D12_RESOURCE_DESC desc = m_pResource->GetDesc();
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
         srvDesc.Format = desc.Format;
@@ -396,14 +404,14 @@ namespace CAULDRON_DX12
         CreateSRV(index, pRV, &srvDesc);
     }
 
-    void Texture::CreateDSV(uint32_t index, DSV* pRV, int arraySlice)
+    void Texture::CreateDSV(uint32_t index, DSV* pRV, int arraySlice, int arraySize) const
     {
         ID3D12Device* pDevice;
         m_pResource->GetDevice(__uuidof(*pDevice), reinterpret_cast<void**>(&pDevice));
         D3D12_RESOURCE_DESC texDesc = m_pResource->GetDesc();
 
         D3D12_DEPTH_STENCIL_VIEW_DESC DSViewDesc = {};
-        DSViewDesc.Format = DXGI_FORMAT_D32_FLOAT;
+        DSViewDesc.Format = texDesc.Format;
         if (texDesc.SampleDesc.Count == 1)
         {
             if (texDesc.DepthOrArraySize == 1)
@@ -416,7 +424,7 @@ namespace CAULDRON_DX12
                 DSViewDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
                 DSViewDesc.Texture2DArray.MipSlice = 0;
                 DSViewDesc.Texture2DArray.FirstArraySlice = arraySlice;
-                DSViewDesc.Texture2DArray.ArraySize = 1;// texDesc.DepthOrArraySize;
+                DSViewDesc.Texture2DArray.ArraySize = arraySize;
             }
         }
         else
@@ -433,7 +441,7 @@ namespace CAULDRON_DX12
     INT32 Texture::InitDepthStencil(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc)
     {
         // depth buffers need to be created as typeless! That way we can create different views out of them
-        assert(pDesc->Format == DXGI_FORMAT_R32_TYPELESS);
+        //assert(pDesc->Format == DXGI_FORMAT_R32_TYPELESS);
 
         // Performance tip: Tell the runtime at resource creation the desired clear value.
         D3D12_CLEAR_VALUE clearValue;
@@ -503,7 +511,7 @@ namespace CAULDRON_DX12
         //
         UINT32 bytePP = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
         UINT32 pixelsPerBlock = 1;
-        if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
+        if (IsBCFormat(m_header.format))
         {
             pixelsPerBlock = (4 * 4); // BC formats have 4*4 pixels per block
             pixelsPerBlock /= 4; // we need to divide by 4 because GetCopyableFootprints introduces a *2 stride divides the rows /4 
@@ -539,9 +547,9 @@ namespace CAULDRON_DX12
     //--------------------------------------------------------------------------------------
     // entry function to initialize an image from a .DDS texture
     //--------------------------------------------------------------------------------------
-    bool Texture::InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, const char* pFilename, bool useSRGB, float cutOff, D3D12_RESOURCE_FLAGS resourceFlags)
+    bool Texture::InitFromFile(Device* pDevice, UploadHeap* pUploadHeap, ID3D12Heap* pTextureHeap, const char* pFilename, uint64_t workloadId, bool useSRGB, float cutOff, D3D12_RESOURCE_FLAGS resourceFlags)
     {
-        assert(m_pResource == NULL);
+        assert(m_pResource == NULL); // if we have to reload env map... this is what happens.
 
         ImgLoader* img = CreateImageLoader(pFilename);
         bool result = img->Load(pFilename, cutOff, &m_header);
@@ -550,9 +558,27 @@ namespace CAULDRON_DX12
             CreateTextureCommitted(pDevice, pFilename, useSRGB, resourceFlags);
             LoadAndUpload(pDevice, pUploadHeap, img, m_pResource);
         }
+        else
+        {
+            Trace("Error loading texture from file: %s", pFilename);
+            assert(result && "Could not load requested file. Please make sure it exists on disk.");
+        }
 
         delete(img);
 
         return result;
+    }
+    
+    void Texture::CreateRawBufferUAV(uint32_t index, Texture* pCounterTex, CBV_SRV_UAV* pRV)
+    {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+        uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+        uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+        uavDesc.Buffer.FirstElement = 0;
+        uavDesc.Buffer.NumElements = (m_header.width * m_structuredBufferStride) / 4;
+        uavDesc.Buffer.StructureByteStride = 0;
+        uavDesc.Buffer.CounterOffsetInBytes = 0;
+        uavDesc.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_RAW;
+        CreateUAV(index, pCounterTex, pRV, &uavDesc);
     }
 }

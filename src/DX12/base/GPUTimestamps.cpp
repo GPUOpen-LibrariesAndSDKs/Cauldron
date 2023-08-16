@@ -104,12 +104,12 @@ namespace CAULDRON_DX12
 
             for (uint32_t i = 1; i < numMeasurements; i++)
             {
-                TimeStamp ts = { gpuLabels[i] + " (us)", float(microsecondsPerTick * (double)(pTimingsInTicks[i] - pTimingsInTicks[i-1])) };
+                TimeStamp ts = { gpuLabels[i], float(microsecondsPerTick * (double)(pTimingsInTicks[i] - pTimingsInTicks[i-1])) };
                 pTimestamps->push_back(ts);
             }
 
             // compute total
-            TimeStamp ts = { "Total GPU Time (us)", float(microsecondsPerTick * (double)(pTimingsInTicks[numMeasurements - 1] - pTimingsInTicks[0])) };
+            TimeStamp ts = { "Total GPU Time", float(microsecondsPerTick * (double)(pTimingsInTicks[numMeasurements - 1] - pTimingsInTicks[0])) };
             pTimestamps->push_back(ts);
 
             CD3DX12_RANGE writtenRange(0, 0);

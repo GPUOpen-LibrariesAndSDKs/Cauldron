@@ -22,7 +22,6 @@
 #include "Base/ShaderCompilerHelper.h"
 #include "Base/ResourceViewHeaps.h"
 #include "Base/ExtDebugUtils.h"
-#include "Base/ExtDebugMarkers.h"
 #include "Base/Helper.h"
 #include "Misc/Async.h"
 
@@ -123,7 +122,7 @@ namespace CAULDRON_VK
                             tfmat->m_defines["ID_baseTexCoord"] = std::to_string(GetElementInt(pbrMetallicRoughness, "baseColorTexture/texCoord", 0));
                             m_pResourceViewHeaps->AllocDescriptor(tfmat->m_textureCount, &m_sampler, &tfmat->m_descriptorSetLayout, &tfmat->m_descriptorSet);
                             VkImageView textureView = pGLTFTexturesAndBuffers->GetTextureViewByID(id);
-                            SetDescriptorSet(m_pDevice->GetDevice(), 0, textureView, NULL, tfmat->m_descriptorSet);
+                            SetDescriptorSet(m_pDevice->GetDevice(), 0, textureView, &m_sampler, tfmat->m_descriptorSet);
                         }
                     }
                 }

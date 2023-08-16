@@ -21,24 +21,19 @@
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
-#include <dxgi.h>
+#include <dxgi1_6.h>
 #include "..\AGS\amd_ags.h"
+
+#include "Misc/ColorConversion.h"
 
 namespace CAULDRON_DX12
 {
-    enum DisplayModes
-    {
-        DISPLAYMODE_SDR,
-        DISPLAYMODE_FSHDR_Gamma22,
-        DISPLAYMODE_FSHDR_SCRGB,
-        DISPLAYMODE_HDR10_2084,
-        DISPLAYMODE_HDR10_SCRGB
-    };
-
     bool fsHdrInit(AGSContext *pAGSContext, AGSGPUInfo *pGPUInfo, HWND hwnd);
-    bool fsHdrEnumerateDisplayModes(std::vector<DisplayModes> *pModes);
-    DXGI_FORMAT fsHdrGetFormat(DisplayModes displayMode);
-    bool fsHdrSetDisplayMode(DisplayModes displayMode, bool disableLocalDimming);
-    const char *fsHdrGetDisplayModeString(DisplayModes displayMode);
-    const AGSDisplayInfo* fsHdrGetDisplayInfo();
+    void fsHdrDestroy();
+    bool fsHdrEnumerateDisplayModes(std::vector<DisplayMode> *pModes);
+    DXGI_FORMAT fsHdrGetFormat(DisplayMode displayMode);
+    bool fsHdrSetDisplayMode(DisplayMode displayMode, bool disableLocalDimming, IDXGISwapChain4 *pSwapchain);
+    const char *fsHdrGetDisplayModeString(DisplayMode displayMode);
+    const DXGI_OUTPUT_DESC1 *GetDisplayInfo();
+    const bool CheckIfWindowModeHdrOn();
 }

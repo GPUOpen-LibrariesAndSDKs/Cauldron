@@ -20,6 +20,47 @@
 #include "stdafx.h"
 #include "Misc.h"
 
+void SetThreadName(const HANDLE threadHandle, const wchar_t* name)
+{
+    if (name && threadHandle != INVALID_HANDLE_VALUE )
+        (void)SetThreadDescription(threadHandle, name);
+}
+
+void SetThreadName(const HANDLE threadHandle, const std::wstring& name)
+{
+    SetThreadName(threadHandle, name.c_str());
+}
+
+void SetThreadName(const HANDLE threadHandle, const std::string& name)
+{
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> utf8utf16converter;
+    SetThreadName(threadHandle, utf8utf16converter.from_bytes(name).c_str());
+}
+
+void SetThreadName(const HANDLE threadHandle, const char* name)
+{
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>, wchar_t> utf8utf16converter;
+    SetThreadName(threadHandle, utf8utf16converter.from_bytes(name).c_str());
+}
+
+bool GetThreadName(const HANDLE threadHandle, std::wstring& name)
+{
+    if (threadHandle != INVALID_HANDLE_VALUE)
+    {
+        wchar_t* pName = nullptr;
+        if (SUCCEEDED(GetThreadDescription(threadHandle, &pName)))
+        {
+            if (pName != nullptr)
+            {
+                name = pName;
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 //
 // Get current time in milliseconds
 //
@@ -86,7 +127,12 @@ void Trace(const std::string &str)
 {
     std::mutex mutex;
     std::unique_lock<std::mutex> lock(mutex);
+    
+    // Output to attached debugger
     OutputDebugStringA(str.c_str());
+
+    // Also log to file
+    Log::Trace(str.c_str());
 }
 
 void Trace(const char* pFormat, ...)
@@ -104,7 +150,11 @@ void Trace(const char* pFormat, ...)
     va_end(args);
     strcat_s(buf.Data(), bufLen, "\n");
 
+    // Output to attached debugger
     OutputDebugStringA(buf.Data());
+
+    // Also log to file
+    Log::Trace(buf.Data());
 }
 
 //
@@ -129,34 +179,225 @@ bool ReadFile(const char *name, char **data, size_t *size, bool isbinary)
     if (!isbinary)
         fileLen++;
 
-    //Allocate memory
-    char *buffer = (char *)malloc(std::max<size_t>(fileLen, 1));
-    if (!buffer)
+    if (data)
     {
-        fclose(file);
-        return false;
-    }
+        //Allocate memory
+        char* buffer = (char*)malloc(std::max<size_t>(fileLen, 1));
+        if (!buffer)
+        {
+            fclose(file);
+            return false;
+        }
 
-    //Read file contents into buffer
-    size_t bytesRead = 0;
-    if(fileLen > 0)
-    {
-        bytesRead = fread(buffer, 1, fileLen, file);
+
+        //Read file contents into buffer
+        size_t bytesRead = 0;
+        if (fileLen > 0)
+        {
+            bytesRead = fread(buffer, 1, fileLen, file);
+        }
+
+        if (!isbinary)
+        {
+            buffer[bytesRead] = 0;
+            fileLen = bytesRead;
+        }
+
+        *data = buffer;
     }
     fclose(file);
 
-    if (!isbinary)
-    {
-        buffer[bytesRead] = 0;    
-        fileLen = bytesRead;
-    }
-
-    *data = buffer;
     if (size != NULL)
         *size = fileLen;
 
     return true;
 }
+
+#if defined(_WIN32) || defined(_WIN64)
+#include <io.h>
+#endif
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+
+#if defined(_WIN32) || defined(_WIN64)
+#define S_ISREG(e) (((e) & _S_IFMT) == _S_IFREG)
+#define S_ISDIR(e) (((e) & _S_IFMT) == _S_IFDIR)
+#endif
+
+int64_t ReadFileAll(const char* fileName, void* buffer, size_t bufferLen)
+{
+    int file = -1;
+    (void)_sopen_s(&file, fileName, _O_RDONLY | _O_NOINHERIT | _O_BINARY | _O_SEQUENTIAL, _SH_DENYNO, _S_IREAD);
+
+    if (file == -1)
+    {
+        // Unable to open file.
+        return -1;
+    }
+
+    struct _stat64 fileStatus;
+    if (_fstat64(file, &fileStatus) != 0)
+    {
+        // unable to get size.
+        (void)_close(file);
+        return -1;
+    }
+
+    if (!S_ISREG(fileStatus.st_mode))
+    {
+        // Not a regular file
+        (void)_close(file);
+        return -1;
+    }
+
+    const uint64_t fileLengthBytes = static_cast<uint64_t>(std::max<int64_t>(fileStatus.st_size, 0));
+
+    if (fileLengthBytes > bufferLen)
+    {
+        return -1;
+    }
+
+    char* pFileBuffer = (char*)buffer;
+    for (uint64_t bytesLeft = fileLengthBytes; bytesLeft > 0;)
+    {
+        uint32_t bytesRequested = static_cast<uint32_t>(std::min<uint64_t>(bytesLeft, INT32_MAX));
+        auto bytesReceivedOrStatus = _read(file, pFileBuffer, bytesRequested);
+        // Break into 4GB chunks.
+        if (bytesReceivedOrStatus > 0)
+        {
+            bytesLeft -= bytesReceivedOrStatus;
+            pFileBuffer += bytesReceivedOrStatus;
+        }
+        else if (bytesReceivedOrStatus == 0)
+        {
+            // going past eof... not good.
+            (void)_close(file);
+            return -1;
+        }
+        else if (bytesReceivedOrStatus < 0)
+        {
+            // error reported during read.
+            (void)_close(file);
+            return -1;
+        }
+    }
+    (void)_close(file);
+
+    return fileLengthBytes;
+}
+
+int64_t ReadFileAll(const wchar_t* fileName, void* buffer, size_t bufferLen)
+{
+    int file = -1;
+    (void)_wsopen_s(&file, fileName, _O_RDONLY | _O_NOINHERIT | _O_BINARY | _O_SEQUENTIAL, _SH_DENYNO, _S_IREAD);
+
+    if (file == -1)
+    {
+        // Unable to open file.
+        return -1;
+    }
+
+    struct _stat64 fileStatus;
+    if (_fstat64(file, &fileStatus) != 0)
+    {
+        // unable to get size.
+        (void)_close(file);
+        return -1;
+    }
+
+    if (!S_ISREG(fileStatus.st_mode))
+    {
+        // Not a regular file
+        (void)_close(file);
+        return -1;
+    }
+
+    const uint64_t fileLengthBytes = static_cast<uint64_t>(std::max<int64_t>(fileStatus.st_size, 0));
+
+    if (fileLengthBytes > bufferLen)
+    {
+        return -1;
+    }
+   
+    char* pFileBuffer = (char*)buffer;
+    for (uint64_t bytesLeft = fileLengthBytes; bytesLeft > 0;)
+    {
+        uint32_t bytesRequested = static_cast<uint32_t>(std::min<uint64_t>(bytesLeft, INT32_MAX));
+        auto bytesReceivedOrStatus = _read(file, pFileBuffer, bytesRequested);
+        // Break into 4GB chunks.
+        if (bytesReceivedOrStatus > 0)
+        {
+            bytesLeft -= bytesReceivedOrStatus;
+            pFileBuffer += bytesReceivedOrStatus;
+        }
+        else if (bytesReceivedOrStatus == 0)
+        {
+            // going past eof... not good.
+            (void)_close(file);
+            return -1;
+        }
+        else if (bytesReceivedOrStatus < 0)
+        {
+            // error reported during read.
+            (void)_close(file);
+            return -1;
+        }
+    }
+    (void)_close(file);
+
+    return fileLengthBytes;
+}
+
+
+int64_t GetFileSize(const char* name)
+{
+    int file = -1;
+    (void)_sopen_s(&file, name, _O_RDONLY | _O_NOINHERIT | _O_BINARY | _O_SEQUENTIAL, _SH_DENYNO, _S_IREAD);
+
+    if (file == -1)
+    {
+        // can't open file for some reason.
+        return -1;
+    }
+
+    struct _stat64 fileStatus;
+    if (_fstat64(file, &fileStatus) != 0)
+    {
+        // something went wrong. Permissions or not found.
+        return -1;
+    }
+
+    (void)_close(file);
+
+    return fileStatus.st_size;
+}
+
+int64_t GetFileSize(const wchar_t* name)
+{
+    int file = -1;
+    (void)_wsopen_s(&file, name, _O_RDONLY | _O_NOINHERIT | _O_BINARY | _O_SEQUENTIAL, _SH_DENYNO, _S_IREAD);
+
+    if (file == -1)
+    {
+        // can't open file for some reason.
+        return -1;
+    }
+
+    struct _stat64 fileStatus;
+    if (_fstat64(file, &fileStatus) != 0)
+    {
+        // something went wrong. Permissions or not found.
+        _close(file);
+        return -1;
+    }
+
+    (void)_close(file);
+
+    return fileStatus.st_size;
+}
+
 
 bool SaveFile(const char *name, void const*data, size_t size, bool isbinary)
 {
@@ -251,23 +492,23 @@ bool LaunchProcess(const char* commandLine, const char* filenameErr)
 }
 
 //
-// Frustrum culls an AABB. The culling is done in clip space. 
+// Frustum culls an AABB. The culling is done in clip space. 
 //
-bool CameraFrustumToBoxCollision(const XMMATRIX mCameraViewProj, const XMVECTOR boxCenter, const XMVECTOR boxExtent)
+bool CameraFrustumToBoxCollision(const math::Matrix4& mCameraViewProj, const math::Vector4& boxCenter, const math::Vector4& boxExtent)
 {
-    float ex = XMVectorGetX(boxExtent);
-    float ey = XMVectorGetY(boxExtent);
-    float ez = XMVectorGetZ(boxExtent);
+    float ex = boxExtent.getX();
+    float ey = boxExtent.getY();
+    float ez = boxExtent.getZ();
 
-    XMVECTOR p[8];
-    p[0] = XMVector4Transform((boxCenter + XMVectorSet(ex, ey, ez, 0)), mCameraViewProj);
-    p[1] = XMVector4Transform((boxCenter + XMVectorSet(ex, ey, -ez, 0)), mCameraViewProj);
-    p[2] = XMVector4Transform((boxCenter + XMVectorSet(ex, -ey, ez, 0)), mCameraViewProj);
-    p[3] = XMVector4Transform((boxCenter + XMVectorSet(ex, -ey, -ez, 0)), mCameraViewProj);
-    p[4] = XMVector4Transform((boxCenter + XMVectorSet(-ex, ey, ez, 0)), mCameraViewProj);
-    p[5] = XMVector4Transform((boxCenter + XMVectorSet(-ex, ey, -ez, 0)), mCameraViewProj);
-    p[6] = XMVector4Transform((boxCenter + XMVectorSet(-ex, -ey, ez, 0)), mCameraViewProj);
-    p[7] = XMVector4Transform((boxCenter + XMVectorSet(-ex, -ey, -ez, 0)), mCameraViewProj);
+    math::Vector4 p[8];
+    p[0] = mCameraViewProj * (boxCenter + math::Vector4(ex, ey, ez, 0));
+    p[1] = mCameraViewProj * (boxCenter + math::Vector4(ex, ey, -ez, 0));
+    p[2] = mCameraViewProj * (boxCenter + math::Vector4(ex, -ey, ez, 0));
+    p[3] = mCameraViewProj * (boxCenter + math::Vector4(ex, -ey, -ez, 0));
+    p[4] = mCameraViewProj * (boxCenter + math::Vector4(-ex, ey, ez, 0));
+    p[5] = mCameraViewProj * (boxCenter + math::Vector4(-ex, ey, -ez, 0));
+    p[6] = mCameraViewProj * (boxCenter + math::Vector4(-ex, -ey, ez, 0));
+    p[7] = mCameraViewProj * (boxCenter + math::Vector4(-ex, -ey, -ez, 0));
 
     uint32_t left = 0;
     uint32_t right = 0;
@@ -276,10 +517,10 @@ bool CameraFrustumToBoxCollision(const XMMATRIX mCameraViewProj, const XMVECTOR 
     uint32_t back = 0;
     for (int i = 0; i < 8; i++)
     {
-        float x = XMVectorGetX(p[i]);
-        float y = XMVectorGetY(p[i]);
-        float z = XMVectorGetZ(p[i]);
-        float w = XMVectorGetW(p[i]);
+        float x = p[i].getX();
+        float y = p[i].getY();
+        float z = p[i].getZ();
+        float w = p[i].getW();
 
         if (x < -w) left++;
         if (x > w) right++;
@@ -291,9 +532,165 @@ bool CameraFrustumToBoxCollision(const XMMATRIX mCameraViewProj, const XMVECTOR 
     return left == 8 || right == 8 || top == 8 || bottom == 8 || back == 8;
 }
 
+
+AxisAlignedBoundingBox::AxisAlignedBoundingBox()
+    : m_min()
+    , m_max()
+    , m_isEmpty{ true }
+{
+}
+
+void AxisAlignedBoundingBox::Merge(const AxisAlignedBoundingBox& bb)
+{
+    if (bb.m_isEmpty)
+        return;
+
+    if (m_isEmpty)
+    {
+        m_max = bb.m_max;
+        m_min = bb.m_min;
+        m_isEmpty = false;
+    }
+    else
+    {
+        m_min = Vectormath::SSE::minPerElem(m_min, bb.m_min);
+        m_max = Vectormath::SSE::maxPerElem(m_max, bb.m_max);
+    }
+}
+
+void AxisAlignedBoundingBox::Grow(const math::Vector4 v)
+{
+    if (m_isEmpty)
+    {
+        m_max = v;
+        m_min = v;
+        m_isEmpty = false;
+    }
+    else
+    {
+        m_min = Vectormath::SSE::minPerElem(m_min, v);
+        m_max = Vectormath::SSE::maxPerElem(m_max, v);
+    }
+}
+
+bool AxisAlignedBoundingBox::HasNoVolume() const
+{
+    return m_isEmpty
+        || (m_max.getX() == m_min.getX() && m_max.getY() == m_min.getY() && m_max.getZ() == m_min.getZ());
+}
+
+AxisAlignedBoundingBox GetAABBInGivenSpace(const math::Matrix4& mTransform, const math::Vector4& boxCenter, const math::Vector4& boxExtent)
+{
+    float ex = boxExtent.getX();
+    float ey = boxExtent.getY();
+    float ez = boxExtent.getZ();
+
+    AxisAlignedBoundingBox aabb;
+
+    // get the position of each corner of the bounding box in the camera space
+    math::Vector4 p[8];
+    p[0] = mTransform * (boxCenter + math::Vector4(ex, ey, ez, 0));
+    p[1] = mTransform * (boxCenter + math::Vector4(ex, ey, -ez, 0));
+    p[2] = mTransform * (boxCenter + math::Vector4(ex, -ey, ez, 0));
+    p[3] = mTransform * (boxCenter + math::Vector4(ex, -ey, -ez, 0));
+    p[4] = mTransform * (boxCenter + math::Vector4(-ex, ey, ez, 0));
+    p[5] = mTransform * (boxCenter + math::Vector4(-ex, ey, -ez, 0));
+    p[6] = mTransform * (boxCenter + math::Vector4(-ex, -ey, ez, 0));
+    p[7] = mTransform * (boxCenter + math::Vector4(-ex, -ey, -ez, 0));
+
+    for (int i = 0; i < 8; ++i)
+        aabb.Grow(p[i]);
+    
+    return aabb;
+}
+
+
 int countBits(uint32_t v) 
 {
     v = v - ((v >> 1) & 0x55555555);                // put count of each 2 bits into those 2 bits
     v = (v & 0x33333333) + ((v >> 2) & 0x33333333); // put count of each 4 bits into those 4 bits  
     return ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24;
+}
+
+Log* Log::m_pLogInstance = nullptr;
+
+int Log::InitLogSystem()
+{
+    // Create an instance of the log system if non already exists
+    if (!m_pLogInstance)
+    {
+        m_pLogInstance = new Log();
+        assert(m_pLogInstance);
+        if (m_pLogInstance)
+            return 0;
+    }
+
+    // Something went wrong
+    return -1;
+}
+
+int Log::TerminateLogSystem()
+{
+    if (m_pLogInstance)
+    {
+        delete m_pLogInstance;
+        m_pLogInstance = nullptr;
+        return 0;
+    }
+
+    // Something went wrong
+    return -1;
+}
+
+void Log::Trace(const char* LogString)
+{
+    assert(m_pLogInstance); // Can't do anything without a valid instance
+    if (m_pLogInstance)
+    {
+        m_pLogInstance->Write(LogString);
+    }
+}
+
+Log::Log()
+{
+    PWSTR path = NULL;
+    SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path);
+    CreateDirectoryW((std::wstring(path) + L"\\AMD").c_str(), 0);
+    CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron\\").c_str(), 0);
+
+    m_FileHandle = CreateFileW((std::wstring(path)+L"\\AMD\\Cauldron\\Cauldron.log").c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, nullptr);
+    assert(m_FileHandle != INVALID_HANDLE_VALUE);
+
+    // Initialize the overlapped structure for asynchronous write
+    for (uint32_t i = 0; i < MAX_INFLIGHT_WRITES; i++)
+        m_OverlappedData[i] = { 0 };
+}
+
+Log::~Log()
+{
+    CloseHandle(m_FileHandle);
+    m_FileHandle = INVALID_HANDLE_VALUE;
+}
+
+void OverlappedCompletionRoutine(DWORD dwErrorCode, DWORD dwNumberOfBytesTransfered, LPOVERLAPPED lpOverlapped)
+{
+    // We never go into an alert state, so this is just to compile
+}
+
+void Log::Write(const char* LogString)
+{
+    OVERLAPPED* pOverlapped = &m_OverlappedData[m_CurrentIOBufferIndex];
+
+    // Make sure any previous write with this overlapped structure has completed
+    DWORD numTransferedBytes;
+    GetOverlappedResult(m_FileHandle, pOverlapped, &numTransferedBytes, TRUE);  // This will wait on the current thread
+
+    // Apply increments accordingly
+    pOverlapped->Offset = m_WriteOffset;
+    m_WriteOffset += static_cast<uint32_t>(strlen(LogString));
+    
+    m_CurrentIOBufferIndex = (++m_CurrentIOBufferIndex % MAX_INFLIGHT_WRITES);  // Wrap when we get to the end
+
+    bool result = WriteFileEx(m_FileHandle, LogString, static_cast<DWORD>(strlen(LogString)), pOverlapped, OverlappedCompletionRoutine);
+    assert(result);
 }

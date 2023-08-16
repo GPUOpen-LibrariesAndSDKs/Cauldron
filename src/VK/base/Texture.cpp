@@ -64,7 +64,7 @@ namespace CAULDRON_VK
         return m_header.arraySize == 6;
     }
 
-    INT32 Texture::Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, char *name)
+    INT32 Texture::Init(Device *pDevice, VkImageCreateInfo *pCreateInfo, const char* name)
     {
         m_pDevice = pDevice;
         m_header.mipMapCount = pCreateInfo->mipLevels;
@@ -73,16 +73,18 @@ namespace CAULDRON_VK
         m_header.depth = pCreateInfo->extent.depth;
         m_header.arraySize = pCreateInfo->arrayLayers;
         m_format = pCreateInfo->format;
+        if ( name )
+            m_name = name;
 
 #ifdef USE_VMA
         VmaAllocationCreateInfo imageAllocCreateInfo = {};
         imageAllocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         imageAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-        imageAllocCreateInfo.pUserData = name;
+        imageAllocCreateInfo.pUserData = (void*)m_name.c_str();
         VmaAllocationInfo gpuImageAllocInfo = {};
         VkResult res = vmaCreateImage(m_pDevice->GetAllocator(), pCreateInfo, &imageAllocCreateInfo, &m_pResource, &m_ImageAlloc, &gpuImageAllocInfo);
         assert(res == VK_SUCCESS);
-        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE, (uint64_t)m_pResource, name);
+        SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE, (uint64_t)m_pResource, m_name.c_str());
 #else
         /* Create image */
         VkResult res = vkCreateImage(m_pDevice->GetDevice(), pCreateInfo, NULL, &m_pResource);
@@ -114,7 +116,7 @@ namespace CAULDRON_VK
         return 0;
     }
 
-    INT32 Texture::InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, char *name)
+    INT32 Texture::InitRenderTarget(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, VkImageUsageFlags usage, bool bUAV, const char *name, VkImageCreateFlagBits flags)
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -132,13 +134,13 @@ namespace CAULDRON_VK
         image_info.pQueueFamilyIndices = NULL;
         image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         image_info.usage = usage; //TODO    
-        image_info.flags = 0;
+        image_info.flags = flags;
         image_info.tiling = VK_IMAGE_TILING_OPTIMAL;   // VK_IMAGE_TILING_LINEAR should never be used and will never be faster
 
         return Init(pDevice, &image_info, name);
     }
 
-    void Texture::CreateRTV(VkImageView *pImageView, int mipLevel)
+    void Texture::CreateRTV(VkImageView *pImageView, int mipLevel, VkFormat format)
     {
         VkImageViewCreateInfo info = {};
         info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -153,11 +155,16 @@ namespace CAULDRON_VK
         {
             info.subresourceRange.layerCount = 1;
         }
-        info.format = m_format;
+        if (format == VK_FORMAT_UNDEFINED)
+            info.format = m_format;
+        else
+            info.format = format;
         if (m_format == VK_FORMAT_D32_SFLOAT)
             info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         else
             info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        std::string ResourceName = m_name;
 
         if (mipLevel == -1)
         {
@@ -168,11 +175,14 @@ namespace CAULDRON_VK
         {
             info.subresourceRange.baseMipLevel = mipLevel;
             info.subresourceRange.levelCount = 1;
+            ResourceName += std::to_string(mipLevel);
         }
 
         info.subresourceRange.baseArrayLayer = 0;
         VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
         assert(res == VK_SUCCESS);
+
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, ResourceName.c_str());
     }
 
     void Texture::CreateSRV(VkImageView *pImageView, int mipLevel)
@@ -211,6 +221,8 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
         assert(res == VK_SUCCESS);
+
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, m_name.c_str());
     }
 
     void Texture::CreateCubeSRV(VkImageView *pImageView)
@@ -228,6 +240,8 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &info, NULL, pImageView);
         assert(res == VK_SUCCESS);
+
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, m_name.c_str());
     }
 
     void Texture::CreateDSV(VkImageView *pImageView)
@@ -253,9 +267,11 @@ namespace CAULDRON_VK
 
         VkResult res = vkCreateImageView(m_pDevice->GetDevice(), &view_info, NULL, pImageView);
         assert(res == VK_SUCCESS);
+
+        SetResourceName(m_pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE_VIEW, (uint64_t)*pImageView, m_name.c_str());
     }
 
-    INT32 Texture::InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, char *name)
+    INT32 Texture::InitDepthStencil(Device *pDevice, uint32_t width, uint32_t height, VkFormat format, VkSampleCountFlagBits msaa, const char *name)
     {
         VkImageCreateInfo image_info = {};
         image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -286,6 +302,9 @@ namespace CAULDRON_VK
     {
         VkImageCreateInfo info = {};
 
+        if ( pName )
+            m_name = pName;
+
         if (useSRGB && ((usageFlags & VK_IMAGE_USAGE_STORAGE_BIT) != 0))
         {
             // the storage bit is not supported for srgb formats
@@ -301,7 +320,6 @@ namespace CAULDRON_VK
             formatListInfo.pViewFormats = list;
 
             info.pNext = &formatListInfo;
-            info.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
         }
         else {
             m_header.format = SetFormatGamma(m_header.format, useSRGB);
@@ -334,11 +352,11 @@ namespace CAULDRON_VK
             VmaAllocationCreateInfo imageAllocCreateInfo = {};
             imageAllocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
             imageAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-            imageAllocCreateInfo.pUserData = (char *)pName;
+            imageAllocCreateInfo.pUserData = (void*)m_name.c_str();
             VmaAllocationInfo gpuImageAllocInfo = {};
             VkResult res = vmaCreateImage(pDevice->GetAllocator(), &info, &imageAllocCreateInfo, &tex, &m_ImageAlloc, &gpuImageAllocInfo);
             assert(res == VK_SUCCESS);
-            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE, (uint64_t)tex, pName);
+            SetResourceName(pDevice->GetDevice(), VK_OBJECT_TYPE_IMAGE, (uint64_t)tex, m_name.c_str());
 #else
             VkResult res = vkCreateImage(pDevice->GetDevice(), &info, NULL, &tex);
             assert(res == VK_SUCCESS);
@@ -390,7 +408,7 @@ namespace CAULDRON_VK
         //
         UINT32 bytesPerPixel = (UINT32)GetPixelByteSize((DXGI_FORMAT)m_header.format); // note that bytesPerPixel in BC formats is treated as bytesPerBlock 
         UINT32 pixelsPerBlock = 1;
-        if ((m_header.format >= DXGI_FORMAT_BC1_TYPELESS) && (m_header.format <= DXGI_FORMAT_BC5_SNORM))
+        if (IsBCFormat(m_header.format))
         {
             pixelsPerBlock = 4*4; // BC formats have 4*4 pixels per block
         }
@@ -469,6 +487,11 @@ namespace CAULDRON_VK
         {
             m_pResource = CreateTextureCommitted(pDevice, pUploadHeap, pFilename, useSRGB, usageFlags);
             LoadAndUpload(pDevice, pUploadHeap, img, m_pResource);
+        }
+        else
+        {
+            Trace("Error loading texture from file: %s", pFilename);
+            assert(result && "Could not load requested file. Please make sure it exists on disk.");
         }
 
         delete(img);
@@ -559,19 +582,26 @@ namespace CAULDRON_VK
         case DXGI_FORMAT_R8G8B8A8_UNORM: return VK_FORMAT_R8G8B8A8_UNORM;
         case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB: return VK_FORMAT_R8G8B8A8_SRGB;
         case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB: return VK_FORMAT_B8G8R8A8_SRGB;
-        case DXGI_FORMAT_BC1_UNORM: return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
-        case DXGI_FORMAT_BC2_UNORM: return VK_FORMAT_BC2_UNORM_BLOCK;
-        case DXGI_FORMAT_BC3_UNORM: return VK_FORMAT_BC3_UNORM_BLOCK;
-        case DXGI_FORMAT_BC4_UNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
-        case DXGI_FORMAT_BC4_SNORM: return VK_FORMAT_BC4_UNORM_BLOCK;
-        case DXGI_FORMAT_BC5_UNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
-        case DXGI_FORMAT_BC5_SNORM: return VK_FORMAT_BC5_UNORM_BLOCK;
-        case DXGI_FORMAT_BC1_UNORM_SRGB: return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
-        case DXGI_FORMAT_BC2_UNORM_SRGB: return VK_FORMAT_BC2_SRGB_BLOCK;
-        case DXGI_FORMAT_BC3_UNORM_SRGB: return VK_FORMAT_BC3_SRGB_BLOCK;
+        case DXGI_FORMAT_BC1_UNORM:         return VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+        case DXGI_FORMAT_BC1_UNORM_SRGB:    return VK_FORMAT_BC1_RGB_SRGB_BLOCK;
+        case DXGI_FORMAT_BC2_UNORM:         return VK_FORMAT_BC2_UNORM_BLOCK;
+        case DXGI_FORMAT_BC2_UNORM_SRGB:    return VK_FORMAT_BC2_SRGB_BLOCK;
+        case DXGI_FORMAT_BC3_UNORM:         return VK_FORMAT_BC3_UNORM_BLOCK;
+        case DXGI_FORMAT_BC3_UNORM_SRGB:    return VK_FORMAT_BC3_SRGB_BLOCK;
+        case DXGI_FORMAT_BC4_UNORM:         return VK_FORMAT_BC4_UNORM_BLOCK;
+        case DXGI_FORMAT_BC4_SNORM:         return VK_FORMAT_BC4_UNORM_BLOCK;
+        case DXGI_FORMAT_BC5_UNORM:         return VK_FORMAT_BC5_UNORM_BLOCK;
+        case DXGI_FORMAT_BC5_SNORM:         return VK_FORMAT_BC5_UNORM_BLOCK;
+        case DXGI_FORMAT_B5G6R5_UNORM:      return VK_FORMAT_B5G6R5_UNORM_PACK16;
+        case DXGI_FORMAT_B5G5R5A1_UNORM:    return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
+        case DXGI_FORMAT_BC6H_UF16:         return VK_FORMAT_BC6H_UFLOAT_BLOCK;
+        case DXGI_FORMAT_BC6H_SF16:         return VK_FORMAT_BC6H_SFLOAT_BLOCK;
+        case DXGI_FORMAT_BC7_UNORM:         return VK_FORMAT_BC7_UNORM_BLOCK;
+        case DXGI_FORMAT_BC7_UNORM_SRGB:    return VK_FORMAT_BC7_SRGB_BLOCK;
         case DXGI_FORMAT_R10G10B10A2_UNORM: return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
         case DXGI_FORMAT_R16G16B16A16_FLOAT: return VK_FORMAT_R16G16B16A16_SFLOAT;
         case DXGI_FORMAT_R32G32B32A32_FLOAT: return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case DXGI_FORMAT_A8_UNORM:          return VK_FORMAT_R8_UNORM;
         default: assert(false);  return VK_FORMAT_UNDEFINED;
         }
     }

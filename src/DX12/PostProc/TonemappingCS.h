@@ -33,7 +33,10 @@ namespace CAULDRON_DX12
         PostProcCS m_toneMapping;
         DynamicBufferRing *m_pDynamicBufferRing = NULL;
 
-        struct ToneMappingConsts { float exposure; int toneMapper; int applyGamma; };
+        struct ToneMappingConsts {
+            float exposure; int toneMapper; int applyGamma; float pad1;
+            LPMConsts lpmConsts;
+        };
     };
 }
 

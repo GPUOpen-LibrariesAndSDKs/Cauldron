@@ -21,21 +21,41 @@
 #include "GltfCommon.h"
 #include "GltfHelpers.h"
 #include "Misc/Misc.h"
+#include <iterator>
 
-bool GLTFCommon::Load(const std::string &path, const std::string &filename)
+bool GLTFCommon::Load(const std::string& path, const std::string& filename)
 {
     Profile p("GLTFCommon::Load");
 
     m_path = path;
 
-    std::ifstream f(path + filename);
-    if (!f)
     {
-        Trace(format("The file %s cannot be found\n", filename.c_str()));
-        return false;
-    }
+        auto filePath(path + filename);
+        int64_t fileSize = GetFileSize(filePath.c_str());
+        int64_t bytesRead = 0;
+        char* fileData = nullptr;
+        if (fileSize > 0)
+        {
+            fileData = (char*)malloc(fileSize + 1);
+            if (fileData)
+            {
+                bytesRead = ReadFileAll(filePath.c_str(), fileData, fileSize);
+                fileData[bytesRead] = '\0';
+            }
+        }
+        else
+        {
+            Trace(format("The file %s cannot be found\n", filename.c_str()));
+            return false;
+        }
 
-    f >> j3;
+        j3 = json::parse(fileData);
+
+        if (fileData != nullptr)
+        {
+            free(fileData);
+        }
+    }
 
     // Load Buffers
     //
@@ -45,16 +65,27 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
         m_buffersData.resize(buffers.size());
         for (int i = 0; i < buffers.size(); i++)
         {
-            const std::string &name = buffers[i]["uri"];
-            std::ifstream ff(path + name, std::ios::in | std::ios::binary);
 
-            ff.seekg(0, ff.end);
-            std::streamoff length = ff.tellg();
-            ff.seekg(0, ff.beg);
+            const std::string& name = buffers[i]["uri"];
+            auto filePath(path + name);
+            int64_t fileSize = GetFileSize(filePath.c_str());
+            int64_t bytesRead = 0;
+            char* fileData = nullptr;
+            if (fileSize > 0)
+            {
+                fileData = new char[fileSize];
+                if (fileData)
+                {
+                    bytesRead = ReadFileAll(filePath.c_str(), fileData, fileSize);
+                }
+            }
+            else
+            {
+                Trace(format("The file %s cannot be found\n", filename.c_str()));
+                return false;
+            }
 
-            char *p = new char[length];
-            ff.read(p, length);
-            m_buffersData[i] = p;
+            m_buffersData[i] = fileData;
         }
     }
 
@@ -76,13 +107,13 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             int positionId = primitives[p]["attributes"]["POSITION"];
             const json &accessor = m_pAccessors->at(positionId);
 
-            XMVECTOR max = GetVector(GetElementJsonArray(accessor, "max", { 0.0, 0.0, 0.0, 0.0 }));
-            XMVECTOR min = GetVector(GetElementJsonArray(accessor, "min", { 0.0, 0.0, 0.0, 0.0 }));
+            math::Vector4 max = GetVector(GetElementJsonArray(accessor, "max", { 0.0, 0.0, 0.0, 0.0 }));
+            math::Vector4 min = GetVector(GetElementJsonArray(accessor, "min", { 0.0, 0.0, 0.0, 0.0 }));
 
-            pPrimitive->m_center = (min + max)*.5;
+            pPrimitive->m_center = (min + max) * 0.5f;
             pPrimitive->m_radius = max - pPrimitive->m_center;
 
-            pPrimitive->m_center = XMVectorSetW(pPrimitive->m_center, 1.0f); //set the W to 1 since this is a position not a direction
+            pPrimitive->m_center = math::Vector4(pPrimitive->m_center.getXYZ(), 1.0f); //set the W to 1 since this is a position not a direction
         }
     }
 
@@ -101,19 +132,95 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                 for (int i = 0; i < lights.size(); i++)
                 {
                     json::object_t light = lights[i];
-                    m_lights[i].m_color = GetElementVector(light, "color", XMVectorSet(1, 1, 1, 0));
+                    m_lights[i].m_color = GetElementVector(light, "color", math::Vector4(1, 1, 1, 0));
                     m_lights[i].m_range = GetElementFloat(light, "range", 105);
                     m_lights[i].m_intensity = GetElementFloat(light, "intensity", 1);
                     m_lights[i].m_innerConeAngle = GetElementFloat(light, "spot/innerConeAngle", 0);
                     m_lights[i].m_outerConeAngle = GetElementFloat(light, "spot/outerConeAngle", XM_PIDIV4);
 
-                    std::string name = GetElementString(light, "type", "");
-                    if (name == "spot")
+                    std::string lightName = GetElementString(light, "name", "");
+
+                    std::string lightType = GetElementString(light, "type", "");
+                    if (lightType == "spot")
                         m_lights[i].m_type = tfLight::LIGHT_SPOTLIGHT;
-                    else if (name == "point")
+                    else if (lightType == "point")
                         m_lights[i].m_type = tfLight::LIGHT_POINTLIGHT;
-                    else if (name == "directional")
+                    else if (lightType == "directional")
                         m_lights[i].m_type = tfLight::LIGHT_DIRECTIONAL;
+
+                    // Deal with shadow settings
+                    if (m_lights[i].m_type == tfLight::LIGHT_DIRECTIONAL || m_lights[i].m_type == tfLight::LIGHT_SPOTLIGHT)
+                    {
+                        // Unless "NoShadow" is present in the name, the light will have a shadow
+                        if (std::string::npos != lightName.find("NoShadow", 0, 8))
+                            m_lights[i].m_shadowResolution = 0; // 0 shadow resolution means no shadow
+                        else
+                        {
+                            // See if we have specified a resolution
+                            size_t offset = lightName.find("Resolution_", 0, 11);
+                            if (std::string::npos != offset)
+                            {
+                                // Update offset to start from after "_"
+                                offset += 11;
+
+                                // Look for the end separator
+                                size_t endOffset = lightName.find("_", offset, 1);
+                                if (endOffset != std::string::npos)
+                                {
+                                    // Try to grab the value
+                                    std::string ResString = lightName.substr(offset, endOffset - offset);
+                                    int32_t Resolution = -1;
+                                    try {
+                                        Resolution = std::stoi(ResString);
+                                    }
+                                    catch (std::invalid_argument)
+                                    {
+                                        // Wasn't a valid argument to convert to int, use default
+                                    }
+                                    catch (std::out_of_range)
+                                    {
+                                        // Value larger than an int can hold (also invalid), use default
+                                    }
+
+                                    // Check if resolution is a power of 2
+                                    if (Resolution == 1 || (Resolution & (Resolution - 1)) == 0)
+                                        m_lights[i].m_shadowResolution = (uint32_t)Resolution;
+                                }
+                            }
+
+                            // See if we have specified a bias 
+                            offset = lightName.find("Bias_", 0, 5);
+                            if (std::string::npos != offset)
+                            {
+                                // Update offset to start from after "_"
+                                offset += 5;
+
+                                // Look for the end separator
+                                size_t endOffset = lightName.find("_", offset, 1);
+                                if (endOffset != std::string::npos)
+                                {
+                                    // Try to grab the value
+                                    std::string BiasString = lightName.substr(offset, endOffset - offset);
+                                    float Bias = (m_lights[i].m_type == LightType_Spot) ? (70.0f / 100000.0f) : (1000.0f / 100000.0f);
+
+                                    try {
+                                        Bias = std::stof(BiasString);
+                                    }
+                                    catch (std::invalid_argument)
+                                    {
+                                        // Wasn't a valid argument to convert to float, use default
+                                    }
+                                    catch (std::out_of_range)
+                                    {
+                                        // Value larger than a float can hold (also invalid), use default
+                                    }
+
+                                    // Set what we have 
+                                    m_lights[i].m_bias = Bias;
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -173,18 +280,19 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
                 m_lightInstances.push_back({ lightIdx, i});
             }
 
-            tfnode->m_tranform.m_translation = GetElementVector(node, "translation", XMVectorSet(0, 0, 0, 0));
-            tfnode->m_tranform.m_scale = GetElementVector(node, "scale", XMVectorSet(1, 1, 1, 0));
+            tfnode->m_transform.m_translation = GetElementVector(node, "translation", math::Vector4(0, 0, 0, 0));
+            tfnode->m_transform.m_scale = GetElementVector(node, "scale", math::Vector4(1, 1, 1, 0));
+
 
             if (node.find("name") != node.end())
                 tfnode->m_name = GetElementString(node, "name", "unnamed");
 
             if (node.find("rotation") != node.end())
-                tfnode->m_tranform.m_rotation = XMMatrixRotationQuaternion(GetVector(node["rotation"].get<json::array_t>()));
+                tfnode->m_transform.m_rotation = math::Matrix4(math::Quat(GetVector(node["rotation"].get<json::array_t>())), math::Vector3(0.f, 0.f, 0.f));
             else if (node.find("matrix") != node.end())
-                tfnode->m_tranform.m_rotation = GetMatrix(node["matrix"].get<json::array_t>());
+                tfnode->m_transform.m_rotation = GetMatrix(node["matrix"].get<json::array_t>());
             else
-                tfnode->m_tranform.m_rotation = XMMatrixIdentity();
+                tfnode->m_transform.m_rotation = math::Matrix4::identity();
         }
     }
 
@@ -311,6 +419,8 @@ void GLTFCommon::Unload()
     m_animations.clear();
     m_nodes.clear();
     m_scenes.clear();
+    m_lights.clear();
+    m_lightInstances.clear();
 
     j3.clear();
 }
@@ -329,7 +439,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
 
         for (auto it = anim->m_channels.begin(); it != anim->m_channels.end(); it++)
         {
-            Transform *pSourceTrans = &m_nodes[it->first].m_tranform;
+            Transform *pSourceTrans = &m_nodes[it->first].m_transform;
             Transform animated;
 
             float frac, *pCurr, *pNext;
@@ -339,7 +449,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
             if (it->second.m_pTranslation != NULL)
             {
                 it->second.m_pTranslation->SampleLinear(time, &frac, &pCurr, &pNext);
-                animated.m_translation = (1.0f - frac) * XMVectorSet(pCurr[0], pCurr[1], pCurr[2], 0) + (frac)*XMVectorSet(pNext[0], pNext[1], pNext[2], 0);
+                animated.m_translation = ((1.0f - frac) * math::Vector4(pCurr[0], pCurr[1], pCurr[2], 0)) + ((frac) * math::Vector4(pNext[0], pNext[1], pNext[2], 0));
             }
             else
             {
@@ -351,7 +461,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
             if (it->second.m_pRotation != NULL)
             {
                 it->second.m_pRotation->SampleLinear(time, &frac, &pCurr, &pNext);
-                animated.m_rotation = XMMatrixRotationQuaternion(XMQuaternionSlerp(XMVectorSet(pCurr[0], pCurr[1], pCurr[2], pCurr[3]), XMVectorSet(pNext[0], pNext[1], pNext[2], pNext[3]), frac));
+                animated.m_rotation = math::Matrix4(math::slerp(frac, math::Quat(pCurr[0], pCurr[1], pCurr[2], pCurr[3]), math::Quat(pNext[0], pNext[1], pNext[2], pNext[3])), math::Vector3(0.0f, 0.0f, 0.0f));
             }
             else
             {
@@ -363,7 +473,7 @@ void GLTFCommon::SetAnimationTime(uint32_t animationIndex, float time)
             if (it->second.m_pScale != NULL)
             {
                 it->second.m_pScale->SampleLinear(time, &frac, &pCurr, &pNext);
-                animated.m_scale = (1.0f - frac) * XMVectorSet(pCurr[0], pCurr[1], pCurr[2], 0) + (frac)*XMVectorSet(pNext[0], pNext[1], pNext[2], 0);
+                animated.m_scale = ((1.0f - frac) * math::Vector4(pCurr[0], pCurr[1], pCurr[2], 0)) + ((frac) * math::Vector4(pNext[0], pNext[1], pNext[2], 0));
             }
             else
             {
@@ -448,15 +558,13 @@ int GLTFCommon::GetInverseBindMatricesBufferSizeByID(int id) const
 //
 // Transforms a node hierarchy recursively 
 //
-void GLTFCommon::TransformNodes(XMMATRIX world, const std::vector<tfNodeIdx> *pNodes)
+void GLTFCommon::TransformNodes(const math::Matrix4& world, const std::vector<tfNodeIdx> *pNodes)
 {
-    m_worldSpaceMats.resize(m_nodes.size());
-
     for (uint32_t n = 0; n < pNodes->size(); n++)
     {
         uint32_t nodeIdx = pNodes->at(n);
 
-        XMMATRIX m = m_animatedMats[nodeIdx] * world;
+        math::Matrix4 m = world * m_animatedMats[nodeIdx];
         m_worldSpaceMats[nodeIdx].Set(m);
         TransformNodes(m, &m_nodes[nodeIdx].m_children);
     }
@@ -481,15 +589,17 @@ void GLTFCommon::InitTransformedData()
     m_animatedMats.resize(m_nodes.size());
     for (uint32_t i = 0; i < m_nodes.size(); i++)
     {
-        m_animatedMats[i] = m_nodes[i].m_tranform.GetWorldMat();
+        m_animatedMats[i] = m_nodes[i].m_transform.GetWorldMat();
     }
 }
 
 //
 // Takes the animated matrices and processes the hierarchy, also computes the skinning matrix buffers. 
 //
-void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
+void GLTFCommon::TransformScene(int sceneIndex, const math::Matrix4& world)
 {
+    m_worldSpaceMats.resize(m_nodes.size());
+
     // transform all the nodes of the scene (and make 
     //           
     std::vector<int> sceneNodes = { m_scenes[sceneIndex].m_nodes };
@@ -501,12 +611,13 @@ void GLTFCommon::TransformScene(int sceneIndex, XMMATRIX world)
     {
         tfSkins &skin = m_skins[i];
 
-        //pick the matrices that affect the skin and multiply by the inverse of the bind         
-        const XMMATRIX *pM = (const XMMATRIX *)skin.m_InverseBindMatrices.m_data;
+        //pick the matrices that affect the skin and multiply by the inverse of the bind      
+        math::Matrix4* pM = (math::Matrix4*)skin.m_InverseBindMatrices.m_data;
+
         std::vector<Matrix2> &skinningMats = m_worldSpaceSkeletonMats[i];
         for (int j = 0; j < skin.m_InverseBindMatrices.m_count; j++)
         {
-            skinningMats[j].Set( XMMatrixMultiply(pM[j], m_worldSpaceMats[skin.m_jointsNodeIdx[j]].GetCurrent()));
+            skinningMats[j].Set(m_worldSpaceMats[skin.m_jointsNodeIdx[j]].GetCurrent() * pM[j]);
         }
     }
 }
@@ -519,7 +630,7 @@ bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam) const
     }
 
     pCam->SetMatrix(m_worldSpaceMats[m_cameras[cameraIdx].m_nodeIndex].GetCurrent());
-    pCam->SetFov(m_cameras[cameraIdx].yfov, 1280, 720, m_cameras[cameraIdx].znear, m_cameras[cameraIdx].zfar);
+    pCam->SetFov(m_cameras[cameraIdx].yfov, pCam->GetAspectRatio(), m_cameras[cameraIdx].znear, m_cameras[cameraIdx].zfar);
 
     return true;
 }
@@ -528,42 +639,57 @@ bool GLTFCommon::GetCamera(uint32_t cameraIdx, Camera *pCam) const
 // Sets the per frame data from the GLTF, returns a pointer to it in case the user wants to override some values
 // The scene needs to be animated and transformed before we can set the per_frame data. We need those final matrices for the lights and the camera.
 //
-per_frame *GLTFCommon::SetPerFrameData(const Camera &cam)
+per_frame* GLTFCommon::SetPerFrameData(const Camera& cam)
 {
-    Matrix2  *pMats = m_worldSpaceMats.data();
+    Matrix2* pMats = m_worldSpaceMats.data();
 
     //Sets the camera
-    m_perFrameData.mCameraCurrViewProj = cam.GetView() * cam.GetProjection();
-    m_perFrameData.mCameraPrevViewProj = cam.GetPrevView() * cam.GetProjection();
-    m_perFrameData.mInverseCameraCurrViewProj = XMMatrixInverse(nullptr, m_perFrameData.mCameraCurrViewProj);
+    m_perFrameData.mCameraCurrViewProj = cam.GetProjection() * cam.GetView();
+    m_perFrameData.mCameraPrevViewProj = cam.GetProjection() * cam.GetPrevView();
+    // more accurate calculation
+    m_perFrameData.mInverseCameraCurrViewProj = math::affineInverse(cam.GetView()) * math::inverse(cam.GetProjection());
     m_perFrameData.cameraPos = cam.GetPosition();
+
+    m_perFrameData.wireframeOptions = math::Vector4(0.0f, 0.0f, 0.0f, 0.0f);
 
     // Process lights
     m_perFrameData.lightCount = (int32_t)m_lightInstances.size();
+    int32_t ShadowMapIndex = 0;
+
     for (int i = 0; i < m_lightInstances.size(); i++)
     {
         Light* pSL = &m_perFrameData.lights[i];
 
         // get light data and node trans
         const tfLight &lightData = m_lights[m_lightInstances[i].m_lightId];
-        XMMATRIX lightMat = pMats[m_lightInstances[i].m_nodeIndex].GetCurrent();
+        math::Matrix4 lightMat = pMats[m_lightInstances[i].m_nodeIndex].GetCurrent();
 
-        XMMATRIX lightView = XMMatrixInverse(nullptr, lightMat);
+        math::Matrix4 lightView = math::affineInverse(lightMat);
+        pSL->mLightView = lightView;
         if (lightData.m_type == LightType_Spot)
-            pSL->mLightViewProj = lightView * XMMatrixPerspectiveFovRH(lightData.m_outerConeAngle * 2.0f, 1, .1f, 100.0f);
+            pSL->mLightViewProj = math::Matrix4::perspective(lightData.m_outerConeAngle * 2.0f, 1, .1f, 100.0f) * lightView;
         else if (lightData.m_type == LightType_Directional)
-            pSL->mLightViewProj = lightView * XMMatrixOrthographicRH(30.0, 30.0, 0.1f, 100.0f);
+            pSL->mLightViewProj = ComputeDirectionalLightOrthographicMatrix(lightView) * lightView;
 
-        GetXYZ(pSL->direction, XMVector4Transform(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), XMMatrixTranspose(lightView)));
+        GetXYZ(pSL->direction, math::transpose(lightView) * math::Vector4(0.0f, 0.0f, 1.0f, 0.0f));
         GetXYZ(pSL->color, lightData.m_color);
         pSL->range = lightData.m_range;
         pSL->intensity = lightData.m_intensity;
-        GetXYZ(pSL->position, lightMat.r[3]);
+        GetXYZ(pSL->position, lightMat.getCol3());
         pSL->outerConeCos = cosf(lightData.m_outerConeAngle);
         pSL->innerConeCos = cosf(lightData.m_innerConeAngle);
         pSL->type = lightData.m_type;
-        pSL->depthBias = 0.0001f;
+
+        // Setup shadow information for light (if it has any)
+        if (lightData.m_shadowResolution && lightData.m_type != LightType_Point)
+        {
+            pSL->shadowMapIndex = ShadowMapIndex++;
+            pSL->depthBias = lightData.m_bias;
+        }
+        else
+            pSL->shadowMapIndex = -1;
     }
+
     return &m_perFrameData;
 }
 
@@ -574,7 +700,7 @@ tfNodeIdx GLTFCommon::AddNode(const tfNode& node)
     tfNodeIdx idx = (tfNodeIdx)(m_nodes.size() - 1);
     m_scenes[0].m_nodes.push_back(idx);
     
-    m_animatedMats.push_back(node.m_tranform.GetWorldMat());
+    m_animatedMats.push_back(node.m_transform.GetWorldMat());
 
     return idx;
 }
@@ -585,8 +711,70 @@ int GLTFCommon::AddLight(const tfNode& node, const tfLight& light)
     m_lights.push_back(light);
 
     int lightInstanceID = (int)(m_lights.size() - 1);
-
     m_lightInstances.push_back({ lightInstanceID, (tfNodeIdx)nodeID});
 
     return lightInstanceID;
+}
+
+//
+// Computes the orthographic matrix for a directional light in order to cover the whole scene
+//
+math::Matrix4 GLTFCommon::ComputeDirectionalLightOrthographicMatrix(const math::Matrix4& mLightView) {
+
+    AxisAlignedBoundingBox projectedBoundingBox;
+
+    // NOTE: we consider all objects here, but the scene might not display all of them.
+    for (uint32_t i = 0; i < m_nodes.size(); ++i)
+    {
+        tfNode* pNode = &m_nodes.at(i);
+        if ((pNode == NULL) || (pNode->meshIndex < 0))
+            continue;
+
+        std::vector<tfPrimitives>& primitives = m_meshes[pNode->meshIndex].m_pPrimitives;
+        // loop through primitives
+        //
+        for (size_t p = 0; p < primitives.size(); ++p)
+        {
+            tfPrimitives boundingBox = m_meshes[pNode->meshIndex].m_pPrimitives[p];
+            projectedBoundingBox.Merge(GetAABBInGivenSpace(mLightView * m_worldSpaceMats[i].GetCurrent(), boundingBox.m_center, boundingBox.m_radius));
+        }
+    }
+
+    if (projectedBoundingBox.HasNoVolume())
+    {
+        // default ortho matrix that won't work in most cases
+        return math::Matrix4::orthographic(-20.0, 20.0, -20.0, 20.0, 0.1f, 100.0f);
+    }
+
+    // we now have the final bounding box
+    tfPrimitives finalBoundingBox;
+    finalBoundingBox.m_center = 0.5f * (projectedBoundingBox.m_max + projectedBoundingBox.m_min);
+    finalBoundingBox.m_radius = 0.5f * (projectedBoundingBox.m_max - projectedBoundingBox.m_min);
+
+    finalBoundingBox.m_center.setW(1.0f);
+    finalBoundingBox.m_radius.setW(0.0f);
+
+    // we want a square aspect ratio
+    float spanX = finalBoundingBox.m_radius.getX();
+    float spanY = finalBoundingBox.m_radius.getY();
+    float maxSpan = spanX > spanY ? spanX : spanY;
+
+    // manually create the orthographic matrix
+    math::Matrix4 projectionMatrix = math::Matrix4::identity();
+    projectionMatrix.setCol0(math::Vector4(
+        1.0f / maxSpan, 0.0f, 0.0f, 0.0f
+    ));
+    projectionMatrix.setCol1(math::Vector4(
+        0.0f, 1.0f / maxSpan, 0.0f, 0.0f
+    ));
+    projectionMatrix.setCol2(math::Vector4(
+        0.0f, 0.0f, -0.5f / finalBoundingBox.m_radius.getZ(), 0.0f
+    ));
+    projectionMatrix.setCol3(math::Vector4(
+        -finalBoundingBox.m_center.getX() / maxSpan,
+        -finalBoundingBox.m_center.getY() / maxSpan,
+        0.5f * (finalBoundingBox.m_center.getZ() + finalBoundingBox.m_radius.getZ()) / finalBoundingBox.m_radius.getZ(),
+        1.0f
+    ));
+    return projectionMatrix;
 }

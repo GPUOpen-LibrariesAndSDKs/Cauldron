@@ -23,6 +23,8 @@
 #include "Misc/Misc.h"
 #include "base/ShaderCompilerCache.h"
 #include "Misc/AsyncCache.h"
+#include <codecvt>
+#include <locale>
 
 namespace CAULDRON_VK
 {
@@ -73,7 +75,7 @@ namespace CAULDRON_VK
         std::string commandLine;
         if (sourceType == SST_GLSL)
         {
-            commandLine = format("glslc --target-env=vulkan1.1 -fshader-stage=%s -fentry-point=%s %s %s -o %s -I %s %s", stage, pShaderEntryPoint, shaderCompilerParams, filenameGlsl.c_str(), filenameSpv.c_str(), GetShaderCompilerLibDir().c_str(), defines.c_str());
+            commandLine = format("glslc --target-env=vulkan1.1 -fshader-stage=%s -fentry-point=%s %s \"%s\" -o \"%s\" -I %s %s", stage, pShaderEntryPoint, shaderCompilerParams, filenameGlsl.c_str(), filenameSpv.c_str(), GetShaderCompilerLibDir().c_str(), defines.c_str());
 
             std::string filenameErr = format("%s\\%p.err", GetShaderCompilerCacheDir().c_str(), hash);
 
@@ -191,6 +193,7 @@ namespace CAULDRON_VK
 
             assert(SpvSize != 0);
             CreateModule(device, SpvData, SpvSize, &pShader->module);
+            free(SpvData);
 
 #ifdef USE_MULTITHREADED_CACHE
             s_shaderCache.UpdateCache(hash, &pShader->module);
@@ -246,6 +249,7 @@ namespace CAULDRON_VK
         {
             VkResult res = VKCompileFromString(device, sourceType, shader_type, pShaderCode, pShaderEntryPoint, shaderCompilerParams, pDefines, pShader);
             SetResourceName(device, VK_OBJECT_TYPE_SHADER_MODULE, (uint64_t)pShader->module, pFilename);
+            free(pShaderCode);
             return res;
         }
 
@@ -257,9 +261,14 @@ namespace CAULDRON_VK
     //
     void CreateShaderCache()
     {
-        InitShaderCompilerCache("ShaderLibVK", "ShaderLibVK\\ShaderCacheVK");
-        CreateDirectoryA(GetShaderCompilerLibDir().c_str(), 0);
-        CreateDirectoryA(GetShaderCompilerCacheDir().c_str(), 0);
+        PWSTR path = NULL;
+        SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &path);
+        std::wstring sShaderCachePathW = std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheVK";
+        CreateDirectoryW((std::wstring(path) + L"\\AMD").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron").c_str(), 0);
+        CreateDirectoryW((std::wstring(path) + L"\\AMD\\Cauldron\\ShaderCacheVK").c_str(), 0);
+
+        InitShaderCompilerCache("ShaderLibVK", std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(sShaderCachePathW));
     }
 
     //

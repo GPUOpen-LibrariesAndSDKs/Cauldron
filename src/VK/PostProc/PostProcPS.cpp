@@ -51,27 +51,22 @@ namespace CAULDRON_VK
     {
         m_pDevice = pDevice;
 
-        float depth = .99999f;
-
-        float vertices[] = {
-            -1,  1,  depth,  0, 0,
-             3,  1,  depth,  2, 0,
-            -1, -3,  depth,  0, 2,
-        };
-        pStaticBufferPool->AllocBuffer(3, 5 * sizeof(float), vertices, &m_verticesView);
-
         // Create the vertex shader
         static const char* vertexShader =
-            "#version 400\n"
-            "#extension GL_ARB_separate_shader_objects : enable\n"
-            "#extension GL_ARB_shading_language_420pack : enable\n"
-            "layout (location = 0) in vec3 pos;\n"
-            "layout (location = 1) in vec2 inTexCoord;\n"
-            "layout (location = 0) out vec2 outTexCoord;\n"
-            "void main() {\n"
-            "   outTexCoord = inTexCoord;\n"
-            "   gl_Position = vec4(pos, 1.0f);\n"
-            "}\n";
+	       "static const float4 FullScreenVertsPos[3] = { float4(-1, 1, 1, 1), float4(3, 1, 1, 1), float4(-1, -3, 1, 1) };\
+            static const float2 FullScreenVertsUVs[3] = { float2(0, 0), float2(2, 0), float2(0, 2) };\
+            struct VERTEX_OUT\
+            {\
+                float2 vTexture : TEXCOORD;\
+                float4 vPosition : SV_POSITION;\
+            };\
+            VERTEX_OUT mainVS(uint vertexId : SV_VertexID)\
+            {\
+                VERTEX_OUT Output;\
+                Output.vPosition = FullScreenVertsPos[vertexId];\
+                Output.vTexture = FullScreenVertsUVs[vertexId];\
+                return Output;\
+            }";
 
         VkResult res;
 
@@ -80,7 +75,12 @@ namespace CAULDRON_VK
         DefineList attributeDefines;
 
         VkPipelineShaderStageCreateInfo m_vertexShader;
-        res = VKCompileFromString(m_pDevice->GetDevice(), SST_GLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "main", "", &attributeDefines, &m_vertexShader);
+#ifdef _DEBUG
+        std::string CompileFlagsVS("-T vs_6_0 -Zi -Od");
+#else
+        std::string CompileFlagsVS("-T vs_6_0");
+#endif // _DEBUG
+        res = VKCompileFromString(m_pDevice->GetDevice(), SST_HLSL, VK_SHADER_STAGE_VERTEX_BIT, vertexShader, "mainVS", CompileFlagsVS.c_str(), &attributeDefines, &m_vertexShader);
         assert(res == VK_SUCCESS);
 
         m_fragmentShaderName = shaderEntryPoint;
@@ -126,30 +126,16 @@ namespace CAULDRON_VK
 
         VkResult res;
 
-        /////////////////////////////////////////////
-        // vertex input state
-
-        VkVertexInputBindingDescription vi_binding = {};
-        vi_binding.binding = 0;
-        vi_binding.stride = sizeof(float) * 5;
-        vi_binding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        VkVertexInputAttributeDescription vi_attrs[] =
-        {
-            { 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0 },
-            { 1, 0, VK_FORMAT_R32G32_SFLOAT, sizeof(float) * 3 },
-        };
-
         // input assembly state and layout
 
         VkPipelineVertexInputStateCreateInfo vi = {};
         vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vi.pNext = NULL;
         vi.flags = 0;
-        vi.vertexBindingDescriptionCount = 1;
-        vi.pVertexBindingDescriptions = &vi_binding;
-        vi.vertexAttributeDescriptionCount = _countof(vi_attrs);
-        vi.pVertexAttributeDescriptions = vi_attrs;            
+        vi.vertexBindingDescriptionCount = 0;
+        vi.pVertexBindingDescriptions = nullptr;
+        vi.vertexAttributeDescriptionCount = 0;
+        vi.pVertexAttributeDescriptions = nullptr;
 
         VkPipelineInputAssemblyStateCreateInfo ia;
         ia.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -315,10 +301,6 @@ namespace CAULDRON_VK
     {
         if (m_pipeline == VK_NULL_HANDLE)
             return;
-
-        // Bind vertices 
-        //
-        vkCmdBindVertexBuffers(cmd_buf, 0, 1, &m_verticesView.buffer, &m_verticesView.offset);
 
         // Bind Descriptor sets
         //                

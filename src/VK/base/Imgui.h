@@ -31,7 +31,7 @@ namespace CAULDRON_VK
     class ImGUI
     {
     public:
-        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap *pUploadHeap, DynamicBufferRing *pConstantBufferRing);
+        void OnCreate(Device* pDevice, VkRenderPass renderPass, UploadHeap *pUploadHeap, DynamicBufferRing *pConstantBufferRing, float fontSize = 13.f);   // Initializer to not break the API
         void OnDestroy();
 
         void UpdatePipeline(VkRenderPass renderPass);
@@ -42,7 +42,7 @@ namespace CAULDRON_VK
         DynamicBufferRing       *m_pConstBuf = nullptr;
 
         VkImage                     m_pTexture2D = VK_NULL_HANDLE;
-        VkDeviceMemory              m_deviceMemory;
+        VmaAllocation               m_ImageAlloc = VK_NULL_HANDLE;
         VkDescriptorBufferInfo      m_geometry;
         VkPipelineLayout            m_pipelineLayout = VK_NULL_HANDLE;
         VkDescriptorPool            m_descriptorPool = VK_NULL_HANDLE;

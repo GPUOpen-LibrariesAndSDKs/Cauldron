@@ -1,3 +1,4 @@
+// Dependencies on Khronosgroup - glTF - Sample - Viewer v - u(Apache 2.0)
 // Portions Copyright 2019 Advanced Micro Devices, Inc.All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");

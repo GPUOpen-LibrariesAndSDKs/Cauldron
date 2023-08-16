@@ -21,6 +21,9 @@
 #include "ShaderCompiler.h"
 #include "../Misc/Misc.h"
 
+
+std::map<std::string, std::string> s_shaderSourceCache;
+
 //
 // Hash a string of source code and recurse over its #include files
 //
@@ -78,10 +81,19 @@ size_t HashShaderString(const char *pRootDir, const char *pShader, size_t hash)
                     pch++;
 
                     char *pShaderCode = NULL;
-                    if (ReadFile(includeName, &pShaderCode, NULL, false))
+                    
+                    auto shaderSourceCacheResult = s_shaderSourceCache.find(includeName);
+                    if (shaderSourceCacheResult != s_shaderSourceCache.end())
                     {
-                        hash = HashShaderString(pRootDir, pShaderCode, hash);
-                        free(pShaderCode);
+                        pShaderCode = const_cast<char*>(shaderSourceCacheResult->second.c_str()); // I probably swear not to change the memory.
+                    }
+                    else
+                    {
+                        if (ReadFile(includeName, &pShaderCode, NULL, false))
+                        {
+                            hash = HashShaderString(pRootDir, pShaderCode, hash);
+                            free(pShaderCode);
+                        }
                     }
                 }
             }            

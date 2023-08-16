@@ -172,7 +172,7 @@ bool DDSLoader::Load(const char *pFilename, float cutOff, IMG_INFO *pInfo)
 
             pInfo->arraySize = header10->arraySize;
             pInfo->format = header10->dxgiFormat;
-            pInfo->bitCount = header->ddspf.bitCount;
+            pInfo->bitCount = (header->ddspf.flags& (0x40 | 0x200 | 0x20000)) != 0 ? header->ddspf.bitCount : BitsPerPixel(header10->dxgiFormat);
         }
         else
         {
@@ -191,6 +191,7 @@ void DDSLoader::CopyPixels(void *pDest, uint32_t stride, uint32_t bytesWidth, ui
     assert(m_handle != INVALID_HANDLE_VALUE);
     for (uint32_t y = 0; y < height; y++)
     {
-        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, NULL, NULL);
+        DWORD bytesRead;
+        ReadFile(m_handle, (char*)pDest + y*stride, bytesWidth, &bytesRead, NULL);
     }
 }

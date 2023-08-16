@@ -24,18 +24,15 @@ using json = nlohmann::json;
 
 class BenchmarkSequence
 {
-    float m_timeStart;
-    float m_timeEnd;
-
+public:
     struct KeyFrame
     {
         float m_time;
-        XMVECTOR m_from, m_to;
+        int m_camera;
+        math::Vector4 m_from, m_to;
         std::string m_screenShotName;
     };
 
-    std::vector<KeyFrame> m_keyFrames;
-public:
     void ReadKeyframes(const json& jSequence, float timeStart, float timeEnd);
     float GetTimeStart() { return m_timeStart; }
     float GetTimeEnd() { return m_timeEnd; }
@@ -44,9 +41,11 @@ public:
     // Given a time return the time of the next keyframe, that way we know how long we have to wait until we apply the next keyframe
     //
     float GetNextKeyTime(float time);
+    const KeyFrame GetNextKeyFrame(float time) const;
 
-    //
-    // Applies the camera keyframe
-    //
-    bool GetKeyFrame(float time, Camera *pCam, const std::string **pScreenShotName);
+private:
+    float m_timeStart;
+    float m_timeEnd;
+
+    std::vector<KeyFrame> m_keyFrames;
 };
