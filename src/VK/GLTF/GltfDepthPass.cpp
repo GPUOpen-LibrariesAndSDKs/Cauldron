@@ -419,7 +419,7 @@ namespace CAULDRON_VK
         ds.flags = 0;
         ds.depthTestEnable = true;
         ds.depthWriteEnable = true;
-        ds.depthCompareOp = m_bInvertedDepth ? VK_COMPARE_OP_LESS_OR_EQUAL : VK_COMPARE_OP_GREATER_OR_EQUAL;
+        ds.depthCompareOp = m_bInvertedDepth ? VK_COMPARE_OP_GREATER_OR_EQUAL : VK_COMPARE_OP_LESS_OR_EQUAL;
         ds.back.failOp = VK_STENCIL_OP_KEEP;
         ds.back.passOp = VK_STENCIL_OP_KEEP;
         ds.back.compareOp = VK_COMPARE_OP_ALWAYS;
