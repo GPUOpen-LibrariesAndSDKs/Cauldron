@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -66,15 +66,17 @@ namespace CAULDRON_DX12
                     assert(result != false);
                 });
             }
-
-            LoadGeometry();
-
-            if (pAsyncPool)
-                pAsyncPool->Flush();
-
-            // copy textures and apply barriers, then flush the GPU
-            m_pUploadHeap->FlushAndFinish();
         }
+
+        // load geometry
+        //
+        LoadGeometry();
+
+        if (pAsyncPool)
+            pAsyncPool->Flush();
+
+        // copy textures and apply barriers, then flush the GPU
+        m_pUploadHeap->FlushAndFinish();
     }
 
     void GLTFTexturesAndBuffers::LoadGeometry()
@@ -87,9 +89,12 @@ namespace CAULDRON_DX12
                 {
                     //
                     //  Load vertex buffers
-                    //
-                    for (const json &attributeId : primitive["attributes"])
+					//
+					for (auto const& it : primitive["attributes"].items())
                     {
+						auto attributeSemantic = it.key();
+						auto attributeId = it.value();
+
                         tfAccessor vertexBufferAcc;
                         m_pGLTFCommon->GetBufferDetails(attributeId, &vertexBufferAcc);
 
@@ -125,6 +130,12 @@ namespace CAULDRON_DX12
                         }
 
                         m_IndexBufferMap[indexAcc] = ibv;
+                    }
+                    // TODO: Build index buffer if not loaded
+                    else
+                    {
+
+						throw std::runtime_error("Scene has no index buffer. This isn't supported currently.");
                     }
                 }
             }
@@ -183,6 +194,13 @@ namespace CAULDRON_DX12
         tfAccessor indexBuffer;
         int indexBufferId = primitive.value("indices", -1);
         CreateIndexBuffer(indexBufferId, &pGeometry->m_NumIndices, &pGeometry->m_indexType, &pGeometry->m_IBV);
+
+		// Set define so the shaders knows this stream is available
+		// ADJUSTMENT: Switch for index buffer type (none, short, long)
+        if (pGeometry->m_indexType == DXGI_FORMAT_R32_UINT)
+			defines[std::string("HAS_INDEXLONG")] = std::string("1");
+		else if (pGeometry->m_indexType == DXGI_FORMAT_R16_UINT)
+			defines[std::string("HAS_INDEXSHORT")] = std::string("1");
 
         // Create vertex buffers and input layout
         //

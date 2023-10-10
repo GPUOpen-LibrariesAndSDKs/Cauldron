@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -46,8 +46,9 @@ namespace CAULDRON_DX12
         };
         std::vector<BufferCopy> m_bufferCopies;
 
-        std::vector<D3D12_RESOURCE_BARRIER> m_toBarrierIntoShaderResource;
-
+		std::vector<D3D12_RESOURCE_BARRIER> m_toBarrierOutofShaderResource;
+		std::vector<D3D12_RESOURCE_BARRIER> m_toBarrierIntoShaderResource;
+        
         std::mutex m_mutex;
     public:
         void OnCreate(Device *pDevice, SIZE_T uSize);
@@ -65,7 +66,7 @@ namespace CAULDRON_DX12
 
         void AddBarrier(ID3D12Resource *pRes);
 
-        void FlushAndFinish();
+		void FlushAndFinish();
 
     private:
         Device                        *m_pDevice;

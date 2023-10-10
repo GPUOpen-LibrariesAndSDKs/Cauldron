@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -252,7 +252,6 @@ bool GLTFCommon::Load(const std::string &path, const std::string &filename)
             tfnode->m_tranform.m_translation = GetElementVector(node, "translation", math::Vector4(0, 0, 0, 0));
             tfnode->m_tranform.m_scale = GetElementVector(node, "scale", math::Vector4(1, 1, 1, 0));
 
-
             if (node.find("name") != node.end())
                 tfnode->m_name = GetElementString(node, "name", "unnamed");
 
@@ -479,7 +478,13 @@ void GLTFCommon::GetBufferDetails(int accessor, tfAccessor *pAccessor) const
     pAccessor->m_dimension = GetDimensions(inAccessor["type"]);
     pAccessor->m_type = GetFormatSize(inAccessor["componentType"]);
     pAccessor->m_stride = pAccessor->m_dimension * pAccessor->m_type;
-    pAccessor->m_count = inAccessor["count"];
+	pAccessor->m_count = inAccessor["count"];
+
+	if (pAccessor->m_count == 6768 && 0) {
+        pAccessor->m_count = 3 + 1;
+        pAccessor->m_data = (char*)pAccessor->m_data + pAccessor->m_stride * (2168 - 1);
+	}
+
 }
 
 void GLTFCommon::GetAttributesAccessors(const json &gltfAttributes, std::vector<char*> *pStreamNames, std::vector<tfAccessor> *pAccessors) const

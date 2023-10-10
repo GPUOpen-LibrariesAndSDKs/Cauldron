@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -91,8 +91,8 @@ namespace CAULDRON_DX12
         m_pResourceViewHeaps->AllocCBV_SRV_UAVDescriptor(1, &m_output.m_SRV);
         m_pResourceViewHeaps->AllocRTVDescriptor(1, &m_output.m_RTV);
 
-        m_doBlur = true;
-        m_doUpscale = true;
+        m_doBlur = false;
+        m_doUpscale = false;
     }
 
     void Bloom::OnCreateWindowSizeDependentResources(uint32_t Width, uint32_t Height, Texture *pInput, int mipCount, Texture *pOutput)
@@ -183,9 +183,13 @@ namespace CAULDRON_DX12
 
             if (i != 0)
             {
-                pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pInput->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i - 1));
+                {
+                    auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pInput->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i - 1);
+                    pCommandList->ResourceBarrier(1, &transition);
+                }
 
-                pCommandList->OMSetRenderTargets(1, &m_mip[i - 1].m_RTV.GetCPU(), true, NULL);
+                auto handle = m_mip[i - 1].m_RTV.GetCPU();
+                pCommandList->OMSetRenderTargets(1, &handle, true, NULL);
 
                 SetViewportAndScissor(pCommandList, 0, 0, m_Width >> (i - 1), m_Height >> (i - 1));
 
@@ -197,16 +201,22 @@ namespace CAULDRON_DX12
                 if (m_doUpscale)
                     m_blendFactor.Draw(pCommandList, 1, &m_mip[i].m_SRV, constantBuffer);
 
-
-                pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pInput->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1));
+                {
+					auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pInput->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1);
+					pCommandList->ResourceBarrier(1, &transition);
+                }
 
             }
             else
             {
-                pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pOutput->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET));
+                {
+					auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pOutput->GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+                    pCommandList->ResourceBarrier(1, &transition);
+                }
 
-                //composite
-                pCommandList->OMSetRenderTargets(1, &m_output.m_RTV.GetCPU(), true, NULL);
+				//composite
+				auto handle = m_output.m_RTV.GetCPU();
+                pCommandList->OMSetRenderTargets(1, &handle, true, NULL);
 
                 SetViewportAndScissor(pCommandList, 0, 0, m_Width * 2, m_Height * 2);
 
@@ -218,7 +228,10 @@ namespace CAULDRON_DX12
                 if (m_doUpscale)
                     m_blendFactor.Draw(pCommandList, 1, &m_mip[i].m_SRV, constantBuffer);
 
-                pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pOutput->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE));
+                {
+					auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pOutput->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+					pCommandList->ResourceBarrier(1, &transition);
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -62,6 +62,11 @@ AxisAlignedBoundingBox GetAABBInGivenSpace(const math::Matrix4& mTransform, cons
 template<typename T> inline T AlignUp(T val, T alignment)
 {
     return (val + alignment - (T)1) & ~(alignment - (T)1);
+}
+// align val to the next multiple of an arbitrary alignment
+template<typename T> inline T AlignUpSafe(T val, T alignment)
+{
+    auto mismatch = val % alignment; return val + (mismatch ? alignment - mismatch : 0);
 }
 // align val to the previous multiple of alignment
 template<typename T> inline T AlignDown(T val, T alignment)

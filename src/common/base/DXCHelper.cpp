@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,7 +19,11 @@
 
 #include "stdafx.h"
 #include <D3DCompiler.h>
+#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#include "../../libs/d3d12wg/dxcapi.h"
+#else
 #include <dxcapi.h>
+#endif
 #include "Misc/Misc.h"
 #include "DXCHelper.h"
 #include "ShaderCompiler.h"
@@ -46,12 +50,18 @@ DxcCreateInstanceProc s_dxc_create_func;
 
 bool InitDirectXCompiler()
 {
-    std::string fullshaderCompilerPath = "dxcompiler.dll";
+#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+    // Redirect to use experimental implementation
+    std::string fullshaderCompilerPath = "dxc\\dxcompiler.dll";
     std::string fullshaderDXILPath = "dxil.dll";
+#else
+	std::string fullshaderCompilerPath = "dxcompiler.dll";
+	std::string fullshaderDXILPath = "dxil.dll";
+#endif
 
     HMODULE dxil_module = ::LoadLibrary(fullshaderDXILPath.c_str());
-
     HMODULE dxc_module = ::LoadLibrary(fullshaderCompilerPath.c_str());
+
     s_dxc_create_func = (DxcCreateInstanceProc)::GetProcAddress(dxc_module, "DxcCreateInstance");
 
     return s_dxc_create_func != NULL;
@@ -223,7 +233,8 @@ bool DXCompileToDXO(size_t hash,
         IDxcOperationResult* pOpRes;
         HRESULT res;
 
-        if (false)
+        // Generate blob with debug information
+        if (true)
         {
             Microsoft::WRL::ComPtr<IDxcBlob> pPDB;
             LPWSTR pDebugBlobName[1024];

@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -335,7 +335,7 @@ namespace CAULDRON_DX12
         , m_stablePowerState(false)
         , m_isCpuValidationLayerEnabled(ENABLE_CPU_VALIDATION_DEFAULT)
         , m_isGpuValidationLayerEnabled(ENABLE_GPU_VALIDATION_DEFAULT)
-        , m_initializeAGS(false)
+        , m_initializeAGS(true)
 
         // Swapchain management
         , m_swapChain()
@@ -368,9 +368,9 @@ namespace CAULDRON_DX12
         m_device.OnCreate(m_Name, STR_CAULDRON, m_isCpuValidationLayerEnabled, m_isGpuValidationLayerEnabled, m_windowHwnd, m_initializeAGS);
 
         // set stable power state (only works when Developer Mode is enabled)
-        if (m_stablePowerState)
+        if (1)
         {
-            HRESULT hr = m_device.GetDevice()->SetStablePowerState(TRUE);
+            HRESULT hr = m_device.GetDevice()->SetStablePowerState(m_stablePowerState ? TRUE : FALSE);
 
             // handle failure / device removed
             if (FAILED(hr))

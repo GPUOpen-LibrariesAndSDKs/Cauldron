@@ -41,7 +41,7 @@ namespace CAULDRON_VK
     class DynamicBufferRing
     {
     public:
-        VkResult OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize, char *name = NULL);
+        VkResult OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize, const char *name = NULL);
         void OnDestroy();
         bool AllocConstantBuffer(uint32_t size, void **pData, VkDescriptorBufferInfo *pOut);
         VkDescriptorBufferInfo AllocConstantBuffer(uint32_t size, void *pData);

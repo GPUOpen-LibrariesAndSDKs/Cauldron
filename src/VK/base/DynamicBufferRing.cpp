@@ -29,7 +29,7 @@ namespace CAULDRON_VK
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    VkResult DynamicBufferRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize, char *name)
+    VkResult DynamicBufferRing::OnCreate(Device *pDevice, uint32_t numberOfBackBuffers, uint32_t memTotalSize, const char *name)
     {
         VkResult res;
         m_pDevice = pDevice;
@@ -46,7 +46,7 @@ namespace CAULDRON_VK
         VmaAllocationCreateInfo allocInfo = {};
         allocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
         allocInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-        allocInfo.pUserData = name;
+        allocInfo.pUserData = (void*)name;
 
         res = vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_buffer, &m_bufferAlloc, nullptr);
         assert(res == VK_SUCCESS);

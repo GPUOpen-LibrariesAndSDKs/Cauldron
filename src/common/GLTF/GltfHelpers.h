@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -30,10 +30,10 @@ void SplitGltfAttribute(std::string attribute, std::string *semanticName, uint32
 
 math::Vector4 GetVector(const json::array_t &accessor);
 math::Matrix4 GetMatrix(const json::array_t &accessor);
-std::string GetElementString(const json::object_t &root, const char *path, std::string pDefault);
-float GetElementFloat(const json::object_t &root, const char *path, float pDefault);
-int GetElementInt(const json::object_t &root, const char *path, int pDefault);
-bool GetElementBoolean(const json::object_t &root, const char *path, bool pDefault);
-json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t pDefault);
-math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 default);
+std::string GetElementString(const json::object_t &root, const char *path, std::string defaultValue);
+float GetElementFloat(const json::object_t &root, const char *path, float defaultValue);
+int GetElementInt(const json::object_t &root, const char *path, int defaultValue);
+bool GetElementBoolean(const json::object_t &root, const char *path, bool defaultValue);
+json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t defaultValue);
+math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 defaultValue);
 

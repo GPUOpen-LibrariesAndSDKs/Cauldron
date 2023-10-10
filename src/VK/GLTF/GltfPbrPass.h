@@ -106,7 +106,7 @@ namespace CAULDRON_VK
         std::vector<PBRMesh> m_meshes;
         std::vector<PBRMaterial> m_materialsData;
 
-        GltfPbrPass::per_frame m_cbPerFrame;
+        per_frame m_cbPerFrame;
 
         PBRMaterial m_defaultMaterial;
 

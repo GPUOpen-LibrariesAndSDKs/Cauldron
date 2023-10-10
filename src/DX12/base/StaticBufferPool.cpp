@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -34,29 +34,40 @@ namespace CAULDRON_DX12
         m_bUseVidMem = bUseVidMem;
 
         if (bUseVidMem)
-        {
+		{
+			auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+			auto buffer = CD3DX12_RESOURCE_DESC::Buffer(totalMemSize);
+
             ThrowIfFailed(
                 m_pDevice->GetDevice()->CreateCommittedResource(
-                    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+                    &properties,
                     D3D12_HEAP_FLAG_NONE,
-                    &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
-                    D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER,
-                    nullptr,
+					&buffer,
+                    // ADJUSTMENT: Allow computer shader access to vertex buffers via UAV
+                //  D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
+					D3D12_RESOURCE_STATE_COMMON,
+					nullptr,
                     IID_PPV_ARGS(&m_pVidMemBuffer))
             );
             SetName(m_pVidMemBuffer, "StaticBufferPoolDX12::m_pVidMemBuffer");
         }
 
-        ThrowIfFailed(
-            m_pDevice->GetDevice()->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-                D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
-                D3D12_RESOURCE_STATE_GENERIC_READ,
-                nullptr,
-                IID_PPV_ARGS(&m_pSysMemBuffer))
-        );
-        SetName(m_pSysMemBuffer, "StaticBufferPoolDX12::m_pSysMemBuffer");
+        {
+            auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+            auto buffer = CD3DX12_RESOURCE_DESC::Buffer(totalMemSize);
+
+            ThrowIfFailed(
+                m_pDevice->GetDevice()->CreateCommittedResource(
+                    &properties,
+                    D3D12_HEAP_FLAG_NONE,
+					&buffer,
+					// ADJUSTMENT: Allow computer shader access to vertex buffers via UAV
+                    D3D12_RESOURCE_STATE_GENERIC_READ,
+                    nullptr,
+                    IID_PPV_ARGS(&m_pSysMemBuffer))
+            );
+            SetName(m_pSysMemBuffer, "StaticBufferPoolDX12::m_pSysMemBuffer");
+        }
 
         m_pSysMemBuffer->Map(0, NULL, reinterpret_cast<void**>(&m_pData));
     }
@@ -79,27 +90,52 @@ namespace CAULDRON_DX12
         }
     }
 
-    bool StaticBufferPool::AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void **pData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize)
+    static uint32_t gcd(uint32_t a, uint32_t b)
+    {
+        while (a != b)
+        {
+            if (a > b)
+                a = a - b;
+            else
+                b = b - a;
+        }
+
+        return a;
+    }
+
+	static uint32_t lcm(uint32_t a, uint32_t b)
+    {
+		return (a * b) / gcd(a, b);
+	}
+
+    bool StaticBufferPool::AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void **pData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t* pSize, uint32_t baseAlignment)
     {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        uint32_t size = AlignUp(numbeOfElements* strideInBytes, 256u);
-        assert(m_memOffset + size < m_totalMemSize);
+        // ADJUSTMENT: Make position locations divisible by 12 / sizeof(float3), 768/12=64, for global indexing
+        D3D12_GPU_VIRTUAL_ADDRESS address = ((m_bUseVidMem) ? m_pVidMemBuffer->GetGPUVirtualAddress() : m_pSysMemBuffer->GetGPUVirtualAddress());
+		uint32_t safe_size = AlignUpSafe(numbeOfElements * strideInBytes, baseAlignment);
+		uint32_t safe_offset = AlignUpSafe(m_memOffset, lcm(strideInBytes, baseAlignment)) - m_memOffset;
+
+		m_memOffset += safe_offset;
+
+		assert(m_memOffset % strideInBytes == 0);
+		assert(m_memOffset % baseAlignment == 0);
+		assert(m_memOffset + safe_size < m_totalMemSize);
 
         *pData = (void *)(m_pData + m_memOffset);
+        *pBufferLocation = address + m_memOffset;
+		*pSize = safe_size;
 
-        *pBufferLocation = m_memOffset + ((m_bUseVidMem) ? m_pVidMemBuffer->GetGPUVirtualAddress() : m_pSysMemBuffer->GetGPUVirtualAddress());
-        *pSize = size;
-
-        m_memOffset += size;
+		m_memOffset += safe_size;
 
         return true;
     }
 
-    bool StaticBufferPool::AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void *pInitData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize)
+    bool StaticBufferPool::AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void *pInitData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize, uint32_t baseAlignment)
     {
         void *pData;
-        if (AllocBuffer(numbeOfElements, strideInBytes, &pData, pBufferLocation, pSize))
+        if (AllocBuffer(numbeOfElements, strideInBytes, &pData, pBufferLocation, pSize, baseAlignment))
         {
             memcpy(pData, pInitData, numbeOfElements*strideInBytes);
             return true;
@@ -109,7 +145,7 @@ namespace CAULDRON_DX12
 
     bool StaticBufferPool::AllocVertexBuffer(uint32_t numberOfVertices, uint32_t strideInBytes, void **pData, D3D12_VERTEX_BUFFER_VIEW *pView)
     {
-        AllocBuffer(numberOfVertices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes);
+        AllocBuffer(numberOfVertices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes, 4u);
         pView->StrideInBytes = strideInBytes;
 
         return true;
@@ -128,7 +164,7 @@ namespace CAULDRON_DX12
 
     bool StaticBufferPool::AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, D3D12_INDEX_BUFFER_VIEW *pView)
     {
-        AllocBuffer(numbeOfIndices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes);
+        AllocBuffer(numbeOfIndices, strideInBytes, pData, &pView->BufferLocation, &pView->SizeInBytes, 4u);
         pView->Format = (strideInBytes == 4) ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
 
         return true;
@@ -147,7 +183,7 @@ namespace CAULDRON_DX12
 
     bool StaticBufferPool::AllocConstantBuffer(uint32_t size, void **pData, D3D12_CONSTANT_BUFFER_VIEW_DESC  *pViewDesc)
     {
-        AllocBuffer(size, 1, pData, &pViewDesc->BufferLocation, &pViewDesc->SizeInBytes);
+        AllocBuffer(size, 1, pData, &pViewDesc->BufferLocation, &pViewDesc->SizeInBytes, 256u);
 
         return true;
     }
@@ -166,8 +202,13 @@ namespace CAULDRON_DX12
     void StaticBufferPool::UploadData(ID3D12GraphicsCommandList *pCmdList)
     {
         if (m_bUseVidMem)
-        {
-            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, D3D12_RESOURCE_STATE_COPY_DEST));
+		{
+			// ADJUSTMENT: Allow computer shader access to vertex buffers via UAV
+            {
+                auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer,
+                    D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_COPY_DEST);
+                pCmdList->ResourceBarrier(1, &barrier);
+            }
 
             pCmdList->CopyBufferRegion(m_pVidMemBuffer, m_memInit, m_pSysMemBuffer, m_memInit, m_memOffset - m_memInit);
 
@@ -181,11 +222,15 @@ namespace CAULDRON_DX12
             // same resource with the Vertex or Constant buffers. Hence is why we need separate classes.
             // For Index and Vertex buffers we *could* use the same resource, but index buffers need their own resource.
             // Please note that in the interest of clarity vertex buffers and constant buffers have been split into two different classes though
-            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+			{
+				auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer,
+                    D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+                pCmdList->ResourceBarrier(1, &barrier);
+            }
 
             m_memInit = m_memOffset;
         }
-    }
+	}
 
     void StaticBufferPool::FreeUploadHeap()
     {
@@ -197,10 +242,24 @@ namespace CAULDRON_DX12
         }
     }
 
-    ID3D12Resource *StaticBufferPool::GetResource()
+    ID3D12Resource *StaticBufferPool::GetResource() const
     {
         return (m_bUseVidMem) ? m_pVidMemBuffer : m_pSysMemBuffer;
-    }
+	}
+
+    // ADJUSTMENT: Get a descriptor for the whole mesh heap in the given format
+	void StaticBufferPool::CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, DXGI_FORMAT elementFormat, size_t elementSize)
+	{
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+		srvDesc.Format = elementFormat;
+		srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+		srvDesc.Buffer.FirstElement = 0;
+		srvDesc.Buffer.NumElements = UINT(GetSize() / elementSize);
+		srvDesc.Buffer.StructureByteStride = 0;
+		srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;// D3D12_BUFFER_SRV_FLAG_RAW;
+		srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		m_pDevice->GetDevice()->CreateShaderResourceView(GetResource(), &srvDesc, pRV->GetCPU(index));
+	}
 
 }
 

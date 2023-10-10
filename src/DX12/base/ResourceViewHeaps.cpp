@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -48,6 +48,10 @@ namespace CAULDRON_DX12
             pDevice->GetDevice()->CreateDescriptorHeap(&descHeap, IID_PPV_ARGS(&m_pHeap))
         );
         SetName(m_pHeap, "StaticHeapDX12");
+
+		// ADJUSTMENT: fixed visibility violation reported by debug-layer
+        m_CPUVisible = true;// descHeap.Flags == D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		m_GPUVisible = descHeap.Flags == D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     }
 
     //--------------------------------------------------------------------------------------

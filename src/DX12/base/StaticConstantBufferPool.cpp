@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -39,12 +39,15 @@ namespace CAULDRON_DX12
         m_pCBVDesc = new D3D12_CONSTANT_BUFFER_VIEW_DESC[cbvEntriesSize];
 
         if (bUseVidMem)
-        {
+		{
+			auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+			auto buffer = CD3DX12_RESOURCE_DESC::Buffer(totalMemSize);
+
             ThrowIfFailed(
                 pDevice->GetDevice()->CreateCommittedResource(
-                    &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+                    &properties,
                     D3D12_HEAP_FLAG_NONE,
-                    &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
+                    &buffer,
                     D3D12_RESOURCE_STATE_COMMON,
                     nullptr,
                     IID_PPV_ARGS(&m_pVidMemBuffer))
@@ -52,16 +55,21 @@ namespace CAULDRON_DX12
             SetName(m_pVidMemBuffer, "StaticConstantBufferPoolDX12::m_pVidMemBuffer");
         }
 
-        ThrowIfFailed(
-            pDevice->GetDevice()->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
-                D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer(totalMemSize),
-                D3D12_RESOURCE_STATE_GENERIC_READ,
-                nullptr,
-                IID_PPV_ARGS(&m_pSysMemBuffer))
-        );
-        SetName(m_pSysMemBuffer, "StaticConstantBufferPoolDX12::m_pSysMemBuffer");
+		{
+			auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+			auto buffer = CD3DX12_RESOURCE_DESC::Buffer(totalMemSize);
+
+            ThrowIfFailed(
+                pDevice->GetDevice()->CreateCommittedResource(
+                    &properties,
+                    D3D12_HEAP_FLAG_NONE,
+                    &buffer,
+                    D3D12_RESOURCE_STATE_GENERIC_READ,
+                    nullptr,
+                    IID_PPV_ARGS(&m_pSysMemBuffer))
+            );
+            SetName(m_pSysMemBuffer, "StaticConstantBufferPoolDX12::m_pSysMemBuffer");
+        }
 
         m_pSysMemBuffer->Map(0, NULL, reinterpret_cast<void**>(&m_pData));
     }
@@ -132,7 +140,9 @@ namespace CAULDRON_DX12
             // same resource with the Vertex or Constant buffers. Hence is why we need separate classes.
             // For Index and Vertex buffers we *could* use the same resource, but index buffers need their own resource.
             // Please note that in the interest of clarity vertex buffers and constant buffers have been split into two different classes though
-            pCmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+			auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pVidMemBuffer, D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
+
+            pCmdList->ResourceBarrier(1, &transition);
         }
     }
 

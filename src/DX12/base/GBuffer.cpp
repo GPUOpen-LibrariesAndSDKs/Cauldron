@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -199,7 +199,8 @@ namespace CAULDRON_DX12
     {
         if (m_GBufferFlags & GBUFFER_DEPTH)
         {
-            m_DepthBuffer.InitDepthStencil(m_pDevice, "m_depthbuffer", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DEPTH], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL));
+            auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DEPTH], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+            m_DepthBuffer.InitDepthStencil(m_pDevice, "m_depthbuffer", &tex);
             m_DepthBuffer.CreateDSV(0, &m_DepthBufferDSV);
             m_DepthBuffer.CreateSRV(0, &m_DepthBufferSRV);
         }
@@ -208,7 +209,8 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_FORWARD)
         {
-            m_HDR.InitRenderTarget(m_pDevice, "m_HDR", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_FORWARD], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS), D3D12_RESOURCE_STATE_RENDER_TARGET);
+            auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_FORWARD], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+            m_HDR.InitRenderTarget(m_pDevice, "m_HDR", &tex, D3D12_RESOURCE_STATE_RENDER_TARGET);
             m_HDR.CreateSRV(0, &m_HDRSRV);
             m_HDR.CreateUAV(0, &m_HDRUAV);
             m_HDR.CreateRTV(0, &m_HDRRTV);
@@ -218,7 +220,8 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_MOTION_VECTORS)
         {
-            m_MotionVectors.InitRenderTarget(m_pDevice, "m_MotionVector", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_MOTION_VECTORS], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+			auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_MOTION_VECTORS], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+			m_MotionVectors.InitRenderTarget(m_pDevice, "m_MotionVector", &tex);
             m_MotionVectors.CreateRTV(0, &m_MotionVectorsRTV);
             m_MotionVectors.CreateSRV(0, &m_MotionVectorsSRV);
         }
@@ -227,7 +230,8 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_NORMAL_BUFFER)
         {
-            m_NormalBuffer.InitRenderTarget(m_pDevice, "m_NormalBuffer", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_NORMAL_BUFFER], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+			auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_NORMAL_BUFFER], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+			m_NormalBuffer.InitRenderTarget(m_pDevice, "m_NormalBuffer", &tex);
             m_NormalBuffer.CreateRTV(0, &m_NormalBufferRTV);
             m_NormalBuffer.CreateSRV(0, &m_NormalBufferSRV);
         }
@@ -236,7 +240,8 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_DIFFUSE)
         {
-            m_Diffuse.InitRenderTarget(m_pDevice, "m_Diffuse", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DIFFUSE], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+			auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_DIFFUSE], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+			m_Diffuse.InitRenderTarget(m_pDevice, "m_Diffuse", &tex);
             m_Diffuse.CreateRTV(0, &m_DiffuseRTV);
             m_Diffuse.CreateSRV(0, &m_DiffuseSRV);
         }
@@ -245,7 +250,8 @@ namespace CAULDRON_DX12
         //
         if (m_GBufferFlags & GBUFFER_SPECULAR_ROUGHNESS)
         {
-            m_SpecularRoughness.InitRenderTarget(m_pDevice, "m_SpecularRoughness", &CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_SPECULAR_ROUGHNESS], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET));
+			auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_formats[GBUFFER_SPECULAR_ROUGHNESS], Width, Height, 1, 1, m_sampleCount, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+			m_SpecularRoughness.InitRenderTarget(m_pDevice, "m_SpecularRoughness", &tex);
             m_SpecularRoughness.CreateRTV(0, &m_SpecularRoughnessRTV);
             m_SpecularRoughness.CreateSRV(0, &m_SpecularRoughnessSRV);
         }

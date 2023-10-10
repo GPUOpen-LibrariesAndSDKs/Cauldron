@@ -5,6 +5,8 @@ set(GLTF_src
     GLTF/GltfBBoxPass.h
     GLTF/GltfDepthPass.cpp
     GLTF/GltfDepthPass.h
+    GLTF/GltfRasterizerPass.cpp
+    GLTF/GltfRasterizerPass.h
     GLTF/GltfHelpers.cpp
     GLTF/GltfHelpers.h
     GLTF/GltfPbrPass.cpp
@@ -135,6 +137,13 @@ set(Shaders_GLTF_src
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Skinning.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/GLTFVertexFactory.hlsl
     ${CMAKE_CURRENT_SOURCE_DIR}/shaders/perFrameStruct.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/Rasterizer_common.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/RasterizerEI.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/RasterizerWG.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/RasterizerMS.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/RasterizerEI_hg.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/RasterizerWG_hg.hlsl
+    ${CMAKE_CURRENT_SOURCE_DIR}/shaders/RasterizerMS_hg.hlsl
 )
 
 add_library (Cauldron_DX12 STATIC ${GLTF_src} ${PostProc_src} ${Base_src} ${Widgets_src} )

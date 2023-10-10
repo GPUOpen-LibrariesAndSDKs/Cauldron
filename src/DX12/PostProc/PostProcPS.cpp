@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -25,6 +25,12 @@
 #include "Misc/ThreadPool.h"
 
 #include "PostProcPS.h"
+
+#if _DEBUG
+#define DEFAULT_SHADER_COMPILE_FLAGS  "-Zi"
+#else
+#define DEFAULT_SHADER_COMPILE_FLAGS  ""
+#endif
 
 namespace CAULDRON_DX12
 {
@@ -68,10 +74,13 @@ namespace CAULDRON_DX12
         // Compile shaders
         //
         {
+			std::string compileParamsVS = ""; compileParamsVS += pVSTarget; compileParamsVS += " "; compileParamsVS += DEFAULT_SHADER_COMPILE_FLAGS;
+			std::string compileParamsPS = ""; compileParamsPS += pPSTarget; compileParamsPS += " "; compileParamsPS += DEFAULT_SHADER_COMPILE_FLAGS;
+
             DefineList defines;
-            CompileShaderFromString(vertexShader, &defines, "mainVS", pVSTarget, &m_shaderVert);
-            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", pPSTarget, &m_shaderPixel);
-        }
+            CompileShaderFromString(vertexShader, &defines, "mainVS", compileParamsVS.c_str(), &m_shaderVert);
+            CompileShaderFromFile(shaderFilename.c_str(), &defines, "mainPS", compileParamsPS.c_str(), &m_shaderPixel);
+		}
 
         // Create root signature
         //
@@ -151,9 +160,14 @@ namespace CAULDRON_DX12
         for (uint32_t i = 0; i < numRenderTargets; ++i)
             descPso.RTVFormats[i] = outFormat;
         descPso.SampleDesc.Count = psoSampleDescCount;
-        descPso.NodeMask = 0;
+		descPso.NodeMask = 0;
         ThrowIfFailed(
-            m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline))
+            m_pDevice->GetDevice()->CreateGraphicsPipelineState(&descPso, IID_PPV_ARGS(&m_pPipeline)),
+            [=]() {
+                HRESULT hr = m_pDevice->GetDevice()->GetDeviceRemovedReason();
+                if (hr == 0)
+                    return;
+            }
         );
         SetName(m_pPipeline, "PostProcPS::m_pPipeline");
     }

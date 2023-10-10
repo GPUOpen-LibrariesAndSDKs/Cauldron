@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -43,11 +43,14 @@ namespace CAULDRON_DX12
 
         // Create buffer to suballocate
 
+		auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		auto buffer = CD3DX12_RESOURCE_DESC::Buffer(uSize);
+
         ThrowIfFailed(
             pDevice->GetDevice()->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+                &properties,
                 D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer(uSize),
+                &buffer,
                 D3D12_RESOURCE_STATE_GENERIC_READ,
                 nullptr,
                 IID_PPV_ARGS(&m_pUploadHeap)
@@ -141,10 +144,19 @@ namespace CAULDRON_DX12
         EndSuballocate();
 
         {
-            std::unique_lock<std::mutex> lock(m_mutex);
+			std::unique_lock<std::mutex> lock(m_mutex);
+
+			D3D12_RESOURCE_BARRIER RBDesc = {};
+
+			RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			RBDesc.Transition.pResource = pBufferDst;
+			RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			RBDesc.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+			RBDesc.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+			m_toBarrierOutofShaderResource.push_back(RBDesc);
+
             m_bufferCopies.push_back({ pBufferDst, (UINT64)(pixels - BasePtr()), size });
 
-            D3D12_RESOURCE_BARRIER RBDesc = {};
             RBDesc.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
             RBDesc.Transition.pResource = pBufferDst;
             RBDesc.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
@@ -194,6 +206,13 @@ namespace CAULDRON_DX12
         std::unique_lock<std::mutex> lock(m_mutex);
         Trace("flushing %i, %i", m_textureCopies.size(), m_bufferCopies.size());
 
+		//apply barriers in one go
+		if (m_toBarrierOutofShaderResource.size() > 0)
+		{
+			m_pCommandList->ResourceBarrier((UINT)m_toBarrierOutofShaderResource.size(), m_toBarrierOutofShaderResource.data());
+            m_toBarrierOutofShaderResource.clear();
+		}
+
         //issue copies
         for (TextureCopy c : m_textureCopies)
         {
@@ -228,5 +247,5 @@ namespace CAULDRON_DX12
         m_pDataCur = m_pDataBegin;
 
         flushing.Dec();
-    }
+	}
 }

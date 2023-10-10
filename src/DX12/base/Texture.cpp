@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -64,8 +64,10 @@ namespace CAULDRON_DX12
 
     INT32 Texture::Init(Device* pDevice, const char* pDebugName, const CD3DX12_RESOURCE_DESC* pDesc, D3D12_RESOURCE_STATES initialState, const D3D12_CLEAR_VALUE* pClearValue)
     {
+		auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
         HRESULT hr = pDevice->GetDevice()->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            &properties,
             D3D12_HEAP_FLAG_NONE,
             pDesc,
             initialState,
@@ -144,8 +146,10 @@ namespace CAULDRON_DX12
         m_header.depth = (UINT32)pDesc->Depth();
         m_header.arraySize = (UINT32)pDesc->ArraySize();
 
+		auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
         HRESULT hr = pDevice->GetDevice()->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+            &properties,
             D3D12_HEAP_FLAG_NONE,
             &desc,
             state,
@@ -457,8 +461,10 @@ namespace CAULDRON_DX12
         //    states |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         states |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
-        pDevice->GetDevice()->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+		pDevice->GetDevice()->CreateCommittedResource(
+            &properties,
             D3D12_HEAP_FLAG_NONE,
             pDesc,
             states,
@@ -487,8 +493,10 @@ namespace CAULDRON_DX12
         CD3DX12_RESOURCE_DESC RDescs;
         RDescs = CD3DX12_RESOURCE_DESC::Tex2D((DXGI_FORMAT)m_header.format, m_header.width, m_header.height, m_header.arraySize, m_header.mipMapCount, 1, 0, resourceFlags);
 
-        pDevice->GetDevice()->CreateCommittedResource(
-            &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+		auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+		pDevice->GetDevice()->CreateCommittedResource(
+            &properties,
             D3D12_HEAP_FLAG_NONE,
             &RDescs,
             D3D12_RESOURCE_STATE_COMMON,

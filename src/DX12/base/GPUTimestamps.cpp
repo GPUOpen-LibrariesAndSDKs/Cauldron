@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -33,16 +33,23 @@ namespace CAULDRON_DX12
         queryHeapDesc.NodeMask = 0;
         ThrowIfFailed(pDevice->GetDevice()->CreateQueryHeap(&queryHeapDesc, IID_PPV_ARGS(&m_pQueryHeap)));
 
-        ThrowIfFailed(
+		auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+		auto buffer = CD3DX12_RESOURCE_DESC::Buffer(sizeof(uint64_t) * numberOfBackBuffers * MaxValuesPerFrame);
+
+		ThrowIfFailed(
             pDevice->GetDevice()->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK),
+                &properties,
                 D3D12_HEAP_FLAG_NONE,
-                &CD3DX12_RESOURCE_DESC::Buffer(sizeof(uint64_t) * numberOfBackBuffers * MaxValuesPerFrame),
+                &buffer,
                 D3D12_RESOURCE_STATE_COPY_DEST,
                 nullptr,
                 IID_PPV_ARGS(&m_pBuffer))
         );
         SetName(m_pBuffer, "GPUTimestamps::m_pBuffer");
+
+		m_smoothedValuesPerFrame = 0;
+		m_smoothedValues.resize(MaxValuesPerFrame);
+        m_smoothedCounts.resize(MaxValuesPerFrame);
     }
 
     void GPUTimestamps::OnDestroy()
@@ -71,7 +78,7 @@ namespace CAULDRON_DX12
         pCommandList->ResolveQueryData(m_pQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, m_frame*MaxValuesPerFrame, numMeasurements, m_pBuffer, m_frame * MaxValuesPerFrame* sizeof(UINT64));
     }
 
-    void GPUTimestamps::OnBeginFrame(UINT64 gpuTicksPerSecond, std::vector<TimeStamp> *pTimestamps)
+    void GPUTimestamps::OnBeginFrame(UINT64 gpuTicksPerSecond, std::vector<TimeStamp> *pTimestamps, bool smoothing)
     {
         std::vector<TimeStamp> &cpuTimeStamps = m_cpuTimeStamps[m_frame];
         std::vector<std::string> &gpuLabels = m_labels[m_frame];
@@ -102,14 +109,41 @@ namespace CAULDRON_DX12
 
             UINT64 *pTimingsInTicks = &pTimingsBuffer[ini];
 
+            if (m_smoothedValuesPerFrame != numMeasurements) {
+                m_smoothedValuesPerFrame = numMeasurements;
+				std::fill(m_smoothedValues.begin(), m_smoothedValues.end(), 0);
+				std::fill(m_smoothedCounts.begin(), m_smoothedCounts.end(), 0);
+            }
+
+			for (uint32_t i = 0; i < numMeasurements; i++)
+			{
+                uint64_t delta = std::max(0LL, int64_t(i == 0
+                    ? pTimingsInTicks[numMeasurements - 1] - pTimingsInTicks[0]
+                    : pTimingsInTicks[i] - pTimingsInTicks[i - 1]));
+
+				if (m_smoothedCounts[i] >= 120) {
+					m_smoothedValues[i] /= 2;
+					m_smoothedCounts[i] /= 2;
+				}
+
+                static bool reset = false;
+				if (!smoothing) {
+					m_smoothedValues[i] = 0;
+					m_smoothedCounts[i] = 0;
+				}
+
+				m_smoothedValues[i] += delta;
+				m_smoothedCounts[i] += 1;
+			}
+
             for (uint32_t i = 1; i < numMeasurements; i++)
             {
-                TimeStamp ts = { gpuLabels[i], float(microsecondsPerTick * (double)(pTimingsInTicks[i] - pTimingsInTicks[i-1])) };
+                TimeStamp ts = { gpuLabels[i], float(microsecondsPerTick * (double)m_smoothedValues[i] / m_smoothedCounts[i]), m_smoothedValues[i] / m_smoothedCounts[i] };
                 pTimestamps->push_back(ts);
             }
 
             // compute total
-            TimeStamp ts = { "Total GPU Time", float(microsecondsPerTick * (double)(pTimingsInTicks[numMeasurements - 1] - pTimingsInTicks[0])) };
+            TimeStamp ts = { "Total GPU Time", float(microsecondsPerTick * (double)m_smoothedValues[0] / m_smoothedCounts[0]), m_smoothedValues[0] / m_smoothedCounts[0] };
             pTimestamps->push_back(ts);
 
             CD3DX12_RANGE writtenRange(0, 0);

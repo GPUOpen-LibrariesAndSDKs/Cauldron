@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -371,8 +371,8 @@ namespace CAULDRON_DX12
         // Compile and create shaders
         //
         D3D12_SHADER_BYTECODE shaderVert, shaderPixel;
-        CompileShaderFromFile("GLTFPbrPass-VS.hlsl", &defines, "mainVS", "-T vs_6_0 -Zi -Od", &shaderVert);
-        CompileShaderFromFile("GLTFPbrPass-PS.hlsl", &defines, "mainPS", "-T ps_6_0 -Zi -Od", &shaderPixel);
+        CompileShaderFromFile("GLTFPbrPass-VS.hlsl", &defines, "mainVS", "-Od -Zi -T vs_6_0", &shaderVert);
+        CompileShaderFromFile("GLTFPbrPass-PS.hlsl", &defines, "mainPS", "-Od -Zi -T ps_6_0", &shaderPixel);
 
         // Set blending
         //
@@ -395,7 +395,7 @@ namespace CAULDRON_DX12
         descPso.VS = shaderVert;
         descPso.PS = shaderPixel;
         descPso.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-        descPso.RasterizerState.CullMode = (pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT;
+        descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; //(pPrimitive->m_pMaterial->m_pbrMaterialParameters.m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT;
         descPso.BlendState = blendState;
         descPso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
         descPso.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;

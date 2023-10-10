@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -115,7 +115,8 @@ namespace CAULDRON_DX12
 
         // Create a temporary texture to hold the horizontal pass (only now we know the size of the render target we want to downsample, hence we create the temporary render target here)
         //
-        m_tempBlur.InitRenderTarget(pDevice, "BlurPS::m_tempBlur", &CD3DX12_RESOURCE_DESC::Tex2D(m_outFormat, m_Width, m_Height, 1, m_mipCount, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_outFormat, m_Width, m_Height, 1, m_mipCount, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+        m_tempBlur.InitRenderTarget(pDevice, "BlurPS::m_tempBlur", &tex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         // Create views for the mip chain
         //
@@ -151,12 +152,16 @@ namespace CAULDRON_DX12
 
         SetViewportAndScissor(pCommandList, 0, 0, m_Width >> mipLevel, m_Height >> mipLevel);
 
-        pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_tempBlur.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, mipLevel));
+        {
+			auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_tempBlur.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, mipLevel);
+			pCommandList->ResourceBarrier(1, &transition);
+        }
 
         // horizontal pass
         //
         {
-            pCommandList->OMSetRenderTargets(1, &m_horizontalMip[mipLevel].m_RTV.GetCPU(), true, NULL);
+            auto handle = m_horizontalMip[mipLevel].m_RTV.GetCPU();
+            pCommandList->OMSetRenderTargets(1, &handle, true, NULL);
 
             BlurPS::cbBlur data;
             data.mipLevel = mipLevel;
@@ -176,7 +181,8 @@ namespace CAULDRON_DX12
         // vertical pass
         //
         {
-            pCommandList->OMSetRenderTargets(1, &m_verticalMip[mipLevel].m_RTV.GetCPU(), true, NULL);
+			auto handle = m_verticalMip[mipLevel].m_RTV.GetCPU();
+            pCommandList->OMSetRenderTargets(1, &handle, true, NULL);
 
             BlurPS::cbBlur data;
             data.mipLevel = mipLevel;
@@ -187,7 +193,10 @@ namespace CAULDRON_DX12
             m_directionalBlur.Draw(pCommandList, 1, &m_verticalMip[mipLevel].m_SRV, constantBuffer);
         }
 
-        pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_pInput->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, mipLevel));
+		{
+			auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_pInput->GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, mipLevel);
+			pCommandList->ResourceBarrier(1, &transition);
+		}
 
     }
 

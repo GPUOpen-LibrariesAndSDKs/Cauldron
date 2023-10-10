@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -312,7 +312,7 @@ namespace CAULDRON_DX12
         descPso.RasterizerState.DepthBias = 0;
         descPso.RasterizerState.DepthBiasClamp = 0;
         descPso.RasterizerState.SlopeScaledDepthBias = 1.0f; // makes shadow acne on sponza go away. but seems like need to adjust this per scene? dx11 shadow sample sets this to 1.0f. but they are using pcf offset primariliy to get rid of shadow acne
-        descPso.RasterizerState.CullMode = D3D12_CULL_MODE_NONE; //(pPrimitive->m_pMaterial->m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT; avoiding some light leaks
+        descPso.RasterizerState.CullMode = (pPrimitive->m_pMaterial->m_doubleSided) ? D3D12_CULL_MODE_NONE : D3D12_CULL_MODE_FRONT; // avoiding some light leaks
         descPso.RasterizerState.DepthClipEnable = false;
         descPso.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
         descPso.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);

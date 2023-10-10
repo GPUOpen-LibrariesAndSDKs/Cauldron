@@ -21,7 +21,12 @@
 //
 #pragma once
 
+#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#include "../../libs/d3d12wg/d3d12.h"
+#else
 #include <d3d12.h>
+#endif
+
 #include "../../libs/AGS/amd_ags.h"
 
 namespace CAULDRON_DX12

@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -21,6 +21,7 @@
 #include <mutex>
 #include "Device.h"
 
+#include "ResourceViewHeaps.h"
 
 namespace CAULDRON_DX12
 {
@@ -36,8 +37,8 @@ namespace CAULDRON_DX12
         void OnCreate(Device *pDevice, uint32_t totalMemSize, bool bUseVidMem, const char* name);
         void OnDestroy();
 
-        bool AllocBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize);
-        bool AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void *pInitData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize);
+        bool AllocBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize, uint32_t baseAlignment = 256u);
+        bool AllocBuffer(uint32_t numbeOfElements, uint32_t strideInBytes, void *pInitData, D3D12_GPU_VIRTUAL_ADDRESS *pBufferLocation, uint32_t *pSize, uint32_t baseAlignment = 256u);
 
         bool AllocVertexBuffer(uint32_t numbeOfVertices, uint32_t strideInBytes, void **pData, D3D12_VERTEX_BUFFER_VIEW *pView);
         bool AllocIndexBuffer(uint32_t numbeOfIndices, uint32_t strideInBytes, void **pData, D3D12_INDEX_BUFFER_VIEW *pIndexView);
@@ -50,7 +51,10 @@ namespace CAULDRON_DX12
         void UploadData(ID3D12GraphicsCommandList *pCmdList);
         void FreeUploadHeap();
         
-        ID3D12Resource *GetResource();
+		ID3D12Resource* GetResource() const;
+		void CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, DXGI_FORMAT elementFormat, size_t elementSize);
+
+        inline size_t GetSize() const { return m_totalMemSize; }
 
     private:
         Device          *m_pDevice = nullptr;

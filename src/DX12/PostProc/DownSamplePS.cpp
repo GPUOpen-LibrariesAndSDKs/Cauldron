@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -82,7 +82,8 @@ namespace CAULDRON_DX12
         m_mipCount = mipCount;
         m_pInput = pInput;
 
-        m_result.InitRenderTarget(m_pDevice, "DownSamplePS::m_result", &CD3DX12_RESOURCE_DESC::Tex2D(m_outFormat, m_Width >> 1, m_Height >> 1, 1, mipCount, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        auto tex = CD3DX12_RESOURCE_DESC::Tex2D(m_outFormat, m_Width >> 1, m_Height >> 1, 1, mipCount, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
+        m_result.InitRenderTarget(m_pDevice, "DownSamplePS::m_result", &tex, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
         // Create views for the mip chain
         //
@@ -123,7 +124,8 @@ namespace CAULDRON_DX12
         //
         for (int i = 0; i < m_mipCount; i++)
         {
-            pCommandList->OMSetRenderTargets(1, &m_mip[i].m_RTV.GetCPU(), true, NULL);
+            auto handle = m_mip[i].m_RTV.GetCPU();
+            pCommandList->OMSetRenderTargets(1, &handle, true, NULL);
             SetViewportAndScissor(pCommandList, 0, 0, m_Width >> (i + 1), m_Height >> (i + 1));
 
             cbDownscale data;
@@ -134,15 +136,22 @@ namespace CAULDRON_DX12
 
             if (i > 0)
             {
-                pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_result.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1));
+                auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_result.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, i - 1);
+                pCommandList->ResourceBarrier(1, &transition);
             }
 
-            pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_result.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i));
+            {
+				auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_result.GetResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET, i);
+                pCommandList->ResourceBarrier(1, &transition);
+            }
 
             m_downscale.Draw(pCommandList, 1, &m_mip[i].m_SRV, constantBuffer);
         }
 
-        pCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(m_result.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, m_mipCount - 1));
+        {
+			auto transition = CD3DX12_RESOURCE_BARRIER::Transition(m_result.GetResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, m_mipCount - 1);
+            pCommandList->ResourceBarrier(1, &transition);
+        }
     }
 
     void DownSamplePS::Gui()

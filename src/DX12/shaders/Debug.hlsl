@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -30,14 +30,24 @@ struct VERTEX
 // Texture definitions
 //--------------------------------------------------------------------------------------
 
-Texture2D    DebugBuffer  : register(t0);
-SamplerState DebugSampler : register(s0);
+Texture2D<uint4> DebugBuffer  : register(t0);
+SamplerState     DebugSampler : register(s0);
 
 //--------------------------------------------------------------------------------------
 // Main function
 //--------------------------------------------------------------------------------------
 
-float4 mainPS(VERTEX Input) : SV_Target
+float4 mainPS(VERTEX Input, float4 pos : SV_Position) : SV_Target
 {
-    return float4(DebugBuffer.SampleLevel(DebugSampler, Input.vTexcoord, 0.0f).xxx, 1.0f);
+    uint2 pixelPos = (uint2)pos.xy;
+
+    uint3 value = DebugBuffer[pixelPos].xxx;
+    float3 vs = saturate(asfloat(value)  * 15.0f - 14.0f);
+
+    if (vs.x != 1.0f) {
+        vs.y = vs.y * 0.5f;
+        vs.z = vs.z * 0.5f + 0.5f;
+    }
+
+    return float4(vs, 1.0f);
 }

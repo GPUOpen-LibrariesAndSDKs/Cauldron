@@ -54,7 +54,7 @@ namespace CAULDRON_VK
 
         // Fixup font size based on scale factor
         DEVICE_SCALE_FACTOR scaleFactor = GetScaleFactorForDevice(DEVICE_PRIMARY);
-        float textScale = scaleFactor / 100.f;
+        float textScale = float(scaleFactor) / 100.f;
         ImFontConfig font_cfg;
         font_cfg.SizePixels = fontSize * textScale;
         io.Fonts->AddFontDefault(&font_cfg);
@@ -85,7 +85,7 @@ namespace CAULDRON_VK
             VmaAllocationCreateInfo imageAllocCreateInfo = {};
             imageAllocCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
             imageAllocCreateInfo.flags = VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-            imageAllocCreateInfo.pUserData = "ImGUI tex";
+            imageAllocCreateInfo.pUserData = (void*)"ImGUI tex";
             VmaAllocationInfo gpuImageAllocInfo = {};
             VkResult res = vmaCreateImage(m_pDevice->GetAllocator(), &info, &imageAllocCreateInfo, &m_pTexture2D, &m_ImageAlloc, &gpuImageAllocInfo);
             assert(res == VK_SUCCESS);

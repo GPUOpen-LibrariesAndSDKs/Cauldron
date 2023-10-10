@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -63,7 +63,10 @@ void SplitGltfAttribute(std::string attribute, std::string *semanticName, uint32
 
 math::Vector4 GetVector(const json::array_t &accessor)
 {
-    return math::Vector4(accessor[0], accessor[1], accessor[2], (accessor.size() == 4) ? accessor[3] : 0);
+    if (accessor.size() == 4)
+        return math::Vector4(accessor[0], accessor[1], accessor[2], accessor[3]);
+	else
+		return math::Vector4(accessor[0], accessor[1], accessor[2], 0.0f);
 }
 
 math::Matrix4 GetMatrix(const json::array_t &accessor)
@@ -114,38 +117,38 @@ type GetElement(const json::object_t *pRoot, const char *path, type pDefault)
     return pDefault;
 }
 
-std::string GetElementString(const json::object_t &root, const char *path, std::string pDefault)
+std::string GetElementString(const json::object_t &root, const char *path, std::string defaultValue)
 {
-    return GetElement<std::string>(&root, path, pDefault);
+    return GetElement<std::string>(&root, path, defaultValue);
 }
 
-bool GetElementBoolean(const json::object_t &root, const char *path, bool default)
+bool GetElementBoolean(const json::object_t &root, const char *path, bool defaultValue)
 {
-    return GetElement<bool>(&root, path, default);
+    return GetElement<bool>(&root, path, defaultValue);
 }
 
-float GetElementFloat(const json::object_t &root, const char *path, float default)
+float GetElementFloat(const json::object_t &root, const char *path, float defaultValue)
 {
-    return GetElement<float>(&root, path, default);
+    return GetElement<float>(&root, path, defaultValue);
 }
 
-int GetElementInt(const json::object_t &root, const char *path, int default)
+int GetElementInt(const json::object_t &root, const char *path, int defaultValue)
 {
-    return GetElement<int>(&root, path, default);
+    return GetElement<int>(&root, path, defaultValue);
 }
 
-json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t default)
+json::array_t GetElementJsonArray(const json::object_t &root, const char *path, json::array_t defaultValue)
 {
-    return GetElement<json::array_t>(&root, path, default);
+    return GetElement<json::array_t>(&root, path, defaultValue);
 }
 
-math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 default)
+math::Vector4 GetElementVector(json::object_t &root, const char *path, math::Vector4 defaultValue)
 {
     if (root.find(path) != root.end() && !root[path].is_null())
     {
         return GetVector(root[path].get<json::array_t>());
     }
     else
-        return default;
+        return defaultValue;
 }
 

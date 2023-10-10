@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -18,8 +18,13 @@
 // THE SOFTWARE.
 #pragma once
 
+#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#include "../../libs/d3d12wg/d3d12.h"
+#include "../../libs/d3d12wg/d3dx12.h"
+#else
 #include <d3d12.h>
-#include "../../libs/d3d12x/d3dx12.h"
+#include <d3dx12.h>
+#endif
 #include "../AGS/amd_ags.h"
 
 namespace CAULDRON_DX12

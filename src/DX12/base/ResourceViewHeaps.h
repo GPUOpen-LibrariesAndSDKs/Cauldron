@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -53,13 +53,15 @@ namespace CAULDRON_DX12
 
         D3D12_CPU_DESCRIPTOR_HANDLE GetCPU(uint32_t i = 0)
         {
+            assert(m_CPUDescriptor.ptr != 0);
             D3D12_CPU_DESCRIPTOR_HANDLE CPUDescriptor = m_CPUDescriptor;
             CPUDescriptor.ptr += i * m_descriptorSize;
             return CPUDescriptor;
         }
 
         D3D12_GPU_DESCRIPTOR_HANDLE GetGPU(uint32_t i = 0)
-        {
+		{
+			assert(m_GPUDescriptor.ptr != 0);
             D3D12_GPU_DESCRIPTOR_HANDLE GPUDescriptor = m_GPUDescriptor;
             GPUDescriptor.ptr += i * m_descriptorSize;
             return GPUDescriptor;
@@ -105,11 +107,21 @@ namespace CAULDRON_DX12
                 return false;
             }
 
-            D3D12_CPU_DESCRIPTOR_HANDLE CPUView = m_pHeap->GetCPUDescriptorHandleForHeapStart();
-            CPUView.ptr += m_index * m_descriptorElementSize;
+			// ADJUSTMENT: fixed visibility violation reported by debug-layer
+            D3D12_CPU_DESCRIPTOR_HANDLE CPUView = { 0 };
+            D3D12_GPU_DESCRIPTOR_HANDLE GPUView = { 0 };
 
-            D3D12_GPU_DESCRIPTOR_HANDLE GPUView = m_pHeap->GetGPUDescriptorHandleForHeapStart();
-            GPUView.ptr += m_index * m_descriptorElementSize;
+            if (m_CPUVisible)
+            {
+                CPUView = m_pHeap->GetCPUDescriptorHandleForHeapStart();
+                CPUView.ptr += m_index * m_descriptorElementSize;
+            }
+
+            if (m_GPUVisible)
+            {
+                GPUView = m_pHeap->GetGPUDescriptorHandleForHeapStart();
+                GPUView.ptr += m_index * m_descriptorElementSize;
+            }
 
             m_index += size;
 
@@ -121,6 +133,9 @@ namespace CAULDRON_DX12
         ID3D12DescriptorHeap *GetHeap() { return m_pHeap; }
 
     private:
+		bool m_CPUVisible;
+		bool m_GPUVisible;
+
         uint32_t m_index;
         uint32_t m_descriptorCount;
         uint32_t m_descriptorElementSize;
@@ -137,7 +152,8 @@ namespace CAULDRON_DX12
             m_DSV_Heap.OnCreate(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, dsvDescriptorCount);
             m_RTV_Heap.OnCreate(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, rtvDescriptorCount);
             m_Sampler_Heap.OnCreate(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, samplerDescriptorCount);
-            m_CBV_SRV_UAV_Heap.OnCreate(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cbvDescriptorCount + srvDescriptorCount + uavDescriptorCount);
+			m_CBV_SRV_UAV_Heap.OnCreate(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cbvDescriptorCount + srvDescriptorCount + uavDescriptorCount);
+			m_CBV_SRV_UAV_HeapCPU.OnCreate(pDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, cbvDescriptorCount + srvDescriptorCount + uavDescriptorCount, true);
         }
 
         void OnDestroy()
@@ -145,13 +161,19 @@ namespace CAULDRON_DX12
             m_DSV_Heap.OnDestroy();
             m_RTV_Heap.OnDestroy();
             m_Sampler_Heap.OnDestroy();
-            m_CBV_SRV_UAV_Heap.OnDestroy();
+			m_CBV_SRV_UAV_Heap.OnDestroy();
+			m_CBV_SRV_UAV_HeapCPU.OnDestroy();
         }
 
         bool AllocCBV_SRV_UAVDescriptor(uint32_t size, CBV_SRV_UAV *pRV)
         {
             return m_CBV_SRV_UAV_Heap.AllocDescriptor(size, pRV);
         }
+
+		bool AllocCBV_SRV_UAVDescriptorCPU(uint32_t size, CBV_SRV_UAV* pRV)
+		{
+			return m_CBV_SRV_UAV_HeapCPU.AllocDescriptor(size, pRV);
+		}
 
         bool AllocDSVDescriptor(uint32_t size, DSV *pRV)
         {
@@ -171,13 +193,15 @@ namespace CAULDRON_DX12
         ID3D12DescriptorHeap* GetDSVHeap() { return m_DSV_Heap.GetHeap(); }
         ID3D12DescriptorHeap* GetRTVHeap() { return m_RTV_Heap.GetHeap(); }
         ID3D12DescriptorHeap* GetSamplerHeap() { return m_Sampler_Heap.GetHeap(); }
-        ID3D12DescriptorHeap* GetCBV_SRV_UAVHeap() { return m_CBV_SRV_UAV_Heap.GetHeap(); }
+		ID3D12DescriptorHeap* GetCBV_SRV_UAVHeap() { return m_CBV_SRV_UAV_Heap.GetHeap(); }
+		ID3D12DescriptorHeap* GetCBV_SRV_UAVHeapCPU() { return m_CBV_SRV_UAV_HeapCPU.GetHeap(); }
 
     private:
         StaticResourceViewHeap m_DSV_Heap;
         StaticResourceViewHeap m_RTV_Heap;
         StaticResourceViewHeap m_Sampler_Heap;
-        StaticResourceViewHeap m_CBV_SRV_UAV_Heap;
+		StaticResourceViewHeap m_CBV_SRV_UAV_Heap;
+		StaticResourceViewHeap m_CBV_SRV_UAV_HeapCPU;
     };
 }
 

@@ -1,0 +1,10 @@
+include(common)
+
+copyTargetCommand("${CMAKE_CURRENT_SOURCE_DIR}/dxcompiler.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/dxc" copied_DXCwg_bin1)
+copyTargetCommand("${CMAKE_CURRENT_SOURCE_DIR}/dxilconv.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/dxc" copied_DXCwg_bin2)
+copyTargetCommand("${CMAKE_CURRENT_SOURCE_DIR}/D3D12Core.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/d3d12wg" copied_D3D12WG_bin1)
+copyTargetCommand("${CMAKE_CURRENT_SOURCE_DIR}/d3d12SDKLayers.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/d3d12wg" copied_D3D12WG_bin2)
+add_dependencies(DXC copied_DXCwg_bin1)
+add_dependencies(DXC copied_DXCwg_bin2)
+add_dependencies(DXC copied_D3D12WG_bin1)
+add_dependencies(DXC copied_D3D12WG_bin2)

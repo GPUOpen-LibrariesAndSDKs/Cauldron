@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -40,42 +40,47 @@ namespace CAULDRON_DX12
 
     class GLTFTexturesAndBuffers
     {
-        Device     *m_pDevice;
-        UploadHeap *m_pUploadHeap;
+        Device* m_pDevice;
+        UploadHeap* m_pUploadHeap;
 
-        const json *m_pTextureNodes;
+        const json* m_pTextureNodes;
 
         std::vector<Texture> m_textures;
 
         std::map<int, D3D12_GPU_VIRTUAL_ADDRESS> m_skeletonMatricesBuffer;
         std::vector<D3D12_CONSTANT_BUFFER_VIEW_DESC> m_InverseBindMatrices;
 
-        StaticBufferPool *m_pStaticBufferPool;
-        DynamicBufferRing *m_pDynamicBufferRing;
+        StaticBufferPool* m_pStaticBufferPool;
+        DynamicBufferRing* m_pDynamicBufferRing;
 
         // maps GLTF ids into views
         std::map<int, D3D12_VERTEX_BUFFER_VIEW> m_vertexBufferMap;
         std::map<int, D3D12_INDEX_BUFFER_VIEW> m_IndexBufferMap;
 
     public:
-        GLTFCommon *m_pGLTFCommon;
+        GLTFCommon* m_pGLTFCommon;
 
         D3D12_GPU_VIRTUAL_ADDRESS m_perFrameConstants;
 
-        bool OnCreate(Device* pDevice, GLTFCommon *pGLTFCommon, UploadHeap* pUploadHeap, StaticBufferPool *pStaticBufferPool, DynamicBufferRing *pDynamicBufferRing);
-        void LoadTextures(AsyncPool *pAsyncPool = NULL);
+        bool OnCreate(Device* pDevice, GLTFCommon* pGLTFCommon, UploadHeap* pUploadHeap, StaticBufferPool* pStaticBufferPool, DynamicBufferRing* pDynamicBufferRing);
+        void LoadTextures(AsyncPool* pAsyncPool = NULL);
         void LoadGeometry();
         void OnDestroy();
 
-        void CreateIndexBuffer(int indexBufferId, uint32_t *pNumIndices, DXGI_FORMAT *pIndexType, D3D12_INDEX_BUFFER_VIEW *pIBV);
-        void CreateGeometry(int indexBufferId, std::vector<int> &vertexBufferIds, Geometry *pGeometry);
-        void CreateGeometry(const json &primitive, const std::vector<std::string > requiredAttributes, std::vector<std::string> &semanticNames, std::vector<D3D12_INPUT_ELEMENT_DESC> &layout, DefineList &defines, Geometry *pGeometry);
+        void CreateIndexBuffer(int indexBufferId, uint32_t* pNumIndices, DXGI_FORMAT* pIndexType, D3D12_INDEX_BUFFER_VIEW* pIBV);
+        void CreateGeometry(int indexBufferId, std::vector<int>& vertexBufferIds, Geometry* pGeometry);
+        void CreateGeometry(const json& primitive, const std::vector<std::string > requiredAttributes, std::vector<std::string>& semanticNames, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout, DefineList& defines, Geometry* pGeometry);
 
         void SetPerFrameConstants();
         void SetSkinningMatricesForSkeletons();
 
-        Texture *GetTextureViewByID(int id);
+        Texture* GetTextureViewByID(int id);
         D3D12_GPU_VIRTUAL_ADDRESS GetSkinningMatricesBuffer(int skinIndex);
         D3D12_GPU_VIRTUAL_ADDRESS GetPerFrameConstants() { return m_perFrameConstants; }
+
+        // ADJUSTMENT: functions to get access to the vertex/index buffers
+        StaticBufferPool* GetStaticBufferPool() { return m_pStaticBufferPool; }
+		D3D12_VERTEX_BUFFER_VIEW GetVBVFromAttribute(int id) { return m_vertexBufferMap[id]; }
+        D3D12_INDEX_BUFFER_VIEW GetIBVFromAttribute(int id) { return m_IndexBufferMap[id]; }
     };
 }

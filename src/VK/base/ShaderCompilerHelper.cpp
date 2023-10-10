@@ -56,7 +56,7 @@ namespace CAULDRON_VK
 
         // compute command line to invoke the shader compiler
         //
-        char *stage = NULL;
+        const char *stage = NULL;
         switch (shader_type)
         {
         case VK_SHADER_STAGE_VERTEX_BIT:  stage = "vertex"; break;
@@ -187,7 +187,7 @@ namespace CAULDRON_VK
             if (ReadFile(filenameSpv.c_str(), &SpvData, &SpvSize, true) == false)
 #endif
             {
-                std::string &shader = GenerateSource(sourceType, shader_type, pshader, shaderCompilerParams, pDefines);
+                std::string shader = GenerateSource(sourceType, shader_type, pshader, shaderCompilerParams, pDefines);
                 VKCompileToSpirv(hash, sourceType, shader_type, shader.c_str(), pShaderEntryPoint, shaderCompilerParams, pDefines, &SpvData, &SpvSize);
             }
 

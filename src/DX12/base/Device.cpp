@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -57,10 +57,12 @@ namespace CAULDRON_DX12
                 factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 
             IDXGIFactory* pFactory;
-            IDXGIFactory6* pFactory6;
 
             ThrowIfFailed(CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&pFactory)));
 
+            // NOTE: Doesn't work with capturing in RenderDoc/PiX
+#if 0
+			IDXGIFactory6* pFactory6;
 			// Try to get Factory6 in order to use EnumAdapterByGpuPreference method. If it fails, fall back to regular EnumAdapters.
 			if (S_OK == pFactory->QueryInterface(IID_PPV_ARGS(&pFactory6)))
 			{
@@ -68,6 +70,7 @@ namespace CAULDRON_DX12
 				pFactory6->Release();
 			}
 			else
+#endif
 			{
                 ThrowIfFailed(pFactory->EnumAdapters(0, &m_pAdapter));
 			}

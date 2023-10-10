@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -56,7 +56,10 @@ namespace CAULDRON_DX12
 
         SetName(pResourceReadBack, "CopyRenderTargetIntoStagingTexture::pResourceReadBack");
 
-        pCmdLst2->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResourceFrom, resourceCurrentState, D3D12_RESOURCE_STATE_COPY_SOURCE));
+        {
+            auto transition = CD3DX12_RESOURCE_BARRIER::Transition(pResourceFrom, resourceCurrentState, D3D12_RESOURCE_STATE_COPY_SOURCE);
+            pCmdLst2->ResourceBarrier(1, &transition);
+        }
 
         D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout[1] = { 0 };
         uint32_t num_rows[1] = { 0 };
@@ -67,7 +70,10 @@ namespace CAULDRON_DX12
         CD3DX12_TEXTURE_COPY_LOCATION copySrc(pResourceFrom, 0);
         pCmdLst2->CopyTextureRegion(&copyDest, 0, 0, 0, &copySrc, nullptr);
 
-        pCmdLst2->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(pResourceFrom, D3D12_RESOURCE_STATE_COPY_SOURCE, resourceCurrentState));
+        {
+            auto transition = CD3DX12_RESOURCE_BARRIER::Transition(pResourceFrom, D3D12_RESOURCE_STATE_COPY_SOURCE, resourceCurrentState);
+            pCmdLst2->ResourceBarrier(1, &transition);
+        }
     }
 
     void SaveTexture::SaveStagingTextureAsJpeg(ID3D12Device *pDevice, ID3D12CommandQueue *pDirectQueue, const char *pFilename)

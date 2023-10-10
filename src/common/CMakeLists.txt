@@ -5,6 +5,8 @@ set(base_src
     "base/Sequence.h"
     "base/Benchmark.cpp"
     "base/Benchmark.h"
+    "base/Profile.cpp"
+    "base/Profile.h"
     "base/ImGuiHelper.cpp"
     "base/ImGuiHelper.h"
 )

@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -28,9 +28,13 @@ namespace CAULDRON_DX12
     class Buffer
     {
     public:
-        void InitFromMem(Device *pDevice, const char *pDebugName, UploadHeap *pUploadHeap, const void *pData, int numElements, int elementSize);
+		void InitFromMem(Device* pDevice, const char* pDebugName, UploadHeap* pUploadHeap, const void* pData, int numElements, int elementSize, uint32_t minimumSize = 0);
+		void UpdateFromMem(UploadHeap* pUploadHeap, const void* pData, int numElements, int elementSize);
         void Release();
-        void CreateSRV(uint32_t index, CBV_SRV_UAV *pRV);
+		void CreateSRV(uint32_t index, CBV_SRV_UAV* pRV, uint32_t beginning = 0);
+		void CreateUAV(uint32_t index, CBV_SRV_UAV* pRV, uint32_t beginning = 0);
+
+		ID3D12Resource* GetResource() const { return m_pBuffer; }
 
     private:
         Device                    *m_pDevice;

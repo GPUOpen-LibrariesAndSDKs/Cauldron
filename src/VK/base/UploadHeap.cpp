@@ -72,7 +72,8 @@ namespace CAULDRON_VK
             alloc_info.allocationSize = mem_reqs.size;
             alloc_info.memoryTypeIndex = 0;
 
-            bool pass = memory_type_from_properties(m_pDevice->GetPhysicalDeviceMemoryProperties(), mem_reqs.memoryTypeBits,
+            auto properties = m_pDevice->GetPhysicalDeviceMemoryProperties();
+            bool pass = memory_type_from_properties(properties, mem_reqs.memoryTypeBits,
                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                 &alloc_info.memoryTypeIndex);
             assert(pass && "No mappable, coherent memory");

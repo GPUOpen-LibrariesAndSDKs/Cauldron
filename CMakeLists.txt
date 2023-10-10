@@ -1,8 +1,10 @@
 #set a debug override for the project before we change project name for Cauldron
 cmake_minimum_required(VERSION 3.6)
+set(CMAKE_CXX_STANDARD 20)
 
 option (GFX_API_DX12 "Build Cauldron with DX12" ON)
 option (GFX_API_VK "Build Cauldron with Vulkan" ON)
+option (GFX_API_WG "Build Cauldron with Work graphs" ON)
 
 if(NOT DEFINED GFX_API)
     project (Cauldron)
@@ -54,15 +56,21 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 
 add_compile_options(/MP)
 
+if(GFX_API_WG)
+    add_definitions(-DENABLE_EXPERIMENTAL_WORKGRAPHS)
+endif()
+
 # reference libs used by both backends
 add_subdirectory(src/Common)
 add_subdirectory(libs/json)
 add_subdirectory(libs/ImGUI)
 add_subdirectory(libs/stb)
 add_subdirectory(libs/DXC)
+add_subdirectory(libs/DXCwg)
 add_subdirectory(libs/vectormath)
 
 if(GFX_API_DX12)
+    add_subdirectory(libs/d3d12wg)
     add_subdirectory(libs/d3d12x)
     add_subdirectory(libs/AGS)
     add_subdirectory(libs/WinPixEventRuntime)

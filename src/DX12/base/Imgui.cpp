@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -51,7 +51,7 @@ namespace CAULDRON_DX12
 
         // Fixup font size based on scale factor
         DEVICE_SCALE_FACTOR scaleFactor = GetScaleFactorForDevice(DEVICE_PRIMARY);
-        float textScale = scaleFactor / 100.f;
+        float textScale = float(scaleFactor) / 100.f;
         ImFontConfig font_cfg;
         font_cfg.SizePixels = fontSize * textScale;
         io.Fonts->AddFontDefault(&font_cfg);
@@ -64,8 +64,10 @@ namespace CAULDRON_DX12
         //
         CD3DX12_RESOURCE_DESC RDescs = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 1);
         {
-            m_pDevice->GetDevice()->CreateCommittedResource(
-                &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),
+			auto properties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+			m_pDevice->GetDevice()->CreateCommittedResource(
+                &properties,
                 D3D12_HEAP_FLAG_NONE,
                 &RDescs,
                 D3D12_RESOURCE_STATE_COMMON,

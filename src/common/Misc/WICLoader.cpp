@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2020 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -203,7 +203,7 @@ void WICLoader::MipImage(uint32_t width, uint32_t height)
             {
                 uint32_t cc = 0;
                 for (uint32_t i = 0; i < 4; i++)
-                    cc += GetByte(GetColor(pImg, x + offsetsX[i], y + offsetsY[i]), 3-c);
+                    cc += GetByte(GetColor(pImg, std::min(x + offsetsX[i], width - 1), std::min(y + offsetsY[i], height - 1)), 3-c);
 
                 ccc = (ccc << 8) | (cc/4);
             }            
