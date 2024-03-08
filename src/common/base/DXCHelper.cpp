@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -19,8 +19,8 @@
 
 #include "stdafx.h"
 #include <D3DCompiler.h>
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
-#include "../../libs/d3d12wg/dxcapi.h"
+#ifdef ENABLE_WORKGRAPHS
+#include "../../libs/DXC/inc/dxcapi.h"
 #else
 #include <dxcapi.h>
 #endif
@@ -47,16 +47,17 @@ void CompileMacros(const DefineList *pMacros, std::vector<D3D_SHADER_MACRO> *pOu
 }
 
 DxcCreateInstanceProc s_dxc_create_func;
+std::string s_dxc_commit_hash;
 
 bool InitDirectXCompiler()
 {
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
     // Redirect to use experimental implementation
     std::string fullshaderCompilerPath = "dxc\\dxcompiler.dll";
-    std::string fullshaderDXILPath = "dxil.dll";
+    std::string fullshaderDXILPath = "dxc\\dxil.dll";
 #else
-	std::string fullshaderCompilerPath = "dxcompiler.dll";
-	std::string fullshaderDXILPath = "dxil.dll";
+    std::string fullshaderCompilerPath = "dxcompiler.dll";
+    std::string fullshaderDXILPath = "dxil.dll";
 #endif
 
     HMODULE dxil_module = ::LoadLibrary(fullshaderDXILPath.c_str());
@@ -64,7 +65,35 @@ bool InitDirectXCompiler()
 
     s_dxc_create_func = (DxcCreateInstanceProc)::GetProcAddress(dxc_module, "DxcCreateInstance");
 
+    s_dxc_commit_hash = "";
+    if (s_dxc_create_func != NULL)
+    {
+        IDxcCompiler2* pCompiler;
+        ThrowIfFailed(s_dxc_create_func(CLSID_DxcCompiler, IID_PPV_ARGS(&pCompiler)));
+
+        IDxcVersionInfo2* pVersionInfo2;
+        if (pCompiler->QueryInterface(IID_PPV_ARGS(&pVersionInfo2)) == S_OK)
+        {
+            UINT32 _CommitCount;
+            char* _CommitHash;
+
+            if (pVersionInfo2->GetCommitInfo(&_CommitCount, &_CommitHash) == S_OK)
+            {
+                s_dxc_commit_hash = _CommitHash;
+            }
+
+            pVersionInfo2->Release();
+        }
+
+        pCompiler->Release();
+    }
+
     return s_dxc_create_func != NULL;
+}
+
+const char* GetDirectXCompilerHash()
+{
+    return s_dxc_commit_hash.c_str();
 }
 
 interface Includer : public ID3DInclude

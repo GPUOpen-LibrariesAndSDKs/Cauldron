@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -20,6 +20,7 @@
 #include "stdafx.h"
 #include "base/Device.h"
 #include "base/StaticBufferPool.h"
+#include "base/DynamicBufferRing.h"
 #include "base/ResourceViewHeaps.h"
 #include "PostProcPS.h"
 #include "Debug.h"
@@ -31,8 +32,17 @@ namespace CAULDRON_DX12
     // OnCreate
     //
     //--------------------------------------------------------------------------------------
-    void Debug::OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool, DXGI_FORMAT outFormat)
-    {
+	void Debug::OnCreate(
+		Device* pDevice,
+		ResourceViewHeaps* pResourceViewHeaps,
+		DynamicBufferRing* pConstantBufferRing,
+		StaticBufferPool* pStaticBufferPool,
+		DXGI_FORMAT outFormat
+	)
+	{
+		m_pResourceViewHeaps = pResourceViewHeaps;
+		m_pConstantBufferRing = pConstantBufferRing;
+
         D3D12_STATIC_SAMPLER_DESC SamplerDesc = {};
         SamplerDesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
         SamplerDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -76,10 +86,14 @@ namespace CAULDRON_DX12
     // Draw
     //
     //--------------------------------------------------------------------------------------
-    void Debug::Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pDebugBufferSRV)
-    {
-        UserMarker marker(pCommandList, "Debug");
+	void Debug::Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV* pDebugBufferSRV, bool showBins)
+	{
+		UserMarker marker(pCommandList, "Debug");
 
-        m_debug.Draw(pCommandList, 1, pDebugBufferSRV, 0);
-    }
+		Debug::cbDebug data;
+		data.showBins = showBins;
+		D3D12_GPU_VIRTUAL_ADDRESS constantBuffer = m_pConstantBufferRing->AllocConstantBuffer(sizeof(Debug::cbDebug), (void**)&data);
+
+		m_debug.Draw(pCommandList, 1, pDebugBufferSRV, constantBuffer);
+	}
 }

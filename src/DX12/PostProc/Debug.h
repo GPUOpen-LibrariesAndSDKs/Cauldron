@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -16,20 +16,36 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 #pragma once
+#include "PostProcPS.h"
 
 namespace CAULDRON_DX12
 {
     class Debug
     {
     public:
-        void OnCreate(Device *pDevice, ResourceViewHeaps *pResourceViewHeaps, StaticBufferPool *pStaticBufferPool, DXGI_FORMAT outFormat);
+		void OnCreate(
+			Device* pDevice,
+			ResourceViewHeaps* pResourceViewHeaps,
+			DynamicBufferRing* pConstantBufferRing,
+			StaticBufferPool* pStaticBufferPool,
+			DXGI_FORMAT outFormat
+		);
         void OnDestroy();
 
         void UpdatePipelines(DXGI_FORMAT outFormat);
-        void Draw(ID3D12GraphicsCommandList *pCommandList, CBV_SRV_UAV *pDebugBufferSRV);
+		void Draw(ID3D12GraphicsCommandList* pCommandList, CBV_SRV_UAV* pDebugBufferSRV, bool showBins);
 
     private:
-        PostProcPS m_debug;
-    };
+		ResourceViewHeaps* m_pResourceViewHeaps;
+		DynamicBufferRing* m_pConstantBufferRing;
+
+		PostProcPS m_debug;
+
+		struct cbDebug
+		{
+			bool showBins;
+		};
+	};
 }

@@ -1,7 +1,7 @@
 // AMD Cauldron code
 // AMD Work graph Rasterizer code
 // 
-// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -29,7 +29,7 @@
 #include "GltfRasterizerPass.h"
 #include "GltfPbrPass.h"
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 #include <wrl.h>
 #include <comdef.h>
 using namespace Microsoft::WRL;
@@ -66,7 +66,7 @@ namespace CAULDRON_DX12
 		DXGI_FORMAT depthFormat)
 	{
 		m_pDevice = pDevice;
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		ThrowIfFailed(m_pDevice->GetDevice()->QueryInterface(IID_PPV_ARGS(&m_pDevice9)));
 #endif
 		m_pUploadHeap = pUploadHeap;
@@ -81,7 +81,7 @@ namespace CAULDRON_DX12
 		for (int t = 0; t < 4; ++t)
 			m_pipelineRenderMS[t] = nullptr;
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		m_memoryInitialized[0] = false;
 		m_memoryInitialized[1] = false;
 		for (int t = 0; t < 2; ++t)
@@ -91,6 +91,8 @@ namespace CAULDRON_DX12
 			m_memorySize[t] = 0;
 		}
 #endif
+
+		m_MSAllocationRange = 4 * 1024 * 1024;
 
 		m_numberOfBins = 9;
 		m_homogeneous = true;
@@ -335,7 +337,7 @@ namespace CAULDRON_DX12
 						CreateExecuteIndirectPipeline(bUsingSkinning, defines, pPrimitive);
 						CreateExecuteIndirectMultiStagePipeline(bUsingSkinning, defines, pPrimitive);
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 						CreateWorkGraphPipeline(bUsingSkinning, defines, pPrimitive);
 #endif
 
@@ -366,8 +368,6 @@ namespace CAULDRON_DX12
 		pBufferPool->CreateSRV(0, &m_PositionBufferSRV, DXGI_FORMAT_R32G32B32_FLOAT, sizeof(float) * 3);
 
 		// - Create multi-stage compute rasterizer resources ----------------------------------------------
-		m_MSAllocationRange = 4 * 1024 * 1024;
-
 		int numArgS = m_MSAllocationRange;
 		int numArgR = m_numberOfBins;
 		int numSplt = m_MSAllocationRange;
@@ -431,7 +431,7 @@ namespace CAULDRON_DX12
 		// Flush the gpu to make sure we don't change anything still active
 		m_pDevice->GPUFlush();
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		for (int t = 0; t < 2; ++t)
 		{
 			if (m_memoryWorkGraph[t])
@@ -496,7 +496,7 @@ namespace CAULDRON_DX12
 			}
 		}
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		m_memoryInitialized[0] = false;
 		m_memoryInitialized[1] = false;
 		for (int t = 0; t < 2; ++t)
@@ -541,7 +541,7 @@ namespace CAULDRON_DX12
 						CreateExecuteIndirectPipeline(bUsingSkinning, pPrimitive->m_defines, pPrimitive);
 						CreateExecuteIndirectMultiStagePipeline(bUsingSkinning, pPrimitive->m_defines, pPrimitive);
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 						CreateWorkGraphPipeline(bUsingSkinning, pPrimitive->m_defines, pPrimitive);
 #endif
 
@@ -570,7 +570,7 @@ namespace CAULDRON_DX12
 				m_pipelineRenderMS[t]->Release();
 		}
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		for (int t = 0; t < 2; ++t)
 		{
 			if (m_pipelineWorkGraph[t])
@@ -805,7 +805,7 @@ namespace CAULDRON_DX12
 		}
 	}
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 	void GltfRasterizerPass::CreateWorkGraphPipeline(bool bUsingSkinning, DefineList& defines, RasterizerPrimitives* pPrimitive)
 	{
 		// NOTE: Skinned meshes not supported for z-buffer rasterizer (can be pre-skinned)
@@ -1220,10 +1220,10 @@ namespace CAULDRON_DX12
 	{
 		UserMarker marker(pCommandList, "GltfRasterizerPass::Draw");
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		// Get the interface for the work graphs enabled command list.
-		ComPtr<ID3D12GraphicsCommandListExperimental> pCommandListExperimental;
-		ThrowIfFailed(pCommandList->QueryInterface(IID_PPV_ARGS(&pCommandListExperimental)));
+		ComPtr<ID3D12GraphicsCommandList10> pCommandListWorkgraphs;
+		ThrowIfFailed(pCommandList->QueryInterface(IID_PPV_ARGS(&pCommandListWorkgraphs)));
 #endif
 
 		// Set descriptor heaps
@@ -1285,7 +1285,7 @@ namespace CAULDRON_DX12
 
 		m_feedback[0] = int(numDraws);
 		m_feedback[1] = int(numTriangles);
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		m_feedback[2] = int(m_memorySize[0]) / (1024);
 		m_feedback[3] = int(m_memorySize[1]) / (1024);
 #endif
@@ -1411,7 +1411,7 @@ namespace CAULDRON_DX12
 			pCommandList->ResourceBarrier(1, &barrier);  // all buffers: UAV-barrier
 		}
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		if ((submissionMode == 3) || (submissionMode == 4))
 		{
 			// Bind WorkGraph pipeline state object and backing buffer
@@ -1442,7 +1442,7 @@ namespace CAULDRON_DX12
 			const D3D12_SET_PROGRAM_DESC programDesc = { .Type = D3D12_PROGRAM_TYPE_WORK_GRAPH,
 														.WorkGraph = workGraphProgramDesc };
 
-			pCommandListExperimental->SetProgram(&programDesc);
+			pCommandListWorkgraphs->SetProgram(&programDesc);
 
 			if (submissionMode == 3)
 			{
@@ -1462,7 +1462,7 @@ namespace CAULDRON_DX12
 						.NodeCPUInput = nodeCPUInput,
 					};
 
-					pCommandListExperimental->DispatchGraph(&dispatchGraphDesc);
+					pCommandListWorkgraphs->DispatchGraph(&dispatchGraphDesc);
 				}
 			}
 			else
@@ -1481,7 +1481,7 @@ namespace CAULDRON_DX12
 					.NodeCPUInput = nodeCPUInput,
 				};
 
-				pCommandListExperimental->DispatchGraph(&dispatchGraphDesc);
+				pCommandListWorkgraphs->DispatchGraph(&dispatchGraphDesc);
 			}
 		}
 		else if (submissionMode == 5)
@@ -1514,7 +1514,7 @@ namespace CAULDRON_DX12
 			const D3D12_SET_PROGRAM_DESC programDesc = { .Type = D3D12_PROGRAM_TYPE_WORK_GRAPH,
 														.WorkGraph = workGraphProgramDesc };
 
-			pCommandListExperimental->SetProgram(&programDesc);
+			pCommandListWorkgraphs->SetProgram(&programDesc);
 
 			// Arguments for ExecuteIndirect-type root node
 			//
@@ -1544,7 +1544,7 @@ namespace CAULDRON_DX12
 				.NodeCPUInput = nodeCPUInput,
 			};
 
-			pCommandListExperimental->DispatchGraph(&dispatchGraphDesc);
+			pCommandListWorkgraphs->DispatchGraph(&dispatchGraphDesc);
 		}
 #endif
 	}

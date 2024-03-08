@@ -1,6 +1,6 @@
 // AMD Workgraph Rasterizer code
 // 
-// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -331,8 +331,8 @@ void TriangleFetchAndTransform(
 		// Tie-breaker for BBox calculation
 		// Top-left tie-breaker is: take
 		// Bottom-right tie-breaker is: leave
-		uint2  BBMinI = uint2(BBMinF) + (frac(BBMinF) <= 0.5f ? 0 : 1);
-		uint2  BBMaxI = uint2(BBMaxF) - (frac(BBMaxF) <= 0.5f ? 1 : 0);
+		uint2  BBMinI = uint2(BBMinF) + select(frac(BBMinF) <= 0.5f, 0, 1);
+		uint2  BBMaxI = uint2(BBMaxF) - select(frac(BBMaxF) <= 0.5f, 1, 0);
 
 		// Clamp to resource dimensions and pixel center placement
 		float2 BBMin = float2(min(max(BBMinI, uint2(0, 0)), Dim)) + 0.5f;
@@ -684,7 +684,7 @@ void Rasterize(
 			uint2 location = uint2(x, y);
 
 #if SHOWBINS
-			z = ((float(TRIANGLE_BIN) / TRIANGLE_BINS) + 14.0f) / 15.0f;
+			z = float(TRIANGLE_BIN) / 16.0f;
 #endif
 		 
 		//	InterlockedMin(visibilityBuffer[location], depthIndexPair);

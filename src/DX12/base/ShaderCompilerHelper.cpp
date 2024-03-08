@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -62,6 +62,8 @@ namespace CAULDRON_DX12
         const char *pParams,
         D3D12_SHADER_BYTECODE* pOutBytecode)
     {
+        const char* pCompilerHash = GetDirectXCompilerHash();
+
         //compute hash
         //
         size_t hash;
@@ -72,6 +74,7 @@ namespace CAULDRON_DX12
         {
             hash = pDefines->Hash(hash);
         }
+        hash = Hash(pCompilerHash, strlen(pCompilerHash), hash);
 
 #ifdef USE_MULTITHREADED_CACHE
         // Compile if not in cache

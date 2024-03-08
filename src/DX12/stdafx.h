@@ -23,10 +23,10 @@
 #include <cassert>
 
 // GFX API
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
-#include "..\d3d12wg\D3D12.h"
+#ifdef ENABLE_WORKGRAPHS
+#include "..\d3d12\D3D12.h"
 #include <D3Dcompiler.h>
-#include "..\d3d12wg\d3dx12.h"
+#include "..\d3d12x\d3dx12.h"
 #else
 #include <D3D12.h>
 #include <D3Dcompiler.h>

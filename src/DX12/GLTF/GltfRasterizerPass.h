@@ -1,7 +1,7 @@
 // AMD Cauldron code
 // AMD Work graph Rasterizer code
 // 
-// Copyright(c) 2023 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -130,7 +130,7 @@ namespace CAULDRON_DX12
 		void Draw(ID3D12GraphicsCommandList* pCommandList, int submissionMode, int passIndex = 0);
 	private:
 		Device* m_pDevice;
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		ID3D12Device8* m_pDevice9;
 #endif
 		UploadHeap* m_pUploadHeap;
@@ -155,7 +155,7 @@ namespace CAULDRON_DX12
 		ID3D12CommandSignature* m_commandSignature;
 		ID3D12PipelineState* m_pipelineRender;
 		ID3D12PipelineState* m_pipelineRenderMS[4];
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		size_t m_memorySize[2];
 		ID3D12Resource* m_memoryWorkGraph[2];
 		bool m_memoryInitialized[2];
@@ -199,7 +199,7 @@ namespace CAULDRON_DX12
 		void CreateCommandSignature();
 		void CreateExecuteIndirectPipeline(bool bUsingSkinning, DefineList& defines, RasterizerPrimitives* pPrimitive);
 		void CreateExecuteIndirectMultiStagePipeline(bool bUsingSkinning, DefineList& defines, RasterizerPrimitives* pPrimitive);
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
+#ifdef ENABLE_WORKGRAPHS
 		void CreateWorkGraphPipeline(bool bUsingSkinning, DefineList& defines, RasterizerPrimitives* pPrimitive);
 #endif
 	};

@@ -21,8 +21,8 @@
 //
 #pragma once
 
-#ifdef ENABLE_EXPERIMENTAL_WORKGRAPHS
-#include "../../libs/d3d12wg/d3d12.h"
+#ifdef ENABLE_WORKGRAPHS
+#include "../../libs/d3d12/d3d12.h"
 #else
 #include <d3d12.h>
 #endif
