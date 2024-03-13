@@ -1,6 +1,6 @@
 // AMD Cauldron code
 // 
-// Copyright(c) 2019 Advanced Micro Devices, Inc.All rights reserved.
+// Copyright(c) 2024 Advanced Micro Devices, Inc.All rights reserved.
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
@@ -157,19 +157,22 @@ namespace CAULDRON_DX12
 
 
 
-            // Check for FS HDR support
-            if (devices[s_displayDeviceAGS].displays[s_displayIndexAGS].freesyncHDR)
+            if (s_displayIndexAGS != 0xffffffff)
             {
-                pModes->push_back(DISPLAYMODE_FSHDR_Gamma22);
-                pModes->push_back(DISPLAYMODE_FSHDR_SCRGB);
-            }
+                // Check for FS HDR support
+                if (devices[s_displayDeviceAGS].displays[s_displayIndexAGS].freesyncHDR)
+                {
+                    pModes->push_back(DISPLAYMODE_FSHDR_Gamma22);
+                    pModes->push_back(DISPLAYMODE_FSHDR_SCRGB);
+                }
 
-            // Check for HDR10 support
-            if (devices[s_displayDeviceAGS].displays[s_displayIndexAGS].HDR10)
-            {
-                hdrModesAdded = true;
-                pModes->push_back(DISPLAYMODE_HDR10_2084);
-                pModes->push_back(DISPLAYMODE_HDR10_SCRGB);
+                // Check for HDR10 support
+                if (devices[s_displayDeviceAGS].displays[s_displayIndexAGS].HDR10)
+                {
+                    hdrModesAdded = true;
+                    pModes->push_back(DISPLAYMODE_HDR10_2084);
+                    pModes->push_back(DISPLAYMODE_HDR10_SCRGB);
+                }
             }
         }
 
